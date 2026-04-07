@@ -53,6 +53,17 @@ export async function createJazda(formData: FormData) {
   redirect('/moje-jazdy')
 }
 
+export async function updateJazdaAdmin(jazdaId: string, data: {
+  mesiac?: string; odchod_z?: string; prichod_do?: string; cez?: string;
+  km?: number; cas_odchodu?: string; cas_prichodu?: string;
+}) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('jazdy').update(data).eq('id', jazdaId)
+  if (error) return { error: 'Chyba pri aktualizácii jazdy' }
+  revalidatePath(`/admin/jazdy/${jazdaId}`)
+  revalidatePath('/admin/jazdy')
+}
+
 export async function deleteJazda(jazdaId: string) {
   const supabase = await createSupabaseServer()
   const { data: prilohy } = await supabase.from('jazdy_prilohy').select('file_path').eq('jazda_id', jazdaId)
@@ -61,5 +72,6 @@ export async function deleteJazda(jazdaId: string) {
   }
   await supabase.from('jazdy').delete().eq('id', jazdaId)
   revalidatePath('/moje-jazdy')
+  revalidatePath('/admin/jazdy')
   revalidatePath('/')
 }
