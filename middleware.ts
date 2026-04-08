@@ -42,7 +42,13 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const url = request.nextUrl.clone()
-    url.pathname = profile?.role === 'admin' ? '/admin/jazdy' : '/'
+    if (profile?.role === 'admin') {
+      url.pathname = '/admin/jazdy'
+    } else if (profile?.role === 'fleet_manager') {
+      url.pathname = '/fleet'
+    } else {
+      url.pathname = '/'
+    }
     return NextResponse.redirect(url)
   }
 
@@ -54,6 +60,20 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (profile?.role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  if (user && pathname.startsWith('/fleet')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'fleet_manager' && profile?.role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
