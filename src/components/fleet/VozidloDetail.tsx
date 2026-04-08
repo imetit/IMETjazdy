@@ -7,6 +7,8 @@ import { PALIVO_LABELS, type Vozidlo } from '@/lib/types'
 import { TYP_VOZIDLA_LABELS, STAV_VOZIDLA_LABELS, TYP_KONTROLY_LABELS, TYP_SERVISU_LABELS, STAV_SERVISU_LABELS, STAV_HLASENIA_LABELS } from '@/lib/fleet-types'
 import type { VozidloDokument, VozidloServis, VozidloKontrola, KmZaznam, VozidloHlasenie, DialognicnaZnamka } from '@/lib/fleet-types'
 import ZnamkySection from './ZnamkySection'
+import HistoriaDrzitelov from './HistoriaDrzitelov'
+import OdovzdavaciProtokolSection from './OdovzdavaciProtokol'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
 import DokumentySection from './DokumentySection'
@@ -33,11 +35,13 @@ interface Props {
   znamky: DialognicnaZnamka[]
   onUploadDokument: (formData: FormData) => Promise<{ error?: string } | undefined>
   onDeleteDokument: (id: string, filePath: string) => Promise<{ error?: string } | undefined>
+  historia: any[]
+  protokoly: any[]
 }
 
-type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky'
+type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly'
 
-export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument }: Props) {
+export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument, historia, protokoly }: Props) {
   const [tab, setTab] = useState<Tab>('zakladne')
   const [editModal, setEditModal] = useState(false)
   const router = useRouter()
@@ -50,6 +54,8 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
     { id: 'km', label: 'História km', count: kmHistoria.length },
     { id: 'hlasenia', label: 'Hlásenia', count: hlasenia.filter(h => h.stav === 'nove').length },
     { id: 'znamky', label: 'Diaľničné známky', count: znamky.length },
+    { id: 'historia', label: 'História držiteľov', count: historia.length },
+    { id: 'protokoly', label: 'Odovzdávacie protokoly', count: protokoly.length },
   ]
 
   const stavColor = vozidlo.stav === 'aktivne' ? 'bg-green-100 text-green-800' :
@@ -181,6 +187,17 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
         {tab === 'km' && <KmHistoria zaznamy={kmHistoria} />}
 
         {tab === 'znamky' && <ZnamkySection vozidloId={vozidlo.id} znamky={znamky} />}
+
+        {tab === 'historia' && <HistoriaDrzitelov historia={historia} />}
+
+        {tab === 'protokoly' && (
+          <OdovzdavaciProtokolSection
+            vozidloId={vozidlo.id}
+            vodici={vodici}
+            aktualnyVodicId={vozidlo.priradeny_vodic_id}
+            protokoly={protokoly}
+          />
+        )}
 
         {tab === 'hlasenia' && (
           <div className="space-y-3">
