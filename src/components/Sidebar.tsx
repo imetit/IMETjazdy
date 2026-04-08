@@ -19,7 +19,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   const hasFleetAccess = isFleetManager
 
   const linkClass = (href: string) => {
-    const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+    const isActive = pathname === href || (href !== '/' && (pathname.startsWith(href + '/') || pathname.startsWith(href + '?')))
     return `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       isActive ? 'bg-primary text-white' : 'text-gray-300 hover:text-white hover:bg-white/10'
     }`

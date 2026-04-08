@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const { searchParams } = new URL(request.url)
   const secret = searchParams.get('secret')
-  if (secret !== process.env.CRON_SECRET) {
+  if (!secret || !process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -26,6 +26,7 @@ export async function GET(request: Request) {
   const typLabels: Record<string, string> = { stk: 'STK', ek: 'EK', pzp: 'PZP', havarijne: 'Havarijné poistenie' }
 
   for (const k of kontroly || []) {
+    if (!k.vozidlo) continue
     const expiry = new Date(k.platnost_do)
     const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
       const { data: fleetManagers } = await supabase
         .from('profiles')
         .select('email')
-        .in('role', ['fleet_manager', 'admin'])
+        .in('role', ['fleet_manager', 'admin', 'it_admin'])
 
       const subject = `${typLabels[k.typ] || k.typ} - ${k.vozidlo.spz} expiruje o ${diffDays} dní`
       const body = `Vozidlo ${k.vozidlo.znacka} ${k.vozidlo.variant} (${k.vozidlo.spz}) má ${typLabels[k.typ]} platnú do ${k.platnost_do}. Zostáva ${diffDays} dní.`
@@ -62,6 +63,7 @@ export async function GET(request: Request) {
     .not('platnost_do', 'is', null)
 
   for (const d of dokumenty || []) {
+    if (!d.vozidlo) continue
     const expiry = new Date(d.platnost_do)
     const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -69,7 +71,7 @@ export async function GET(request: Request) {
       const { data: fleetManagers } = await supabase
         .from('profiles')
         .select('email')
-        .in('role', ['fleet_manager', 'admin'])
+        .in('role', ['fleet_manager', 'admin', 'it_admin'])
 
       const subject = `Dokument "${d.nazov}" - ${d.vozidlo.spz} expiruje o ${diffDays} dní`
       const body = `Dokument "${d.nazov}" pre vozidlo ${d.vozidlo.znacka} ${d.vozidlo.variant} (${d.vozidlo.spz}) expiruje ${d.platnost_do}. Zostáva ${diffDays} dní.`

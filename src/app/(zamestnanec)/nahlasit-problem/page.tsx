@@ -16,6 +16,7 @@ export default async function NahlasitProblemPage() {
   const { data: vozidla } = await supabase
     .from('vozidla')
     .select('*')
+    .in('stav', ['aktivne', 'servis'])
     .order('znacka')
 
   return (

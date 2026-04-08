@@ -21,6 +21,7 @@ export default function HlasenieForm({ vozidla, defaultVozidloId }: Props) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess(false)
     const result = await createHlasenie(new FormData(e.currentTarget))
     if (result?.error) {
       setError(result.error)

@@ -18,6 +18,14 @@ export interface Vozidlo {
   spotreba_tp: number
   objem_motora: number
   aktivne: boolean
+  vin: string | null
+  rok_vyroby: number | null
+  farba: string | null
+  typ_vozidla: string
+  stav: string
+  stredisko: string | null
+  aktualne_km: number
+  priradeny_vodic_id: string | null
   created_at: string
 }
 

@@ -16,20 +16,35 @@ interface Props {
 
 export default function DokumentySection({ vozidloId, dokumenty, readonly, onUpload, onDelete }: Props) {
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!onUpload) return
     setUploading(true)
+    setError('')
     const formData = new FormData(e.currentTarget)
     formData.set('vozidlo_id', vozidloId)
-    await onUpload(formData)
-    e.currentTarget.reset()
+    const result = await onUpload(formData)
+    if (result?.error) {
+      setError(result.error)
+    } else {
+      e.currentTarget.reset()
+    }
     setUploading(false)
+  }
+
+  async function handleDelete(id: string, filePath: string) {
+    if (!onDelete) return
+    setDeleting(id)
+    await onDelete(id, filePath)
+    setDeleting(null)
   }
 
   return (
     <div className="space-y-4">
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       {!readonly && onUpload && (
         <form onSubmit={handleUpload} className="bg-gray-50 rounded-lg p-4 space-y-3">
           <div className="grid grid-cols-3 gap-3">
@@ -69,7 +84,7 @@ export default function DokumentySection({ vozidloId, dokumenty, readonly, onUpl
               <div className="flex items-center gap-2">
                 {doc.platnost_do && <StatusIndicator platnostDo={doc.platnost_do} />}
                 {!readonly && onDelete && (
-                  <button onClick={() => onDelete(doc.id, doc.file_path)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
+                  <button onClick={() => handleDelete(doc.id, doc.file_path)} disabled={deleting === doc.id} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50">
                     <Trash2 size={16} />
                   </button>
                 )}

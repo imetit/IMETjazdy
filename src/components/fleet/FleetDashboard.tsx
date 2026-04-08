@@ -3,7 +3,7 @@
 import { Car, Wrench, AlertTriangle, TrendingUp } from 'lucide-react'
 import type { FleetDashboardData } from '@/lib/fleet-types'
 import { TYP_KONTROLY_LABELS } from '@/lib/fleet-types'
-import { formatCurrency, formatDate, getDaysUntilExpiry } from '@/lib/fleet-utils'
+import { formatCurrency, formatDate } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
 import Link from 'next/link'
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Modal from '@/components/Modal'
-import { PALIVO_LABELS, type PalivoTyp, type Vozidlo } from '@/lib/types'
+import { PALIVO_LABELS, type Vozidlo } from '@/lib/types'
 import { TYP_VOZIDLA_LABELS, STAV_VOZIDLA_LABELS } from '@/lib/fleet-types'
 
 interface Props {
