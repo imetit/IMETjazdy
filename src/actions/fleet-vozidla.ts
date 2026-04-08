@@ -48,6 +48,8 @@ export async function createFleetVozidlo(formData: FormData) {
     stredisko: formData.get('stredisko') as string || null,
     aktualne_km: parseInt(formData.get('aktualne_km') as string) || 0,
     priradeny_vodic_id: formData.get('priradeny_vodic_id') as string || null,
+    obstaravacia_cena: formData.get('obstaravacia_cena') ? parseFloat(formData.get('obstaravacia_cena') as string) : null,
+    leasing_koniec: formData.get('leasing_koniec') as string || null,
   })
   if (error) return { error: 'Chyba pri vytváraní vozidla' }
   revalidatePath('/fleet/vozidla')
@@ -71,6 +73,8 @@ export async function updateFleetVozidlo(id: string, formData: FormData) {
     stredisko: formData.get('stredisko') as string || null,
     aktualne_km: parseInt(formData.get('aktualne_km') as string) || 0,
     priradeny_vodic_id: formData.get('priradeny_vodic_id') as string || null,
+    obstaravacia_cena: formData.get('obstaravacia_cena') ? parseFloat(formData.get('obstaravacia_cena') as string) : null,
+    leasing_koniec: formData.get('leasing_koniec') as string || null,
   }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii vozidla' }
   revalidatePath('/fleet/vozidla')
