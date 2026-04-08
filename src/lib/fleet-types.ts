@@ -92,6 +92,57 @@ export interface DialognicnaZnamka {
   created_at: string
 }
 
+export interface PoistnaUdalost {
+  id: string
+  vozidlo_id: string
+  user_id: string
+  datum: string
+  cas: string | null
+  miesto: string
+  popis: string
+  skoda_popis: string | null
+  policajna_sprava: boolean
+  svedkovia: string | null
+  stav: 'nahlasena' | 'riesena' | 'uzavreta'
+  created_at: string
+  profile?: import('@/lib/types').Profile
+  vozidlo?: import('@/lib/types').Vozidlo
+}
+
+export interface HistoriaDrzitela {
+  id: string
+  vozidlo_id: string
+  user_id: string
+  datum_od: string
+  datum_do: string | null
+  created_at: string
+  profile?: import('@/lib/types').Profile
+}
+
+export interface OdovzdavaciProtokol {
+  id: string
+  vozidlo_id: string
+  odovzdavajuci_id: string | null
+  preberajuci_id: string | null
+  datum: string
+  km_stav: number | null
+  stav_vozidla: string | null
+  poskodenia: string | null
+  prislusenstvo: string | null
+  poznamky: string | null
+  pdf_path: string | null
+  created_at: string
+  odovzdavajuci?: import('@/lib/types').Profile
+  preberajuci?: import('@/lib/types').Profile
+  vozidlo?: import('@/lib/types').Vozidlo
+}
+
+export const STAV_POISTNEJ_LABELS: Record<string, string> = {
+  nahlasena: 'Nahlásená',
+  riesena: 'Riešená',
+  uzavreta: 'Uzavretá',
+}
+
 export interface NotifikaciaLog {
   id: string
   typ: string

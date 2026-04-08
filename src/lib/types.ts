@@ -28,6 +28,7 @@ export interface Vozidlo {
   priradeny_vodic_id: string | null
   obstaravacia_cena: number | null
   leasing_koniec: string | null
+  datum_pridelenia: string | null
   created_at: string
 }
 
