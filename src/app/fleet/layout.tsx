@@ -10,7 +10,7 @@ export default async function FleetLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   if (!profile) redirect('/login')
-  if (profile.role !== 'fleet_manager' && profile.role !== 'admin') redirect('/')
+  if (profile.role !== 'fleet_manager' && profile.role !== 'it_admin') redirect('/')
 
   return (
     <div className="flex min-h-screen bg-page-bg">

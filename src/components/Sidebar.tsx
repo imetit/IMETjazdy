@@ -13,9 +13,10 @@ import type { Profile } from '@/lib/types'
 
 export default function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname()
-  const isAdmin = profile.role === 'admin'
-  const isFleetManager = profile.role === 'fleet_manager'
-  const hasFleetAccess = isAdmin || isFleetManager
+  const isItAdmin = profile.role === 'it_admin'
+  const isAdmin = profile.role === 'admin' || isItAdmin
+  const isFleetManager = profile.role === 'fleet_manager' || isItAdmin
+  const hasFleetAccess = isFleetManager
 
   const linkClass = (href: string) => {
     const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
@@ -59,26 +60,30 @@ export default function Sidebar({ profile }: { profile: Profile }) {
           </>
         )}
 
-        {sectionLabel('Vozový park')}
+        {(!isAdmin || isItAdmin) && (
+          <>
+            {sectionLabel('Vozový park')}
 
-        {hasFleetAccess ? (
-          <>
-            <Link href="/fleet" className={linkClass('/fleet')}><Gauge size={18} /> Dashboard</Link>
-            <Link href="/fleet/vozidla" className={linkClass('/fleet/vozidla')}><CarFront size={18} /> Vozidlá</Link>
-            <Link href="/fleet/servisy" className={linkClass('/fleet/servisy')}><Wrench size={18} /> Servisy a opravy</Link>
-            <Link href="/fleet/kontroly" className={linkClass('/fleet/kontroly')}><ShieldCheck size={18} /> Kontroly</Link>
-            <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}><AlertTriangle size={18} /> Hlásenia</Link>
-          </>
-        ) : (
-          <>
-            <Link href="/moje-vozidlo" className={linkClass('/moje-vozidlo')}><CarFront size={18} /> Moje vozidlo</Link>
-            <Link href="/nahlasit-problem" className={linkClass('/nahlasit-problem')}><AlertTriangle size={18} /> Nahlásiť problém</Link>
+            {hasFleetAccess ? (
+              <>
+                <Link href="/fleet" className={linkClass('/fleet')}><Gauge size={18} /> Dashboard</Link>
+                <Link href="/fleet/vozidla" className={linkClass('/fleet/vozidla')}><CarFront size={18} /> Vozidlá</Link>
+                <Link href="/fleet/servisy" className={linkClass('/fleet/servisy')}><Wrench size={18} /> Servisy a opravy</Link>
+                <Link href="/fleet/kontroly" className={linkClass('/fleet/kontroly')}><ShieldCheck size={18} /> Kontroly</Link>
+                <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}><AlertTriangle size={18} /> Hlásenia</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/moje-vozidlo" className={linkClass('/moje-vozidlo')}><CarFront size={18} /> Moje vozidlo</Link>
+                <Link href="/nahlasit-problem" className={linkClass('/nahlasit-problem')}><AlertTriangle size={18} /> Nahlásiť problém</Link>
+              </>
+            )}
           </>
         )}
       </nav>
 
       <div className="px-3 pb-4 space-y-1">
-        {isAdmin && (
+        {(profile.role === 'admin' || isItAdmin) && (
           <Link href="/admin/nastavenia" className={linkClass('/admin/nastavenia')}><Settings size={18} /> Nastavenia</Link>
         )}
         <div className="border-t border-white/10 pt-3 mt-2">

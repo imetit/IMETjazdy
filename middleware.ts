@@ -42,7 +42,9 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const url = request.nextUrl.clone()
-    if (profile?.role === 'admin') {
+    if (profile?.role === 'it_admin') {
+      url.pathname = '/admin/jazdy'
+    } else if (profile?.role === 'admin') {
       url.pathname = '/admin/jazdy'
     } else if (profile?.role === 'fleet_manager') {
       url.pathname = '/fleet'
@@ -59,7 +61,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    if (profile?.role !== 'admin' && profile?.role !== 'it_admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
@@ -73,7 +75,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'fleet_manager' && profile?.role !== 'admin') {
+    if (profile?.role !== 'fleet_manager' && profile?.role !== 'it_admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
