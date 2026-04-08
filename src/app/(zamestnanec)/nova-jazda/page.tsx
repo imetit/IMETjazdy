@@ -8,9 +8,15 @@ export default async function NovaJazdaPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('*, vozidlo:vozidla(*)').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
 
-  if (!profile?.vozidlo) {
+  let vozidlo = null
+  if (profile?.vozidlo_id) {
+    const { data: v } = await supabase.from('vozidla').select('*').eq('id', profile.vozidlo_id).single()
+    vozidlo = v
+  }
+
+  if (!vozidlo) {
     return (
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Nová jazda</h2>
@@ -22,7 +28,7 @@ export default async function NovaJazdaPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Nová jazda</h2>
-      <JazdaForm vozidlo={profile.vozidlo as Vozidlo} userName={profile.full_name} />
+      <JazdaForm vozidlo={vozidlo as Vozidlo} userName={profile!.full_name} />
     </div>
   )
 }
