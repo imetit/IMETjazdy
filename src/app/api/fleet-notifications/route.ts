@@ -82,6 +82,31 @@ export async function GET(request: Request) {
     }
   }
 
+  // Check leasing end dates
+  const { data: vozidlaLeasing } = await supabase
+    .from('vozidla')
+    .select('id, spz, znacka, variant, leasing_koniec')
+    .not('leasing_koniec', 'is', null)
+
+  for (const v of vozidlaLeasing || []) {
+    const expiry = new Date(v.leasing_koniec)
+    const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+    if ([30, 14, 7].includes(diffDays)) {
+      const { data: fleetManagers } = await supabase
+        .from('profiles')
+        .select('email')
+        .in('role', ['fleet_manager', 'admin', 'it_admin'])
+
+      const subject = `Leasing - ${v.spz} končí o ${diffDays} dní`
+      const body = `Vozidlo ${v.znacka} ${v.variant} (${v.spz}) má koniec leasingu ${v.leasing_koniec}. Zostáva ${diffDays} dní.`
+
+      for (const fm of fleetManagers || []) {
+        notifications.push({ email: fm.email, subject, body, typ: 'leasing_koniec', vozidloId: v.id })
+      }
+    }
+  }
+
   let sent = 0
   for (const n of notifications) {
     const { data: existing } = await supabase
