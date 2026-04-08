@@ -49,6 +49,9 @@ export interface VozidloKontrola {
   typ: TypKontroly
   datum_vykonania: string
   platnost_do: string
+  cena: number | null
+  zaplatene: boolean
+  datum_platby: string | null
   poznamka: string | null
   created_at: string
   vozidlo?: import('@/lib/types').Vozidlo
@@ -95,8 +98,8 @@ export interface VozidloVServise {
 
 export interface PoisteniePrehled {
   vozidlo: { id: string; znacka: string; variant: string; spz: string }
-  pzp?: { platnost_do: string }
-  havarijne?: { platnost_do: string }
+  pzp?: { platnost_do: string; cena: number | null; zaplatene: boolean }
+  havarijne?: { platnost_do: string; cena: number | null; zaplatene: boolean }
 }
 
 export interface FleetDashboardData {

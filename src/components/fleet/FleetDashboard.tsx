@@ -131,7 +131,11 @@ export default function FleetDashboard({ data }: { data: FleetDashboardData }) {
                         {p.pzp ? (
                           <div>
                             <StatusIndicator platnostDo={p.pzp.platnost_do} />
-                            <p className="text-xs text-gray-400 mt-0.5">do {formatDate(p.pzp.platnost_do)}</p>
+                            {p.pzp.cena && <p className="text-xs font-medium mt-0.5">{formatCurrency(p.pzp.cena)}</p>}
+                            <p className="text-xs text-gray-400">do {formatDate(p.pzp.platnost_do)}</p>
+                            <span className={`inline-block mt-0.5 text-xs px-1.5 py-0.5 rounded ${p.pzp.zaplatene ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {p.pzp.zaplatene ? 'Zaplatené' : 'Nezaplatené'}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">—</span>
@@ -141,7 +145,11 @@ export default function FleetDashboard({ data }: { data: FleetDashboardData }) {
                         {p.havarijne ? (
                           <div>
                             <StatusIndicator platnostDo={p.havarijne.platnost_do} />
-                            <p className="text-xs text-gray-400 mt-0.5">do {formatDate(p.havarijne.platnost_do)}</p>
+                            {p.havarijne.cena && <p className="text-xs font-medium mt-0.5">{formatCurrency(p.havarijne.cena)}</p>}
+                            <p className="text-xs text-gray-400">do {formatDate(p.havarijne.platnost_do)}</p>
+                            <span className={`inline-block mt-0.5 text-xs px-1.5 py-0.5 rounded ${p.havarijne.zaplatene ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {p.havarijne.zaplatene ? 'Zaplatené' : 'Nezaplatené'}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">—</span>

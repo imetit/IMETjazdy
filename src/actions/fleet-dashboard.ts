@@ -40,20 +40,18 @@ export async function getFleetDashboardData(): Promise<{ data?: FleetDashboardDa
   for (const v of aktivneVozidla) {
     const { data: kontroly } = await supabase
       .from('vozidlo_kontroly')
-      .select('typ, platnost_do')
+      .select('typ, platnost_do, cena, zaplatene')
       .eq('vozidlo_id', v.id)
       .in('typ', ['pzp', 'havarijne'])
       .order('platnost_do', { ascending: false })
 
     const pzp = kontroly?.find(k => k.typ === 'pzp')
     const havarijne = kontroly?.find(k => k.typ === 'havarijne')
-    if (pzp || havarijne) {
-      poistenie.push({
-        vozidlo: { id: v.id, znacka: v.znacka, variant: v.variant, spz: v.spz },
-        pzp: pzp ? { platnost_do: pzp.platnost_do } : undefined,
-        havarijne: havarijne ? { platnost_do: havarijne.platnost_do } : undefined,
-      })
-    }
+    poistenie.push({
+      vozidlo: { id: v.id, znacka: v.znacka, variant: v.variant, spz: v.spz },
+      pzp: pzp ? { platnost_do: pzp.platnost_do, cena: pzp.cena, zaplatene: pzp.zaplatene } : undefined,
+      havarijne: havarijne ? { platnost_do: havarijne.platnost_do, cena: havarijne.cena, zaplatene: havarijne.zaplatene } : undefined,
+    })
   }
 
   const { count: noveHlasenia } = await supabase

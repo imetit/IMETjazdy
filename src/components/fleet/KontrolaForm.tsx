@@ -14,18 +14,21 @@ interface Props {
 export default function KontrolaForm({ vozidla, onSubmit, onClose }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [zaplatene, setZaplatene] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const result = await onSubmit(new FormData(e.currentTarget))
+    const formData = new FormData(e.currentTarget)
+    formData.set('zaplatene', zaplatene ? 'true' : 'false')
+    const result = await onSubmit(formData)
     if (result?.error) { setError(result.error); setLoading(false) }
     else onClose()
   }
 
   return (
-    <Modal onClose={onClose} title="Nová kontrola">
+    <Modal onClose={onClose} title="Nová kontrola / poistenie">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <div className="grid grid-cols-2 gap-4">
@@ -49,6 +52,19 @@ export default function KontrolaForm({ vozidla, onSubmit, onClose }: Props) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Platnosť do *</label>
             <input name="platnost_do" type="date" required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cena (€)</label>
+            <input name="cena" type="number" step="0.01" min="0" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div className="flex flex-col justify-end">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={zaplatene} onChange={e => setZaplatene(e.target.checked)} className="rounded border-gray-300 text-primary" />
+              <span className="text-sm font-medium text-gray-700">Zaplatené</span>
+            </label>
+            {zaplatene && (
+              <input name="datum_platby" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+            )}
           </div>
         </div>
         <div>

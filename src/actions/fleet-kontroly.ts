@@ -24,10 +24,14 @@ export async function createKontrola(formData: FormData) {
     typ: formData.get('typ') as string,
     datum_vykonania: formData.get('datum_vykonania') as string,
     platnost_do: formData.get('platnost_do') as string,
+    cena: formData.get('cena') ? parseFloat(formData.get('cena') as string) : null,
+    zaplatene: formData.get('zaplatene') === 'true',
+    datum_platby: formData.get('datum_platby') as string || null,
     poznamka: formData.get('poznamka') as string || null,
   })
   if (error) return { error: 'Chyba pri vytváraní kontroly' }
   revalidatePath('/fleet/kontroly')
+  revalidatePath('/fleet')
 }
 
 export async function updateKontrola(id: string, formData: FormData) {
@@ -36,10 +40,25 @@ export async function updateKontrola(id: string, formData: FormData) {
     typ: formData.get('typ') as string,
     datum_vykonania: formData.get('datum_vykonania') as string,
     platnost_do: formData.get('platnost_do') as string,
+    cena: formData.get('cena') ? parseFloat(formData.get('cena') as string) : null,
+    zaplatene: formData.get('zaplatene') === 'true',
+    datum_platby: formData.get('datum_platby') as string || null,
     poznamka: formData.get('poznamka') as string || null,
   }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii kontroly' }
   revalidatePath('/fleet/kontroly')
+  revalidatePath('/fleet')
+}
+
+export async function toggleZaplatene(id: string, zaplatene: boolean) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('vozidlo_kontroly').update({
+    zaplatene,
+    datum_platby: zaplatene ? new Date().toISOString().split('T')[0] : null,
+  }).eq('id', id)
+  if (error) return { error: 'Chyba pri aktualizácii platby' }
+  revalidatePath('/fleet/kontroly')
+  revalidatePath('/fleet')
 }
 
 export async function deleteKontrola(id: string) {
