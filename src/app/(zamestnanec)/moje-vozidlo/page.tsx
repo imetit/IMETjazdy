@@ -1,6 +1,8 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { getKontroly } from '@/actions/fleet-kontroly'
+import { getZnamky } from '@/actions/fleet-znamky'
+import { getDokumenty } from '@/actions/fleet-dokumenty'
 import MojeVozidlo from '@/components/fleet/MojeVozidlo'
 import { Car } from 'lucide-react'
 
@@ -38,12 +40,25 @@ export default async function MojeVozidloPage() {
     )
   }
 
-  const { data: kontroly } = await getKontroly({ vozidloId: vozidlo.id })
+  const [kontrolyResult, znamkyResult, dokumentyResult] = await Promise.all([
+    getKontroly({ vozidloId: vozidlo.id }),
+    getZnamky(vozidlo.id),
+    getDokumenty(vozidlo.id),
+  ])
+
+  const pzpDocs = (dokumentyResult.data || []).filter((d: any) =>
+    ['pzp_dokument', 'asistencna_karta'].includes(d.typ)
+  )
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Moje vozidlo</h1>
-      <MojeVozidlo vozidlo={vozidlo as any} kontroly={(kontroly as any) || []} />
+      <MojeVozidlo
+        vozidlo={vozidlo as any}
+        kontroly={(kontrolyResult.data as any) || []}
+        znamky={(znamkyResult.data as any) || []}
+        dokumenty={pzpDocs as any}
+      />
     </div>
   )
 }

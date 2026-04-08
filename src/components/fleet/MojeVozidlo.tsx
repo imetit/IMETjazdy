@@ -1,23 +1,27 @@
 'use client'
 
 import { PALIVO_LABELS, type Vozidlo } from '@/lib/types'
-import { TYP_VOZIDLA_LABELS, TYP_KONTROLY_LABELS, type VozidloKontrola } from '@/lib/fleet-types'
-import { formatDate } from '@/lib/fleet-utils'
+import { TYP_VOZIDLA_LABELS, TYP_KONTROLY_LABELS, type VozidloKontrola, type DialognicnaZnamka, type VozidloDokument } from '@/lib/fleet-types'
+import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
+import ZnamkySection from './ZnamkySection'
+import DokumentySection from './DokumentySection'
 import Link from 'next/link'
 import { Car, AlertTriangle } from 'lucide-react'
 
 type FleetVozidlo = Vozidlo & {
   vin?: string; rok_vyroby?: number; farba?: string; typ_vozidla?: string;
-  stav?: string; stredisko?: string; aktualne_km?: number;
+  stav?: string; stredisko?: string; aktualne_km?: number; obstaravacia_cena?: number;
 }
 
 interface Props {
   vozidlo: FleetVozidlo
   kontroly: VozidloKontrola[]
+  znamky: DialognicnaZnamka[]
+  dokumenty: VozidloDokument[]
 }
 
-export default function MojeVozidlo({ vozidlo, kontroly }: Props) {
+export default function MojeVozidlo({ vozidlo, kontroly, znamky, dokumenty }: Props) {
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -57,6 +61,30 @@ export default function MojeVozidlo({ vozidlo, kontroly }: Props) {
           </div>
         )}
       </div>
+
+      {/* Diaľničné známky */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold mb-4">Diaľničné známky</h3>
+        <ZnamkySection vozidloId={vozidlo.id} znamky={znamky} readonly />
+      </div>
+
+      {/* PZP + Asistenčná karta */}
+      {dokumenty.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4">Dokumenty vozidla</h3>
+          <DokumentySection vozidloId={vozidlo.id} dokumenty={dokumenty} readonly />
+        </div>
+      )}
+
+      {/* Obstarávacia cena */}
+      {vozidlo.obstaravacia_cena && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Obstarávacia cena vozidla</span>
+            <span className="text-lg font-bold">{formatCurrency(vozidlo.obstaravacia_cena)}</span>
+          </div>
+        </div>
+      )}
 
       <Link
         href="/nahlasit-problem"
