@@ -2,6 +2,7 @@ import { createSupabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { Eye } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
+import HelpTip from '@/components/HelpTip'
 import type { Jazda, JazdaStav } from '@/lib/types'
 
 export default async function AdminJazdyPage() {
@@ -13,6 +14,20 @@ export default async function AdminJazdyPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Prijaté jazdy</h2>
+      <HelpTip id="admin-jazdy" title="Ako spracovať jazdu"
+        steps={[
+          'Zamestnanec zadá a odošle jazdu — zobrazí sa tu so stavom "Odoslaná"',
+          'Kliknite na ikonu oka vpravo pre zobrazenie detailu jazdy',
+          'V detaile môžete upraviť údaje jazdy (km, trasu, časy)',
+          'Vyberte typ vyúčtovania (firemné/súkromné, doma/zahraničie)',
+          'Voliteľne zadajte reálnu spotrebu z bločku pre porovnanie',
+          'Kliknite "Vypočítať náhľad" — skontrolujte výpočet',
+          'Kliknite "Spracovať" — pridelí sa číslo dokladu a jazda je hotová',
+          'Spracovanú jazdu môžete tlačiť, exportovať do PDF alebo prepočítať',
+        ]}
+      >
+        Tu sa zobrazujú jazdy od všetkých zamestnancov. Stavy: <strong>Rozpracovaná</strong> (zamestnanec ešte neodoslal), <strong>Odoslaná</strong> (čaká na spracovanie), <strong>Spracovaná</strong> (vyúčtovanie dokončené).
+      </HelpTip>
       <div className="bg-white rounded-card shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full table-striped">
           <thead><tr className="bg-gray-50 border-b border-gray-200">
