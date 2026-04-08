@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
-  AlertTriangle, Gauge, CarFront
+  AlertTriangle, Gauge, CarFront, ShieldAlert
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile } from '@/lib/types'
@@ -126,6 +126,9 @@ export default function Sidebar({ profile }: { profile: Profile }) {
                 <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}>
                   <AlertTriangle size={19} className={iconClass('/fleet/hlasenia')} /> Hlásenia
                 </Link>
+                <Link href="/nahlasit-udalost" className={linkClass('/nahlasit-udalost')}>
+                  <ShieldAlert size={19} className={iconClass('/nahlasit-udalost')} /> Poistná udalosť
+                </Link>
               </>
             ) : (
               <>
@@ -134,6 +137,9 @@ export default function Sidebar({ profile }: { profile: Profile }) {
                 </Link>
                 <Link href="/nahlasit-problem" className={linkClass('/nahlasit-problem')}>
                   <AlertTriangle size={19} className={iconClass('/nahlasit-problem')} /> Nahlásiť problém
+                </Link>
+                <Link href="/nahlasit-udalost" className={linkClass('/nahlasit-udalost')}>
+                  <ShieldAlert size={19} className={iconClass('/nahlasit-udalost')} /> Poistná udalosť
                 </Link>
               </>
             )}
