@@ -26,14 +26,14 @@ export default function LoginForm() {
         <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
         <div className="relative">
           <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input name="email" type="email" required className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="vas@email.sk" />
+          <input name="email" type="email" required className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 transition-all" placeholder="vas@email.sk" />
         </div>
       </div>
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">Heslo</label>
         <div className="relative">
           <Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input name="password" type="password" required className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Zadajte heslo" />
+          <input name="password" type="password" required className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 transition-all" placeholder="Zadajte heslo" />
         </div>
       </div>
       <button type="submit" disabled={loading} className="w-full btn-primary py-3.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">

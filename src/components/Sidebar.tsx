@@ -29,7 +29,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
 
   const iconClass = (href: string) => {
     const isActive = pathname === href || (href !== '/' && (pathname.startsWith(href + '/') || pathname.startsWith(href + '?')))
-    return `transition-all duration-200 ${isActive ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300'}`
+    return `transition-all duration-200 ${isActive ? 'text-teal-300' : 'text-slate-500 group-hover:text-slate-300'}`
   }
 
   const sectionLabel = (label: string) => (
@@ -47,7 +47,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
 
   const roleBadgeColor = () => {
     switch (profile.role) {
-      case 'it_admin': return 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+      case 'it_admin': return 'bg-teal-500/20 text-teal-300 border-teal-500/30'
       case 'admin': return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
       case 'fleet_manager': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
       default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
@@ -59,8 +59,8 @@ export default function Sidebar({ profile }: { profile: Profile }) {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/8">
         <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-2.5 shadow-lg shadow-indigo-500/20">
-            <Image src="/imet-logo.png" alt="IMET" width={28} height={28} className="brightness-200" />
+          <div className="bg-white rounded-xl p-2 shadow-md">
+            <Image src="/imet-logo.png" alt="IMET" width={28} height={28} />
           </div>
           <div>
             <h1 className="text-white text-lg font-bold tracking-tight">IMET</h1>
@@ -150,7 +150,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
         )}
         <div className="border-t border-white/8 pt-4 mt-2 px-2">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
               {profile.full_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
