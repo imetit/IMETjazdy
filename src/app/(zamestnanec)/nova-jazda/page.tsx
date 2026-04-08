@@ -16,6 +16,8 @@ export default async function NovaJazdaPage() {
     vozidlo = v
   }
 
+  const canUpload = profile!.role === 'admin' || profile!.role === 'it_admin'
+
   if (!vozidlo) {
     return (
       <div>
@@ -28,7 +30,7 @@ export default async function NovaJazdaPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Nová jazda</h2>
-      <JazdaForm vozidlo={vozidlo as Vozidlo} userName={profile!.full_name} />
+      <JazdaForm vozidlo={vozidlo as Vozidlo} userName={profile!.full_name} canUpload={canUpload} />
     </div>
   )
 }

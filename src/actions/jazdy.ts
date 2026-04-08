@@ -19,13 +19,13 @@ export async function createJazda(formData: FormData) {
     .insert({
       user_id: user.id,
       mesiac: formData.get('mesiac') as string,
-      odchod_z: formData.get('odchod_z') as string,
-      prichod_do: formData.get('prichod_do') as string,
+      odchod_z: (formData.get('odchod_z') as string) || '',
+      prichod_do: (formData.get('prichod_do') as string) || '',
       cez: (formData.get('cez') as string) || null,
       km: parseFloat(formData.get('km') as string),
       vozidlo_id: profile.vozidlo_id,
-      cas_odchodu: formData.get('cas_odchodu') as string,
-      cas_prichodu: formData.get('cas_prichodu') as string,
+      cas_odchodu: (formData.get('cas_odchodu') as string) || '00:00',
+      cas_prichodu: (formData.get('cas_prichodu') as string) || '00:00',
       stav,
     })
     .select()
