@@ -5,7 +5,12 @@ import { revalidatePath } from 'next/cache'
 import { calculateVyuctovanie, generateDocNumber } from '@/lib/calculations'
 import type { Vozidlo, Paliva, Settings, JazdaTyp } from '@/lib/types'
 
-export async function processJazda(jazdaId: string, typ: JazdaTyp) {
+export async function processJazda(
+  jazdaId: string,
+  typ: JazdaTyp,
+  skutocnaSpotreba?: number | null,
+  skutocnaCena?: number | null,
+) {
   const supabase = await createSupabaseServer()
 
   const { data: jazda } = await supabase.from('jazdy').select('*, vozidlo:vozidla(*)').eq('id', jazdaId).single()
@@ -24,6 +29,8 @@ export async function processJazda(jazdaId: string, typ: JazdaTyp) {
     cena_za_liter: result.cena_za_liter, sadzba_za_km: result.sadzba_za_km,
     stravne: result.stravne, vreckove: result.vreckove,
     naklady_phm: result.naklady_phm, naklady_celkom: result.naklady_celkom,
+    skutocna_spotreba_litrov: skutocnaSpotreba || null,
+    skutocna_cena_phm: skutocnaCena || null,
     spracovane_at: new Date().toISOString(),
   }).eq('id', jazdaId)
 
@@ -43,11 +50,25 @@ export async function returnJazda(jazdaId: string, komentar: string) {
   const { error } = await supabase.from('jazdy').update({
     stav: 'rozpracovana', komentar, typ: null, cislo_dokladu: null,
     spotreba_pouzita: null, cena_za_liter: null, sadzba_za_km: null,
-    stravne: null, vreckove: null, naklady_phm: null, naklady_celkom: null, spracovane_at: null,
+    stravne: null, vreckove: null, naklady_phm: null, naklady_celkom: null,
+    skutocna_spotreba_litrov: null, skutocna_cena_phm: null,
+    spracovane_at: null,
   }).eq('id', jazdaId)
   if (error) return { error: 'Chyba pri vracaní' }
   revalidatePath('/admin/jazdy')
   revalidatePath(`/admin/jazdy/${jazdaId}`)
   revalidatePath('/moje-jazdy')
   revalidatePath('/')
+}
+
+export async function reopenJazda(jazdaId: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('jazdy').update({
+    stav: 'odoslana',
+    // Keep existing data for reference but allow reprocessing
+    spracovane_at: null,
+  }).eq('id', jazdaId)
+  if (error) return { error: 'Chyba pri otváraní' }
+  revalidatePath('/admin/jazdy')
+  revalidatePath(`/admin/jazdy/${jazdaId}`)
 }

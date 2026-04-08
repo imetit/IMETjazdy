@@ -67,6 +67,8 @@ export interface Jazda {
   vreckove: number | null
   naklady_phm: number | null
   naklady_celkom: number | null
+  skutocna_spotreba_litrov: number | null
+  skutocna_cena_phm: number | null
   komentar: string | null
   spracovane_at: string | null
   created_at: string

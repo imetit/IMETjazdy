@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Calculator, CheckCircle, RotateCcw, Printer, FileDown } from 'lucide-react'
-import { processJazda, returnJazda } from '@/actions/vyuctovanie'
+import { Calculator, CheckCircle, RotateCcw, Printer, FileDown, RefreshCw } from 'lucide-react'
+import { processJazda, returnJazda, reopenJazda } from '@/actions/vyuctovanie'
 import { calculateVyuctovanie } from '@/lib/calculations'
 import { generateVyuctovaniePDF } from '@/lib/pdf'
 import type { Jazda, Vozidlo, Paliva, Settings, JazdaTyp } from '@/lib/types'
@@ -16,6 +16,8 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
   const [loading, setLoading] = useState(false)
   const [returnComment, setReturnComment] = useState('')
   const [showReturn, setShowReturn] = useState(false)
+  const [skutocnaLitrov, setSkutocnaLitrov] = useState<string>(jazda.skutocna_spotreba_litrov?.toString() || '')
+  const [skutocnaCena, setSkutocnaCena] = useState<string>(jazda.skutocna_cena_phm?.toString() || '')
   const printRef = useRef<HTMLDivElement>(null)
 
   const isProcessed = jazda.stav === 'spracovana'
@@ -29,7 +31,11 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
 
   async function handleProcess() {
     setLoading(true)
-    const result = await processJazda(jazda.id, typ)
+    const result = await processJazda(
+      jazda.id, typ,
+      skutocnaLitrov ? parseFloat(skutocnaLitrov) : null,
+      skutocnaCena ? parseFloat(skutocnaCena) : null,
+    )
     if (result?.error) alert(result.error)
     setLoading(false)
   }
@@ -41,16 +47,22 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
     setLoading(false)
   }
 
+  async function handleReopen() {
+    setLoading(true)
+    await reopenJazda(jazda.id)
+    setLoading(false)
+  }
+
   function handlePrint() {
     if (!printRef.current) return
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
     printWindow.document.write(`
       <html><head><title>Vyúčtovanie ${jazda.cislo_dokladu || ''}</title>
-      <style>body{font-family:'IBM Plex Sans',system-ui,sans-serif;margin:2rem;color:#111}
+      <style>body{font-family:'Inter',system-ui,sans-serif;margin:2rem;color:#111}
       .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px;margin-bottom:16px;font-size:14px}
-      .label{color:#6b7280}.bold{font-weight:600}.total{font-size:18px;font-weight:700;color:#2834e0}
-      .box{background:#f8fafc;padding:16px;border-radius:8px;max-width:400px}
+      .label{color:#6b7280}.bold{font-weight:600}.total{font-size:18px;font-weight:700;color:#4f46e5}
+      .box{background:#f8fafc;padding:16px;border-radius:8px;max-width:500px}
       .box div{display:flex;justify-content:space-between;margin-bottom:4px}
       .sep{border-top:1px solid #d1d5db;margin:8px 0}
       .footer{display:flex;justify-content:space-between;margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280}
@@ -58,6 +70,8 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
       .header{display:flex;justify-content:space-between;align-items:start;margin-bottom:24px}
       .right{text-align:right;font-size:13px;color:#6b7280}
       .small{font-size:12px;color:#6b7280;padding-left:16px}
+      .compare{background:#fffbeb;padding:12px;border-radius:8px;margin-top:12px;font-size:13px}
+      .compare-ok{background:#f0fdf4}
       </style></head><body>
       ${printRef.current.innerHTML}
       <script>window.onload=function(){window.print();window.close()}</script>
@@ -70,6 +84,7 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
     generateVyuctovaniePDF(jazda, vozidlo, settings, employeeName)
   }
 
+  // Calculation results
   const r = isProcessed ? {
     spotreba_litrov: isSukromne ? 0 : (Number(jazda.km) / 100) * Number(jazda.spotreba_pouzita || 0),
     naklady_phm: Number(jazda.naklady_phm || 0),
@@ -78,6 +93,24 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
     vreckove: Number(jazda.vreckove || 0),
     naklady_celkom: Number(jazda.naklady_celkom || 0),
   } : preview
+
+  // Actual vs normalized comparison
+  const hasSkutocna = !isSukromne && (
+    isProcessed
+      ? jazda.skutocna_spotreba_litrov != null && jazda.skutocna_cena_phm != null
+      : skutocnaLitrov && skutocnaCena
+  )
+
+  const skutocnaLitrovNum = isProcessed
+    ? Number(jazda.skutocna_spotreba_litrov || 0)
+    : parseFloat(skutocnaLitrov) || 0
+  const skutocnaCenaNum = isProcessed
+    ? Number(jazda.skutocna_cena_phm || 0)
+    : parseFloat(skutocnaCena) || 0
+  const priemerCenaZaLiter = skutocnaLitrovNum > 0 ? skutocnaCenaNum / skutocnaLitrovNum : 0
+  const normovanaLitrov = r ? r.spotreba_litrov : 0
+  const rozdielLitrov = skutocnaLitrovNum - normovanaLitrov
+  const rozdielPercent = normovanaLitrov > 0 ? (rozdielLitrov / normovanaLitrov) * 100 : 0
 
   return (
     <div className="space-y-6">
@@ -88,6 +121,35 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
             className="w-full max-w-sm px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
             {Object.entries(TYP_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
+
+          {/* Reálna spotreba z bločkov */}
+          {!isSukromne && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <h4 className="text-sm font-semibold text-amber-800 mb-3">Reálna spotreba z bločkov (nepovinné)</h4>
+              <div className="grid grid-cols-2 gap-4 max-w-sm">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Natankované litry</label>
+                  <input type="number" step="0.01" min="0" value={skutocnaLitrov}
+                    onChange={e => setSkutocnaLitrov(e.target.value)}
+                    placeholder="napr. 35.50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Celková suma z bločku (€)</label>
+                  <input type="number" step="0.01" min="0" value={skutocnaCena}
+                    onChange={e => setSkutocnaCena(e.target.value)}
+                    placeholder="napr. 52.80"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+              </div>
+              {skutocnaLitrov && skutocnaCena && priemerCenaZaLiter > 0 && (
+                <p className="text-xs text-amber-700 mt-2">
+                  Priemerná cena PHM: <span className="font-semibold">{priemerCenaZaLiter.toFixed(3)} €/l</span>
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-4">
             <button onClick={handlePreview} className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors">
               <Calculator size={16} /> Vypočítať náhľad
@@ -100,7 +162,6 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
         <div className="bg-white rounded-card shadow-sm border border-gray-100 p-6">
           <h3 className="text-base font-semibold text-gray-900 mb-4">{isProcessed ? 'Vyúčtovanie' : 'Náhľad výpočtu'}</h3>
 
-          {/* Printable content */}
           <div ref={printRef}>
             <div className="header" style={{ display: 'none' }}>
               <div>
@@ -117,8 +178,9 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
               <div className="flex"><span className="text-gray-500 w-40">Zamestnanec:</span><span>{employeeName}</span></div>
               <div className="flex"><span className="text-gray-500 w-40">Vozidlo:</span><span>{vozidlo.znacka} {vozidlo.variant} ({vozidlo.spz})</span></div>
               <div className="flex"><span className="text-gray-500 w-40">PHM:</span><span>{PALIVO_LABELS[vozidlo.palivo]}</span></div>
-              {!isSukromne && <div className="flex"><span className="text-gray-500 w-40">Spotreba celkom:</span><span>{r.spotreba_litrov.toFixed(2)} L</span></div>}
+              {!isSukromne && <div className="flex"><span className="text-gray-500 w-40">Normovaná spotreba:</span><span>{r.spotreba_litrov.toFixed(2)} L ({vozidlo.spotreba_tp} l/100km)</span></div>}
             </div>
+
             <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm max-w-md">
               {isSukromne ? (
                 <div className="flex justify-between"><span>Náhrada za km:</span><span>{r.naklady_phm.toFixed(2)} EUR</span></div>
@@ -134,9 +196,35 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
               <div className="border-t border-gray-300 my-2" />
               <div className="flex justify-between font-bold text-primary text-base"><span>Náhrada celkom:</span><span>{r.naklady_celkom.toFixed(2)} EUR</span></div>
             </div>
+
+            {/* Porovnanie skutočnej vs normovanej spotreby */}
+            {hasSkutocna && !isSukromne && (
+              <div className={`mt-4 rounded-lg p-4 text-sm ${rozdielLitrov > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'}`}>
+                <h4 className={`font-semibold mb-2 ${rozdielLitrov > 0 ? 'text-amber-800' : 'text-green-800'}`}>
+                  Porovnanie spotreby
+                </h4>
+                <div className="space-y-1">
+                  <div className="flex justify-between"><span>Normovaná spotreba (TP):</span><span className="font-medium">{normovanaLitrov.toFixed(2)} L</span></div>
+                  <div className="flex justify-between"><span>Skutočná spotreba (bloček):</span><span className="font-medium">{skutocnaLitrovNum.toFixed(2)} L</span></div>
+                  <div className="flex justify-between"><span>Priemerná cena PHM:</span><span className="font-medium">{priemerCenaZaLiter.toFixed(3)} €/l</span></div>
+                  <div className="border-t border-gray-300 my-1.5" />
+                  <div className="flex justify-between font-semibold">
+                    <span>Rozdiel:</span>
+                    <span className={rozdielLitrov > 0 ? 'text-amber-700' : 'text-green-700'}>
+                      {rozdielLitrov > 0 ? '+' : ''}{rozdielLitrov.toFixed(2)} L ({rozdielPercent > 0 ? '+' : ''}{rozdielPercent.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <p className={`text-xs mt-1 ${rozdielLitrov > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                    {rozdielLitrov > 0
+                      ? 'Skutočná spotreba je vyššia ako normovaná.'
+                      : 'Skutočná spotreba je nižšia alebo rovná normovanej.'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Action buttons */}
+          {/* Buttons for unprocessed */}
           {!isProcessed && preview && (
             <div className="flex gap-3 mt-6">
               <button onClick={handleProcess} disabled={loading} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
@@ -148,6 +236,7 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
             </div>
           )}
 
+          {/* Buttons for processed */}
           {isProcessed && (
             <div className="mt-6">
               <div className="text-sm text-gray-500 mb-4">Č. dokladu: <span className="font-mono font-medium text-gray-900">{jazda.cislo_dokladu}</span></div>
@@ -157,6 +246,9 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
                 </button>
                 <button onClick={handlePDF} className="flex items-center gap-2 border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                   <FileDown size={16} /> Uložiť PDF
+                </button>
+                <button onClick={handleReopen} disabled={loading} className="flex items-center gap-2 border border-amber-300 text-amber-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors disabled:opacity-50">
+                  <RefreshCw size={16} /> Prepočítať
                 </button>
               </div>
             </div>
