@@ -38,3 +38,18 @@ export async function updateHlasenieStav(id: string, stav: string) {
   if (error) return { error: 'Chyba pri aktualizácii stavu' }
   revalidatePath('/fleet/hlasenia')
 }
+
+export async function updateHlasenie(id: string, formData: FormData) {
+  const supabase = await createSupabaseServer()
+  const stav = formData.get('stav') as string
+  const { error } = await supabase.from('vozidlo_hlasenia').update({
+    stav,
+    cena: formData.get('cena') ? parseFloat(formData.get('cena') as string) : null,
+    dodavatel: formData.get('dodavatel') as string || null,
+    riesenie: formData.get('riesenie') as string || null,
+    datum_vyriesenia: stav === 'vyriesene' ? (formData.get('datum_vyriesenia') as string || new Date().toISOString().split('T')[0]) : null,
+  }).eq('id', id)
+  if (error) return { error: 'Chyba pri aktualizácii hlásenia' }
+  revalidatePath('/fleet/hlasenia')
+  revalidatePath('/fleet')
+}

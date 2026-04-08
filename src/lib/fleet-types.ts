@@ -73,6 +73,10 @@ export interface VozidloHlasenie {
   popis: string
   priorita: PrioritaHlasenia
   stav: StavHlasenia
+  cena: number | null
+  dodavatel: string | null
+  riesenie: string | null
+  datum_vyriesenia: string | null
   created_at: string
   profile?: import('@/lib/types').Profile
   vozidlo?: import('@/lib/types').Vozidlo
