@@ -5,7 +5,8 @@ import { Pencil, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { PALIVO_LABELS, type Vozidlo } from '@/lib/types'
 import { TYP_VOZIDLA_LABELS, STAV_VOZIDLA_LABELS, TYP_KONTROLY_LABELS, TYP_SERVISU_LABELS, STAV_SERVISU_LABELS, STAV_HLASENIA_LABELS } from '@/lib/fleet-types'
-import type { VozidloDokument, VozidloServis, VozidloKontrola, KmZaznam, VozidloHlasenie } from '@/lib/fleet-types'
+import type { VozidloDokument, VozidloServis, VozidloKontrola, KmZaznam, VozidloHlasenie, DialognicnaZnamka } from '@/lib/fleet-types'
+import ZnamkySection from './ZnamkySection'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
 import DokumentySection from './DokumentySection'
@@ -17,7 +18,8 @@ import { useRouter } from 'next/navigation'
 type FleetVozidlo = Vozidlo & {
   vin?: string; rok_vyroby?: number; farba?: string; typ_vozidla?: string;
   stav?: string; stredisko?: string; aktualne_km?: number; priradeny_vodic_id?: string;
-  priradeny_vodic?: { id: string; full_name: string; email: string } | null
+  priradeny_vodic?: { id: string; full_name: string; email: string } | null;
+  obstaravacia_cena?: number; leasing_koniec?: string;
 }
 
 interface Props {
@@ -28,13 +30,14 @@ interface Props {
   kontroly: VozidloKontrola[]
   kmHistoria: KmZaznam[]
   hlasenia: VozidloHlasenie[]
+  znamky: DialognicnaZnamka[]
   onUploadDokument: (formData: FormData) => Promise<{ error?: string } | undefined>
   onDeleteDokument: (id: string, filePath: string) => Promise<{ error?: string } | undefined>
 }
 
-type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia'
+type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky'
 
-export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, onUploadDokument, onDeleteDokument }: Props) {
+export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument }: Props) {
   const [tab, setTab] = useState<Tab>('zakladne')
   const [editModal, setEditModal] = useState(false)
   const router = useRouter()
@@ -46,6 +49,7 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
     { id: 'kontroly', label: 'Kontroly', count: kontroly.length },
     { id: 'km', label: 'História km', count: kmHistoria.length },
     { id: 'hlasenia', label: 'Hlásenia', count: hlasenia.filter(h => h.stav === 'nove').length },
+    { id: 'znamky', label: 'Diaľničné známky', count: znamky.length },
   ]
 
   const stavColor = vozidlo.stav === 'aktivne' ? 'bg-green-100 text-green-800' :
@@ -103,6 +107,8 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
             <div><span className="text-sm text-gray-500">Objem motora</span><p className="font-medium">{vozidlo.objem_motora} cm³</p></div>
             <div><span className="text-sm text-gray-500">Stredisko</span><p className="font-medium">{vozidlo.stredisko || '—'}</p></div>
             <div><span className="text-sm text-gray-500">Vodič</span><p className="font-medium">{vozidlo.priradeny_vodic?.full_name || '— Nepriradený —'}</p></div>
+            <div><span className="text-sm text-gray-500">Obstarávacia cena</span><p className="font-medium">{vozidlo.obstaravacia_cena ? formatCurrency(vozidlo.obstaravacia_cena) : '—'}</p></div>
+            <div><span className="text-sm text-gray-500">Koniec leasingu</span><p className="font-medium">{vozidlo.leasing_koniec ? formatDate(vozidlo.leasing_koniec) : '—'}</p></div>
           </div>
         )}
 
@@ -173,6 +179,8 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
         )}
 
         {tab === 'km' && <KmHistoria zaznamy={kmHistoria} />}
+
+        {tab === 'znamky' && <ZnamkySection vozidloId={vozidlo.id} znamky={znamky} />}
 
         {tab === 'hlasenia' && (
           <div className="space-y-3">
