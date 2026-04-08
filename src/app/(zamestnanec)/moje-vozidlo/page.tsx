@@ -9,11 +9,21 @@ export default async function MojeVozidloPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: vozidlo } = await supabase
+  // Try finding vehicle by priradeny_vodic_id first, fallback to profile.vozidlo_id
+  let { data: vozidlo } = await supabase
     .from('vozidla')
     .select('*')
     .eq('priradeny_vodic_id', user.id)
-    .single()
+    .limit(1)
+    .maybeSingle()
+
+  if (!vozidlo) {
+    const { data: profile } = await supabase.from('profiles').select('vozidlo_id').eq('id', user.id).single()
+    if (profile?.vozidlo_id) {
+      const { data: v } = await supabase.from('vozidla').select('*').eq('id', profile.vozidlo_id).single()
+      vozidlo = v
+    }
+  }
 
   if (!vozidlo) {
     return (
