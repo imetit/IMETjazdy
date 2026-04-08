@@ -85,12 +85,28 @@ export interface NotifikaciaLog {
   stav: string
 }
 
+export interface VozidloVServise {
+  id: string
+  znacka: string
+  variant: string
+  spz: string
+  servis?: { typ: string; popis: string; datum: string; stav: string; dodavatel: string | null }
+}
+
+export interface PoisteniePrehled {
+  vozidlo: { id: string; znacka: string; variant: string; spz: string }
+  pzp?: { platnost_do: string }
+  havarijne?: { platnost_do: string }
+}
+
 export interface FleetDashboardData {
   celkomVozidiel: number
   aktivne: number
   vServise: number
   vyradene: number
+  vozidlaVServise: VozidloVServise[]
   bliziaceSaKontroly: (VozidloKontrola & { vozidlo: import('@/lib/types').Vozidlo })[]
+  poistenie: PoisteniePrehled[]
   noveHlasenia: number
   mesacneNaklady: number
   rocneNaklady: number

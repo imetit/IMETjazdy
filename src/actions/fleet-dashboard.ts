@@ -11,6 +11,20 @@ export async function getFleetDashboardData(): Promise<{ data?: FleetDashboardDa
   const vServise = vozidla?.filter(v => v.stav === 'servis').length ?? 0
   const vyradene = vozidla?.filter(v => v.stav === 'vyradene').length ?? 0
 
+  // Vehicles in service - with latest service record
+  const vozidlaVServise = []
+  const servisVozidla = vozidla?.filter(v => v.stav === 'servis') ?? []
+  for (const v of servisVozidla) {
+    const { data: servisy } = await supabase
+      .from('vozidlo_servisy')
+      .select('typ, popis, datum, stav, dodavatel')
+      .eq('vozidlo_id', v.id)
+      .in('stav', ['prebieha', 'planovane'])
+      .order('datum', { ascending: false })
+      .limit(1)
+    vozidlaVServise.push({ ...v, servis: servisy?.[0] || undefined })
+  }
+
   const today = new Date().toISOString().split('T')[0]
   const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
   const { data: bliziaceSa } = await supabase
@@ -19,6 +33,28 @@ export async function getFleetDashboardData(): Promise<{ data?: FleetDashboardDa
     .lte('platnost_do', in30)
     .gte('platnost_do', today)
     .order('platnost_do')
+
+  // Insurance overview (PZP + havarijne) for all active vehicles
+  const aktivneVozidla = vozidla?.filter(v => v.stav !== 'vyradene') ?? []
+  const poistenie = []
+  for (const v of aktivneVozidla) {
+    const { data: kontroly } = await supabase
+      .from('vozidlo_kontroly')
+      .select('typ, platnost_do')
+      .eq('vozidlo_id', v.id)
+      .in('typ', ['pzp', 'havarijne'])
+      .order('platnost_do', { ascending: false })
+
+    const pzp = kontroly?.find(k => k.typ === 'pzp')
+    const havarijne = kontroly?.find(k => k.typ === 'havarijne')
+    if (pzp || havarijne) {
+      poistenie.push({
+        vozidlo: { id: v.id, znacka: v.znacka, variant: v.variant, spz: v.spz },
+        pzp: pzp ? { platnost_do: pzp.platnost_do } : undefined,
+        havarijne: havarijne ? { platnost_do: havarijne.platnost_do } : undefined,
+      })
+    }
+  }
 
   const { count: noveHlasenia } = await supabase
     .from('vozidlo_hlasenia')
@@ -66,7 +102,9 @@ export async function getFleetDashboardData(): Promise<{ data?: FleetDashboardDa
       aktivne,
       vServise,
       vyradene,
+      vozidlaVServise: vozidlaVServise as any,
       bliziaceSaKontroly: (bliziaceSa as any) ?? [],
+      poistenie: poistenie as any,
       noveHlasenia: noveHlasenia ?? 0,
       mesacneNaklady,
       rocneNaklady,
