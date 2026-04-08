@@ -26,6 +26,8 @@ export interface Vozidlo {
   stredisko: string | null
   aktualne_km: number
   priradeny_vodic_id: string | null
+  obstaravacia_cena: number | null
+  leasing_koniec: string | null
   created_at: string
 }
 

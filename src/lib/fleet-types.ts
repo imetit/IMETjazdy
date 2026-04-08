@@ -1,6 +1,6 @@
 export type TypVozidla = 'osobne' | 'uzitkove' | 'ine'
 export type StavVozidla = 'aktivne' | 'vyradene' | 'servis'
-export type TypDokumentu = 'technicky_preukaz' | 'pzp' | 'havarijne' | 'leasing' | 'ine'
+export type TypDokumentu = 'technicky_preukaz' | 'pzp' | 'havarijne' | 'leasing' | 'ine' | 'pzp_dokument' | 'asistencna_karta'
 export type TypServisu = 'servis' | 'porucha' | 'nehoda' | 'udrzba'
 export type StavServisu = 'planovane' | 'prebieha' | 'dokoncene'
 export type TypKontroly = 'stk' | 'ek' | 'pzp' | 'havarijne'
@@ -82,6 +82,16 @@ export interface VozidloHlasenie {
   vozidlo?: import('@/lib/types').Vozidlo
 }
 
+export interface DialognicnaZnamka {
+  id: string
+  vozidlo_id: string
+  krajina: string
+  platnost_od: string
+  platnost_do: string
+  cislo: string | null
+  created_at: string
+}
+
 export interface NotifikaciaLog {
   id: string
   typ: string
@@ -138,6 +148,8 @@ export const TYP_DOKUMENTU_LABELS: Record<TypDokumentu, string> = {
   havarijne: 'Havarijné poistenie',
   leasing: 'Leasing / Zmluva',
   ine: 'Iné',
+  pzp_dokument: 'PZP dokument',
+  asistencna_karta: 'Asistenčná karta',
 }
 
 export const TYP_SERVISU_LABELS: Record<TypServisu, string> = {
