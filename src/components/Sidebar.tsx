@@ -3,13 +3,19 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { Car, Fuel, FileText, FolderOpen, Settings, Scale, Users, LayoutDashboard, PlusCircle, LogOut } from 'lucide-react'
+import {
+  Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
+  LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
+  AlertTriangle, Gauge, CarFront
+} from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile } from '@/lib/types'
 
 export default function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname()
   const isAdmin = profile.role === 'admin'
+  const isFleetManager = profile.role === 'fleet_manager'
+  const hasFleetAccess = isAdmin || isFleetManager
 
   const linkClass = (href: string) => {
     const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
@@ -18,6 +24,10 @@ export default function Sidebar({ profile }: { profile: Profile }) {
     }`
   }
 
+  const sectionLabel = (label: string) => (
+    <p className="px-4 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
+  )
+
   return (
     <aside className="w-64 bg-sidebar-bg min-h-screen flex flex-col shrink-0">
       <div className="px-5 py-5 border-b border-white/10 flex items-center gap-3">
@@ -25,12 +35,14 @@ export default function Sidebar({ profile }: { profile: Profile }) {
           <Image src="/imet-logo.png" alt="IMET" width={36} height={36} />
         </div>
         <div>
-          <h1 className="text-white text-lg font-bold tracking-tight">IMET Jazdy</h1>
-          <p className="text-gray-500 text-xs">Kniha jázd</p>
+          <h1 className="text-white text-lg font-bold tracking-tight">IMET</h1>
+          <p className="text-gray-500 text-xs">Interný systém</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        {sectionLabel('Kniha Jázd')}
+
         {isAdmin ? (
           <>
             <Link href="/admin/jazdy" className={linkClass('/admin/jazdy')}><FileText size={18} /> Prijaté jazdy</Link>
@@ -44,6 +56,23 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             <Link href="/" className={linkClass('/')}><LayoutDashboard size={18} /> Dashboard</Link>
             <Link href="/nova-jazda" className={linkClass('/nova-jazda')}><PlusCircle size={18} /> Nová jazda</Link>
             <Link href="/moje-jazdy" className={linkClass('/moje-jazdy')}><FolderOpen size={18} /> Moje jazdy</Link>
+          </>
+        )}
+
+        {sectionLabel('Vozový park')}
+
+        {hasFleetAccess ? (
+          <>
+            <Link href="/fleet" className={linkClass('/fleet')}><Gauge size={18} /> Dashboard</Link>
+            <Link href="/fleet/vozidla" className={linkClass('/fleet/vozidla')}><CarFront size={18} /> Vozidlá</Link>
+            <Link href="/fleet/servisy" className={linkClass('/fleet/servisy')}><Wrench size={18} /> Servisy a opravy</Link>
+            <Link href="/fleet/kontroly" className={linkClass('/fleet/kontroly')}><ShieldCheck size={18} /> Kontroly</Link>
+            <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}><AlertTriangle size={18} /> Hlásenia</Link>
+          </>
+        ) : (
+          <>
+            <Link href="/moje-vozidlo" className={linkClass('/moje-vozidlo')}><CarFront size={18} /> Moje vozidlo</Link>
+            <Link href="/nahlasit-problem" className={linkClass('/nahlasit-problem')}><AlertTriangle size={18} /> Nahlásiť problém</Link>
           </>
         )}
       </nav>
