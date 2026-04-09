@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
-  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard
+  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard, Clock, Calendar
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile } from '@/lib/types'
@@ -146,6 +146,28 @@ export default function Sidebar({ profile }: { profile: Profile }) {
                 </Link>
               </>
             )}
+          </>
+        )}
+
+        {sectionLabel('Dochádzka')}
+
+        {isAdmin ? (
+          <>
+            <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka')}>
+              <Clock size={19} className={iconClass('/admin/dochadzka')} /> Dochádzka
+            </Link>
+            <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
+              <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Dovolenky
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href="/dochadzka-prehled" className={linkClass('/dochadzka-prehled')}>
+              <Clock size={19} className={iconClass('/dochadzka-prehled')} /> Moja dochádzka
+            </Link>
+            <Link href="/dovolenka" className={linkClass('/dovolenka')}>
+              <Calendar size={19} className={iconClass('/dovolenka')} /> Dovolenka
+            </Link>
           </>
         )}
       </nav>

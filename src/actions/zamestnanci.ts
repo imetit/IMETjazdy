@@ -34,3 +34,30 @@ export async function toggleZamestnanecActive(profileId: string, active: boolean
   if (error) return { error: 'Chyba pri zmene stavu' }
   revalidatePath('/admin/zamestnanci')
 }
+
+export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyId: string | null) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('profiles').update({
+    nadriadeny_id: nadriadenyId || null,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+  revalidatePath('/admin/zamestnanci')
+}
+
+export async function updateZamestnanecPin(profileId: string, pin: string | null) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('profiles').update({
+    pin: pin || null,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+  revalidatePath('/admin/zamestnanci')
+}
+
+export async function updateZamestnanecFond(profileId: string, fond: number) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('profiles').update({
+    pracovny_fond_hodiny: fond,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+  revalidatePath('/admin/zamestnanci')
+}

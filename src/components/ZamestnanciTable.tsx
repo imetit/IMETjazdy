@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Plus, UserCheck, UserX } from 'lucide-react'
 import Link from 'next/link'
 import Modal from './Modal'
-import { createZamestnanec, updateZamestnanecVozidlo, toggleZamestnanecActive } from '@/actions/zamestnanci'
+import { createZamestnanec, updateZamestnanecVozidlo, toggleZamestnanecActive, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond } from '@/actions/zamestnanci'
 import type { Profile, Vozidlo } from '@/lib/types'
 
 export default function ZamestnanciTable({ zamestnanci, vozidla }: {
@@ -37,11 +37,14 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Email</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Vozidlo</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Stav</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">PIN</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Fond (h)</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Nadriadený</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Akcie</th>
             </tr>
           </thead>
           <tbody>
-            {zamestnanci.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-gray-400">Žiadni zamestnanci.</td></tr>}
+            {zamestnanci.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-gray-400">Žiadni zamestnanci.</td></tr>}
             {zamestnanci.map((z) => (
               <tr key={z.id} className="border-b border-gray-100">
                 <td className="px-4 py-3 text-sm font-medium">
@@ -60,6 +63,36 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${z.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                     {z.active ? 'Aktívny' : 'Neaktívny'}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <input
+                    type="text"
+                    defaultValue={(z as any).pin || ''}
+                    onBlur={(e) => updateZamestnanecPin(z.id, e.target.value)}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                    placeholder="PIN"
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <input
+                    type="number"
+                    step="0.5"
+                    defaultValue={(z as any).pracovny_fond_hodiny || 8.5}
+                    onBlur={(e) => updateZamestnanecFond(z.id, parseFloat(e.target.value))}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <select
+                    defaultValue={(z as any).nadriadeny_id || ''}
+                    onChange={(e) => updateZamestnanecNadriadeny(z.id, e.target.value || null)}
+                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="">Žiadny</option>
+                    {zamestnanci.filter(n => n.id !== z.id).map(n => (
+                      <option key={n.id} value={n.id}>{n.full_name}</option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => toggleZamestnanecActive(z.id, !z.active)} className="text-gray-400 hover:text-primary p-1 transition-colors" title={z.active ? 'Deaktivovať' : 'Aktivovať'}>
