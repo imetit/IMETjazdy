@@ -68,8 +68,11 @@ export async function getMyDovolenkaNarok() {
   for (const d of schvalene || []) {
     const od = new Date(d.datum_od)
     const do_ = new Date(d.datum_do)
-    const diffMs = do_.getTime() - od.getTime()
-    cerpaneDni += Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1
+    // Počítame len pracovné dni (bez víkendov a sviatkov)
+    for (let dt = new Date(od); dt <= do_; dt.setDate(dt.getDate() + 1)) {
+      const day = dt.getDay()
+      if (day !== 0 && day !== 6) cerpaneDni++ // Po-Pi
+    }
   }
 
   const narok = data ? data.narok_dni + (data.prenesene_dni || 0) : 20

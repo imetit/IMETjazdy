@@ -53,7 +53,8 @@ export function calculateDenneOdpracovane(zaznamy: DochadzkaZaznam[]): number {
   let malObed = false
   let lastPrichod: Date | null = null
 
-  for (const z of sorted) {
+  for (let i = 0; i < sorted.length; i++) {
+    const z = sorted[i]
     const cas = new Date(z.cas)
 
     if (z.smer === 'prichod') {
@@ -71,8 +72,7 @@ export function calculateDenneOdpracovane(zaznamy: DochadzkaZaznam[]): number {
     }
 
     if (z.smer === 'odchod' && z.dovod === 'fajcenie') {
-      const idx = sorted.indexOf(z)
-      const next = sorted.slice(idx + 1).find(n => n.smer === 'prichod')
+      const next = sorted.slice(i + 1).find(n => n.smer === 'prichod')
       if (next) {
         fajcenieMin += (new Date(next.cas).getTime() - cas.getTime()) / 60000
       }

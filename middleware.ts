@@ -82,8 +82,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Dochádzka route — tablet role or admin
-  if (user && pathname.startsWith('/dochadzka') && !pathname.startsWith('/dochadzka/prehled')) {
+  // Dochádzka tablet route — only tablet/admin/it_admin can access /dochadzka (tablet UI)
+  // /dochadzka-prehled and /dovolenka are employee routes under (zamestnanec) layout — NOT blocked
+  if (user && pathname === '/dochadzka') {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

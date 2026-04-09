@@ -89,7 +89,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                   >
                     <option value="">Žiadny</option>
-                    {zamestnanci.filter(n => n.id !== z.id).map(n => (
+                    {zamestnanci.filter(n => n.id !== z.id && ['admin', 'fleet_manager', 'it_admin'].includes(n.role)).map(n => (
                       <option key={n.id} value={n.id}>{n.full_name}</option>
                     ))}
                   </select>
