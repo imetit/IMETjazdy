@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
-  AlertTriangle, Gauge, CarFront, ShieldAlert
+  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile } from '@/lib/types'
@@ -101,6 +101,9 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             </Link>
             <Link href="/moje-jazdy" className={linkClass('/moje-jazdy')}>
               <FolderOpen size={19} className={iconClass('/moje-jazdy')} /> Moje jazdy
+            </Link>
+            <Link href="/moja-karta" className={linkClass('/moja-karta')}>
+              <CreditCard size={19} className={iconClass('/moja-karta')} /> Moja karta
             </Link>
           </>
         )}

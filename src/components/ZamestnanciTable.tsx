@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, UserCheck, UserX } from 'lucide-react'
+import Link from 'next/link'
 import Modal from './Modal'
 import { createZamestnanec, updateZamestnanecVozidlo, toggleZamestnanecActive } from '@/actions/zamestnanci'
 import type { Profile, Vozidlo } from '@/lib/types'
@@ -43,7 +44,11 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
             {zamestnanci.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-gray-400">Žiadni zamestnanci.</td></tr>}
             {zamestnanci.map((z) => (
               <tr key={z.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{z.full_name}</td>
+                <td className="px-4 py-3 text-sm font-medium">
+                  <Link href={`/admin/zamestnanci/${z.id}`} className="text-primary hover:text-primary-dark hover:underline">
+                    {z.full_name}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{z.email}</td>
                 <td className="px-4 py-3">
                   <select value={z.vozidlo_id || ''} onChange={(e) => updateZamestnanecVozidlo(z.id, e.target.value || null)} className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
