@@ -9,6 +9,7 @@ import { DOPRAVA_LABELS, STAV_CESTY_LABELS, STAV_CESTY_COLORS, STAV_PRIKAZU_LABE
 import { ukoncCestu } from '@/actions/sluzobne-cesty'
 import { createPrikaz, updatePrikaz } from '@/actions/cestovne-prikazy'
 import { generateCestovnyPrikazPDF } from '@/lib/pdf-cestovny-prikaz'
+import { calculateCestovneNahrady } from '@/lib/diety-utils'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import { useRouter } from 'next/navigation'
 
@@ -21,6 +22,10 @@ export default function SluzobnasCestaDetail({ cesta, prikaz }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  // Auto-výpočet diét podľa SK legislatívy
+  const km = cesta.skutocny_km || cesta.predpokladany_km || 0
+  const autoCalc = calculateCestovneNahrady(cesta.datum_od, cesta.datum_do, km, cesta.doprava)
 
   async function handlePrikazSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -112,14 +117,20 @@ export default function SluzobnasCestaDetail({ cesta, prikaz }: Props) {
                 </select>
               </div>
             </div>
+            {!prikaz && (
+              <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-800">
+                <p className="font-medium mb-1">Automatický výpočet (SK legislatíva):</p>
+                <p>Diéty: {autoCalc.dieta.toFixed(2)} € | KM náhrada: {autoCalc.kmNahrada.toFixed(2)} € | Celkom: {autoCalc.celkom.toFixed(2)} €</p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Diéty (€)</label>
-                <input name="dieta_suma" type="number" step="0.01" min="0" defaultValue={prikaz?.dieta_suma || 0} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                <input name="dieta_suma" type="number" step="0.01" min="0" defaultValue={prikaz?.dieta_suma ?? autoCalc.dieta} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">KM náhrada (€)</label>
-                <input name="km_nahrada" type="number" step="0.01" min="0" defaultValue={prikaz?.km_nahrada || 0} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                <input name="km_nahrada" type="number" step="0.01" min="0" defaultValue={prikaz?.km_nahrada ?? autoCalc.kmNahrada} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ubytovanie (€)</label>

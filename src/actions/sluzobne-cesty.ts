@@ -94,13 +94,56 @@ export async function getCestaDetail(id: string) {
 
 export async function schvalCestu(id: string) {
   const supabase = await createSupabaseServer()
+
+  // Update trip status
   const { error } = await supabase.from('sluzobne_cesty').update({
     stav: 'schvalena',
     schvalene_at: new Date().toISOString(),
   }).eq('id', id)
 
   if (error) return { error: 'Chyba pri schvaľovaní' }
+
+  // Auto-vytvorenie jazdy zo schválenej služobnej cesty
+  const { data: cesta } = await supabase
+    .from('sluzobne_cesty')
+    .select('user_id, datum_od, predpokladany_km')
+    .eq('id', id)
+    .single()
+
+  if (cesta) {
+    // Získať vozidlo zamestnanca
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('vozidlo_id')
+      .eq('id', cesta.user_id)
+      .single()
+
+    if (profile?.vozidlo_id) {
+      await supabase.from('jazdy').insert({
+        user_id: cesta.user_id,
+        mesiac: cesta.datum_od.substring(0, 7), // YYYY-MM
+        km: cesta.predpokladany_km || 0,
+        vozidlo_id: profile.vozidlo_id,
+        odchod_z: '',
+        prichod_do: '',
+        cas_odchodu: '00:00',
+        cas_prichodu: '00:00',
+        stav: 'odoslana',
+      })
+    }
+
+    // Notifikácia zamestnancovi
+    await supabase.from('notifikacie').insert({
+      user_id: cesta.user_id,
+      typ: 'sluzobna_cesta',
+      nadpis: 'Služobná cesta schválená',
+      sprava: 'Vaša žiadosť o služobnú cestu bola schválená.',
+      link: '/sluzobna-cesta',
+    })
+  }
+
   revalidatePath('/admin/sluzobne-cesty')
+  revalidatePath('/sluzobna-cesta')
 }
 
 export async function zamietniCestu(id: string) {

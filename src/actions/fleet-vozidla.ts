@@ -114,6 +114,31 @@ export async function updateFleetVozidlo(id: string, formData: FormData) {
           datum_od: today,
         })
     }
+
+    // Auto-vytvorenie odovzdávacieho protokolu pri zmene vodiča
+    const { data: vozidlo } = await supabase
+      .from('vozidla')
+      .select('aktualne_km')
+      .eq('id', id)
+      .single()
+
+    await supabase.from('odovzdavacie_protokoly').insert({
+      vozidlo_id: id,
+      odovzdavajuci_id: staryVodicId,
+      preberajuci_id: novyVodicId,
+      datum: today,
+      km_stav: vozidlo?.aktualne_km || null,
+      stav_vozidla: 'Automaticky vytvorený protokol pri zmene držiteľa',
+    })
+
+    // Audit log
+    await supabase.from('audit_log').insert({
+      user_id: null,
+      akcia: 'zmena_drzitela',
+      tabulka: 'vozidla',
+      zaznam_id: id,
+      detail: { stary_vodic: staryVodicId, novy_vodic: novyVodicId },
+    })
   }
 
   revalidatePath('/fleet/vozidla')

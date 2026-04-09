@@ -128,6 +128,19 @@ export async function schvalDovolenku(id: string) {
   }).eq('id', id)
 
   if (error) return { error: 'Chyba pri schvaľovaní' }
+
+  // Notifikácia zamestnancovi
+  const { data: dovolenka } = await supabase.from('dovolenky').select('user_id, datum_od, datum_do').eq('id', id).single()
+  if (dovolenka) {
+    await supabase.from('notifikacie').insert({
+      user_id: dovolenka.user_id,
+      typ: 'dovolenka_schvalena',
+      nadpis: 'Dovolenka schválená',
+      sprava: `Vaša dovolenka ${dovolenka.datum_od} — ${dovolenka.datum_do} bola schválená.`,
+      link: '/dovolenka',
+    })
+  }
+
   revalidatePath('/admin/dovolenky')
   revalidatePath('/dovolenka')
 }
@@ -141,6 +154,19 @@ export async function zamietniDovolenku(id: string, dovod: string) {
   }).eq('id', id)
 
   if (error) return { error: 'Chyba pri zamietnutí' }
+
+  // Notifikácia zamestnancovi
+  const { data: dovolenka } = await supabase.from('dovolenky').select('user_id, datum_od, datum_do').eq('id', id).single()
+  if (dovolenka) {
+    await supabase.from('notifikacie').insert({
+      user_id: dovolenka.user_id,
+      typ: 'dovolenka_zamietnuta',
+      nadpis: 'Dovolenka zamietnutá',
+      sprava: `Vaša dovolenka ${dovolenka.datum_od} — ${dovolenka.datum_do} bola zamietnutá. Dôvod: ${dovod}`,
+      link: '/dovolenka',
+    })
+  }
+
   revalidatePath('/admin/dovolenky')
   revalidatePath('/dovolenka')
 }
