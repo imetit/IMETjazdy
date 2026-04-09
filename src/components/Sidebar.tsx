@@ -162,8 +162,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
           </>
         )}
 
-        {/* ═══ DOCHÁDZKA ═══ */}
-        {hasAccess('dochadzka') && (
+        {/* ═══ DOCHÁDZKA (vrátane dovoleniek) ═══ */}
+        {(hasAccess('dochadzka') || hasAccess('dovolenky')) && (
           <>
             {sectionLabel('Dochádzka')}
             {canEdit('dochadzka') ? (
@@ -171,33 +171,27 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
                 <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka')}>
                   <Clock size={19} className={iconClass('/admin/dochadzka')} /> Prehľad dochádzky
                 </Link>
+                <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
+                  <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Schvaľovanie dovoleniek
+                </Link>
                 <Link href="/admin/dochadzka/reporty" className={linkClass('/admin/dochadzka/reporty')}>
                   <BarChart3 size={19} className={iconClass('/admin/dochadzka/reporty')} /> Reporty
                 </Link>
-                <Link href="/dochadzka" className={linkClass('/dochadzka')}>
+                <a href="/dochadzka?smer=prichod&demo=1" target="_blank" className={linkClass('/dochadzka')}>
                   <Monitor size={19} className={iconClass('/dochadzka')} /> Tablet preview
-                </Link>
+                </a>
               </>
             ) : (
-              <Link href="/dochadzka-prehled" className={linkClass('/dochadzka-prehled')}>
-                <Clock size={19} className={iconClass('/dochadzka-prehled')} /> Moja dochádzka
-              </Link>
-            )}
-          </>
-        )}
-
-        {/* ═══ DOVOLENKY ═══ */}
-        {hasAccess('dovolenky') && (
-          <>
-            {sectionLabel('Dovolenky')}
-            {canEdit('dovolenky') ? (
-              <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
-                <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Schvaľovanie
-              </Link>
-            ) : (
-              <Link href="/dovolenka" className={linkClass('/dovolenka')}>
-                <Calendar size={19} className={iconClass('/dovolenka')} /> Moja dovolenka
-              </Link>
+              <>
+                <Link href="/dochadzka-prehled" className={linkClass('/dochadzka-prehled')}>
+                  <Clock size={19} className={iconClass('/dochadzka-prehled')} /> Moja dochádzka
+                </Link>
+                {hasAccess('dovolenky') && (
+                  <Link href="/dovolenka" className={linkClass('/dovolenka')}>
+                    <Calendar size={19} className={iconClass('/dovolenka')} /> Moja dovolenka
+                  </Link>
+                )}
+              </>
             )}
           </>
         )}

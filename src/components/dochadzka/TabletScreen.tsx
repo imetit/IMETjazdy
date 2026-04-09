@@ -13,13 +13,16 @@ type Screen = 'idle' | 'pin' | 'dovod' | 'confirm'
 
 interface Props {
   defaultSmer: SmerDochadzky
+  demoMode?: boolean
 }
 
-export default function TabletScreen({ defaultSmer }: Props) {
-  const [screen, setScreen] = useState<Screen>('idle')
+export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
+  const [screen, setScreen] = useState<Screen>(demoMode ? 'dovod' : 'idle')
   const [smer] = useState<SmerDochadzky>(defaultSmer)
-  const [user, setUser] = useState<IdentifiedUser | null>(null)
-  const [stavRozdiel, setStavRozdiel] = useState<number | null>(null)
+  const [user, setUser] = useState<IdentifiedUser | null>(
+    demoMode ? { id: 'demo', full_name: 'Ján Novák (Demo)', pracovny_fond_hodiny: 8.5 } : null
+  )
+  const [stavRozdiel, setStavRozdiel] = useState<number | null>(demoMode ? 150 : null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastDovod, setLastDovod] = useState<DovodDochadzky>('praca')
@@ -35,8 +38,9 @@ export default function TabletScreen({ defaultSmer }: Props) {
     return () => clearInterval(interval)
   }, [])
 
-  // Auto-return timeout
+  // Auto-return timeout (disabled in demo mode)
   useEffect(() => {
+    if (demoMode) return
     if (screen === 'dovod') {
       timeoutRef.current = setTimeout(() => resetToIdle(), 15000)
       return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
@@ -45,7 +49,7 @@ export default function TabletScreen({ defaultSmer }: Props) {
       timeoutRef.current = setTimeout(() => resetToIdle(), 3000)
       return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
     }
-  }, [screen])
+  }, [screen, demoMode])
 
   // Keep RFID input focused on idle
   useEffect(() => {
@@ -108,6 +112,14 @@ export default function TabletScreen({ defaultSmer }: Props) {
     if (!user) return
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
     setLoading(true)
+
+    if (demoMode) {
+      // Demo mode — len ukážka, nezapisuje sa
+      setLastDovod(dovod)
+      setLastCas(time.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }))
+      setScreen('confirm')
+      return
+    }
 
     const result = await recordDochadzka(user.id, smer, dovod, identZdroj)
 

@@ -8,8 +8,9 @@ import type { SmerDochadzky } from '@/lib/dochadzka-types'
 function DochadzkaContent() {
   const searchParams = useSearchParams()
   const smer = (searchParams.get('smer') || 'prichod') as SmerDochadzky
+  const demo = searchParams.get('demo') === '1'
 
-  return <TabletScreen defaultSmer={smer} />
+  return <TabletScreen defaultSmer={smer} demoMode={demo} />
 }
 
 export default function DochadzkaPage() {
