@@ -1,0 +1,103 @@
+// src/actions/archiv.ts
+'use server'
+
+import { createSupabaseServer } from '@/lib/supabase-server'
+import { revalidatePath } from 'next/cache'
+
+export async function getAllDokumenty(filters?: { typ?: string; stav?: string; search?: string }) {
+  const supabase = await createSupabaseServer()
+  let query = supabase
+    .from('dokumenty_archiv')
+    .select('*, nahral:profiles!nahral_id(full_name)')
+    .order('created_at', { ascending: false })
+
+  if (filters?.typ) query = query.eq('typ', filters.typ)
+  if (filters?.stav) query = query.eq('stav', filters.stav)
+  if (filters?.search) {
+    query = query.or(`nazov.ilike.%${filters.search}%,dodavatel.ilike.%${filters.search}%,cislo_faktury.ilike.%${filters.search}%`)
+  }
+
+  const { data, error } = await query
+  if (error) return { error: 'Chyba pri načítaní dokumentov' }
+  return { data }
+}
+
+export async function getDokument(id: string) {
+  const supabase = await createSupabaseServer()
+  const { data, error } = await supabase
+    .from('dokumenty_archiv')
+    .select('*, nahral:profiles!nahral_id(full_name), schvalovatel:profiles!schvalovatel_id(full_name)')
+    .eq('id', id)
+    .single()
+
+  if (error) return { error: 'Dokument nenájdený' }
+  return { data }
+}
+
+export async function uploadDokumentArchiv(formData: FormData) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  const file = formData.get('file') as File
+  if (!file || file.size === 0) return { error: 'Žiadny súbor' }
+
+  // Upload file to storage
+  const now = new Date()
+  const path = `archiv/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${Date.now()}_${file.name}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('archiv')
+    .upload(path, file)
+
+  if (uploadError) return { error: 'Chyba pri nahrávaní súboru' }
+
+  // Create DB record
+  const tagy = (formData.get('tagy') as string || '').split(',').map(t => t.trim()).filter(Boolean)
+
+  const { error } = await supabase.from('dokumenty_archiv').insert({
+    nazov: formData.get('nazov') as string,
+    typ: formData.get('typ') as string,
+    file_path: path,
+    file_size: file.size,
+    mime_type: file.type,
+    popis: formData.get('popis') as string || null,
+    tagy: tagy.length > 0 ? tagy : null,
+    oddelenie: formData.get('oddelenie') as string || null,
+    nahral_id: user.id,
+    suma: formData.get('suma') ? parseFloat(formData.get('suma') as string) : null,
+    datum_splatnosti: formData.get('datum_splatnosti') as string || null,
+    dodavatel: formData.get('dodavatel') as string || null,
+    cislo_faktury: formData.get('cislo_faktury') as string || null,
+  })
+
+  if (error) return { error: 'Chyba pri ukladaní dokumentu' }
+  revalidatePath('/admin/archiv')
+}
+
+export async function updateDokumentStav(id: string, stav: string, schvalovatelId?: string) {
+  const supabase = await createSupabaseServer()
+
+  const updateData: any = { stav }
+  if (stav === 'schvaleny' || stav === 'zamietnuty') {
+    updateData.schvalene_at = new Date().toISOString()
+  }
+  if (schvalovatelId) {
+    updateData.schvalovatel_id = schvalovatelId
+  }
+
+  const { error } = await supabase.from('dokumenty_archiv').update(updateData).eq('id', id)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+  revalidatePath('/admin/archiv')
+  revalidatePath(`/admin/archiv/${id}`)
+}
+
+export async function deleteDokumentArchiv(id: string, filePath: string) {
+  const supabase = await createSupabaseServer()
+
+  await supabase.storage.from('archiv').remove([filePath])
+
+  const { error } = await supabase.from('dokumenty_archiv').delete().eq('id', id)
+  if (error) return { error: 'Chyba pri mazaní' }
+  revalidatePath('/admin/archiv')
+}
