@@ -1,0 +1,127 @@
+'use server'
+
+import { createSupabaseServer } from '@/lib/supabase-server'
+import { revalidatePath } from 'next/cache'
+
+export async function getMyDovolenky() {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  const { data, error } = await supabase
+    .from('dovolenky')
+    .select('*, schvalovatel:profiles!schvalovatel_id(full_name)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error) return { error: 'Chyba pri načítaní dovoleniek' }
+  return { data }
+}
+
+export async function createDovolenka(formData: FormData) {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('nadriadeny_id')
+    .eq('id', user.id)
+    .single()
+
+  const { error } = await supabase.from('dovolenky').insert({
+    user_id: user.id,
+    datum_od: formData.get('datum_od') as string,
+    datum_do: formData.get('datum_do') as string,
+    typ: formData.get('typ') as string,
+    poznamka: formData.get('poznamka') as string || null,
+    schvalovatel_id: profile?.nadriadeny_id || null,
+  })
+
+  if (error) return { error: 'Chyba pri vytváraní žiadosti' }
+  revalidatePath('/dovolenka')
+}
+
+export async function getMyDovolenkaNarok() {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  const rok = new Date().getFullYear()
+  const { data } = await supabase
+    .from('dovolenky_naroky')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('rok', rok)
+    .single()
+
+  const { data: schvalene } = await supabase
+    .from('dovolenky')
+    .select('datum_od, datum_do')
+    .eq('user_id', user.id)
+    .eq('stav', 'schvalena')
+    .eq('typ', 'dovolenka')
+    .gte('datum_od', `${rok}-01-01`)
+    .lte('datum_do', `${rok}-12-31`)
+
+  let cerpaneDni = 0
+  for (const d of schvalene || []) {
+    const od = new Date(d.datum_od)
+    const do_ = new Date(d.datum_do)
+    const diffMs = do_.getTime() - od.getTime()
+    cerpaneDni += Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1
+  }
+
+  const narok = data ? data.narok_dni + (data.prenesene_dni || 0) : 20
+  return { data: { narok, cerpane: cerpaneDni, zostatok: narok - cerpaneDni } }
+}
+
+export async function getDovolenkyNaSchvalenie() {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  let query = supabase
+    .from('dovolenky')
+    .select('*, profile:profiles!user_id(full_name), schvalovatel:profiles!schvalovatel_id(full_name)')
+    .order('created_at', { ascending: false })
+
+  if (profile?.role !== 'it_admin') {
+    query = query.eq('schvalovatel_id', user.id)
+  }
+
+  const { data, error } = await query
+  if (error) return { error: 'Chyba pri načítaní dovoleniek' }
+  return { data }
+}
+
+export async function schvalDovolenku(id: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('dovolenky').update({
+    stav: 'schvalena',
+    schvalene_at: new Date().toISOString(),
+  }).eq('id', id)
+
+  if (error) return { error: 'Chyba pri schvaľovaní' }
+  revalidatePath('/admin/dovolenky')
+  revalidatePath('/dovolenka')
+}
+
+export async function zamietniDovolenku(id: string, dovod: string) {
+  const supabase = await createSupabaseServer()
+  const { error } = await supabase.from('dovolenky').update({
+    stav: 'zamietnuta',
+    dovod_zamietnutia: dovod,
+    schvalene_at: new Date().toISOString(),
+  }).eq('id', id)
+
+  if (error) return { error: 'Chyba pri zamietnutí' }
+  revalidatePath('/admin/dovolenky')
+  revalidatePath('/dovolenka')
+}
