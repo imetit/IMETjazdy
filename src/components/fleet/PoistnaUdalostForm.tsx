@@ -41,7 +41,7 @@ export default function PoistnaUdalostForm({ vozidlo, userName }: Props) {
       <h3 className="text-lg font-semibold">Nahlásiť poistnú udalosť</h3>
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
-      {success && <p className="text-green-600 text-sm">Poistná udalosť bola nahlásená! Fleet manager bol notifikovaný.</p>}
+      {success && <p className="text-green-600 text-sm">Poistná udalosť bola nahlásená.</p>}
 
       {/* Pre-filled vehicle info */}
       <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">

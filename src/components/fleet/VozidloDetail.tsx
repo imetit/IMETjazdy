@@ -193,6 +193,7 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
         {tab === 'protokoly' && (
           <OdovzdavaciProtokolSection
             vozidloId={vozidlo.id}
+            vozidlo={{ znacka: vozidlo.znacka, variant: vozidlo.variant, spz: vozidlo.spz, vin: vozidlo.vin || null }}
             vodici={vodici}
             aktualnyVodicId={vozidlo.priradeny_vodic_id}
             protokoly={protokoly}

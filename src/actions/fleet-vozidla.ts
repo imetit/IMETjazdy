@@ -57,6 +57,17 @@ export async function createFleetVozidlo(formData: FormData) {
 
 export async function updateFleetVozidlo(id: string, formData: FormData) {
   const supabase = await createSupabaseServer()
+  const novyVodicId = formData.get('priradeny_vodic_id') as string || null
+
+  // Zistíme aktuálneho vodiča pred updateom
+  const { data: current } = await supabase
+    .from('vozidla')
+    .select('priradeny_vodic_id')
+    .eq('id', id)
+    .single()
+
+  const staryVodicId = current?.priradeny_vodic_id || null
+
   const { error } = await supabase.from('vozidla').update({
     znacka: formData.get('znacka') as string,
     variant: formData.get('variant') as string || '',
@@ -72,11 +83,39 @@ export async function updateFleetVozidlo(id: string, formData: FormData) {
     stav: formData.get('stav') as string || 'aktivne',
     stredisko: formData.get('stredisko') as string || null,
     aktualne_km: parseInt(formData.get('aktualne_km') as string) || 0,
-    priradeny_vodic_id: formData.get('priradeny_vodic_id') as string || null,
+    priradeny_vodic_id: novyVodicId,
     obstaravacia_cena: formData.get('obstaravacia_cena') ? parseFloat(formData.get('obstaravacia_cena') as string) : null,
     leasing_koniec: formData.get('leasing_koniec') as string || null,
+    datum_pridelenia: novyVodicId !== staryVodicId ? new Date().toISOString().split('T')[0] : undefined,
   }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii vozidla' }
+
+  // Ak sa zmenil vodič, zapísať históriu držiteľov
+  if (staryVodicId !== novyVodicId) {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Ukončiť záznam starého vodiča
+    if (staryVodicId) {
+      await supabase
+        .from('vozidlo_historia_drzitelov')
+        .update({ datum_do: today })
+        .eq('vozidlo_id', id)
+        .eq('user_id', staryVodicId)
+        .is('datum_do', null)
+    }
+
+    // Vytvoriť záznam pre nového vodiča
+    if (novyVodicId) {
+      await supabase
+        .from('vozidlo_historia_drzitelov')
+        .insert({
+          vozidlo_id: id,
+          user_id: novyVodicId,
+          datum_od: today,
+        })
+    }
+  }
+
   revalidatePath('/fleet/vozidla')
   revalidatePath(`/fleet/vozidla/${id}`)
 }

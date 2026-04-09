@@ -5,6 +5,8 @@ import Modal from '@/components/Modal'
 import { createOdovzdavaciProtokol } from '@/actions/fleet-historia'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/fleet-utils'
+import { generateProtokolPDF } from '@/lib/pdf-protokol'
+import { Download } from 'lucide-react'
 
 interface Vodic {
   id: string
@@ -23,14 +25,23 @@ interface Protokol {
   preberajuci?: { id: string; full_name: string }
 }
 
+interface VozidloInfo {
+  znacka: string
+  variant: string
+  spz: string
+  vin: string | null
+}
+
 interface Props {
   vozidloId: string
+  vozidlo: VozidloInfo
   vodici: Vodic[]
   aktualnyVodicId?: string | null
   protokoly: Protokol[]
+  companyName?: string
 }
 
-export default function OdovzdavaciProtokol({ vozidloId, vodici, aktualnyVodicId, protokoly }: Props) {
+export default function OdovzdavaciProtokol({ vozidloId, vozidlo, vodici, aktualnyVodicId, protokoly, companyName }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -73,6 +84,13 @@ export default function OdovzdavaciProtokol({ vozidloId, vodici, aktualnyVodicId
                   </p>
                   <p className="text-xs text-gray-500">{formatDate(p.datum)}{p.km_stav ? ` · ${p.km_stav.toLocaleString('sk-SK')} km` : ''}</p>
                 </div>
+                <button
+                  onClick={() => generateProtokolPDF(p, vozidlo, companyName)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-primary hover:text-primary-dark hover:bg-teal-50 rounded-lg transition-colors"
+                  title="Stiahnuť PDF"
+                >
+                  <Download size={14} /> PDF
+                </button>
               </div>
               {p.stav_vozidla && <p className="text-xs text-gray-600"><span className="text-gray-400">Stav:</span> {p.stav_vozidla}</p>}
               {p.poskodenia && <p className="text-xs text-gray-600"><span className="text-gray-400">Poškodenia:</span> {p.poskodenia}</p>}
