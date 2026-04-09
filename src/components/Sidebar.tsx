@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
-  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard, Clock, Calendar, BarChart3, Plane
+  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard, Clock, Calendar, BarChart3, Plane, Archive
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile } from '@/lib/types'
@@ -164,6 +164,11 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             </Link>
             <Link href="/admin/sluzobne-cesty" className={linkClass('/admin/sluzobne-cesty')}>
               <Plane size={19} className={iconClass('/admin/sluzobne-cesty')} /> Služobné cesty
+            </Link>
+
+            {sectionLabel('Dokumenty')}
+            <Link href="/admin/archiv" className={linkClass('/admin/archiv')}>
+              <Archive size={19} className={iconClass('/admin/archiv')} /> Archív
             </Link>
           </>
         ) : (
