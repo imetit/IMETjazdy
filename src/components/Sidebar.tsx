@@ -80,11 +80,6 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto">
 
-        {/* Dashboard — vždy */}
-        <Link href="/" className={linkClass('/')}>
-          <LayoutDashboard size={19} className={iconClass('/')} /> Dashboard
-        </Link>
-
         {/* ═══ KNIHA JÁZD ═══ */}
         {hasAccess('jazdy') && (
           <>
@@ -103,6 +98,9 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               </>
             ) : (
               <>
+                <Link href="/" className={linkClass('/')}>
+                  <LayoutDashboard size={19} className={iconClass('/')} /> Prehľad
+                </Link>
                 <Link href="/nova-jazda" className={linkClass('/nova-jazda')}>
                   <PlusCircle size={19} className={iconClass('/nova-jazda')} /> Nová jazda
                 </Link>
