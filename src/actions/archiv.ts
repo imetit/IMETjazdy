@@ -14,7 +14,8 @@ export async function getAllDokumenty(filters?: { typ?: string; stav?: string; s
   if (filters?.typ) query = query.eq('typ', filters.typ)
   if (filters?.stav) query = query.eq('stav', filters.stav)
   if (filters?.search) {
-    query = query.or(`nazov.ilike.%${filters.search}%,dodavatel.ilike.%${filters.search}%,cislo_faktury.ilike.%${filters.search}%`)
+    // Fulltext search using tsvector index
+    query = query.textSearch('search_vector', filters.search, { type: 'plain' })
   }
 
   const { data, error } = await query
@@ -91,6 +92,16 @@ export async function updateDokumentStav(id: string, stav: string, schvalovatelI
 
   const { error } = await supabase.from('dokumenty_archiv').update(updateData).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii' }
+
+  // Audit log
+  await supabase.from('audit_log').insert({
+    user_id: user.id,
+    akcia: `dokument_${stav}`,
+    tabulka: 'dokumenty_archiv',
+    zaznam_id: id,
+    detail: { stav, schvalovatel_id: schvalovatelId },
+  })
+
   revalidatePath('/admin/archiv')
   revalidatePath(`/admin/archiv/${id}`)
 }
