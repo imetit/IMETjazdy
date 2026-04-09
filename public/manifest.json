@@ -1,0 +1,22 @@
+{
+  "name": "IMET Dochádzka",
+  "short_name": "Dochádzka",
+  "description": "IMET dochádzka a evidencia pracovného času",
+  "start_url": "/dochadzka?smer=prichod",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0d9488",
+  "background_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/imet-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/imet-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

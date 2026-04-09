@@ -82,6 +82,22 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Dochádzka route — tablet role or admin
+  if (user && pathname.startsWith('/dochadzka') && !pathname.startsWith('/dochadzka/prehled')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const allowedRoles = ['tablet', 'admin', 'it_admin']
+    if (!profile || !allowedRoles.includes(profile.role)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }
 

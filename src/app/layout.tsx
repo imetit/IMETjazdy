@@ -18,6 +18,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0d9488" />
       </head>
       <body>{children}</body>
     </html>
