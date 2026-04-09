@@ -6,21 +6,36 @@ import Image from 'next/image'
 import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
-  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard, Clock, Calendar, BarChart3, Plane, Archive
+  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard,
+  Clock, Calendar, BarChart3, Plane, Archive, Bell, Monitor
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
-import type { Profile } from '@/lib/types'
+import type { Profile, ModulId } from '@/lib/types'
 
-export default function Sidebar({ profile }: { profile: Profile }) {
+interface Props {
+  profile: Profile
+  moduly: { modul: string; pristup: string }[]
+  notifCount?: number
+}
+
+export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
   const pathname = usePathname()
   const isItAdmin = profile.role === 'it_admin'
-  const isAdmin = profile.role === 'admin' || isItAdmin
-  const isFleetManager = profile.role === 'fleet_manager' || isItAdmin
-  const hasFleetAccess = isFleetManager
+
+  // Check if user has access to a module
+  function hasAccess(modul: ModulId): boolean {
+    if (isItAdmin) return true
+    return moduly.some(m => m.modul === modul)
+  }
+
+  function canEdit(modul: ModulId): boolean {
+    if (isItAdmin) return true
+    return moduly.some(m => m.modul === modul && (m.pristup === 'edit' || m.pristup === 'admin'))
+  }
 
   const linkClass = (href: string) => {
     const isActive = pathname === href || (href !== '/' && (pathname.startsWith(href + '/') || pathname.startsWith(href + '?')))
-    return `group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+    return `group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
       isActive
         ? 'bg-white/15 text-white shadow-lg shadow-white/5 backdrop-blur-sm'
         : 'text-slate-400 hover:text-white hover:bg-white/8'
@@ -33,86 +48,77 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   }
 
   const sectionLabel = (label: string) => (
-    <p className="px-4 pt-6 pb-2 text-[10px] font-bold text-slate-600 uppercase tracking-[0.15em]">{label}</p>
+    <p className="px-4 pt-5 pb-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-[0.15em]">{label}</p>
   )
-
-  const roleLabel = () => {
-    switch (profile.role) {
-      case 'it_admin': return 'IT Administrátor'
-      case 'admin': return 'Administrátor'
-      case 'fleet_manager': return 'Fleet Manager'
-      default: return 'Zamestnanec'
-    }
-  }
-
-  const roleBadgeColor = () => {
-    switch (profile.role) {
-      case 'it_admin': return 'bg-teal-500/20 text-teal-300 border-teal-500/30'
-      case 'admin': return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-      case 'fleet_manager': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-      default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
-    }
-  }
 
   return (
     <aside className="w-72 gradient-sidebar min-h-screen flex flex-col shrink-0 border-r border-white/5">
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/8">
-        <div className="flex items-center gap-3">
-          <div className="bg-white rounded-xl p-2 shadow-md">
-            <Image src="/imet-logo.png" alt="IMET" width={28} height={28} />
+      <div className="px-6 py-5 border-b border-white/8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-white rounded-xl p-2 shadow-md">
+              <Image src="/imet-logo.png" alt="IMET" width={28} height={28} />
+            </div>
+            <div>
+              <h1 className="text-white text-lg font-bold tracking-tight">IMET</h1>
+              <p className="text-slate-500 text-[11px] font-medium">Interný systém</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-white text-lg font-bold tracking-tight">IMET</h1>
-            <p className="text-slate-500 text-[11px] font-medium">Interný systém</p>
-          </div>
+          {/* Notification bell */}
+          <Link href="/notifikacie" className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/8">
+            <Bell size={18} />
+            {notifCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">
+                {notifCount > 9 ? '9+' : notifCount}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto">
-        {sectionLabel('Kniha Jázd')}
 
-        {isAdmin ? (
+        {/* Dashboard — vždy */}
+        <Link href="/" className={linkClass('/')}>
+          <LayoutDashboard size={19} className={iconClass('/')} /> Dashboard
+        </Link>
+
+        {/* ═══ KNIHA JÁZD ═══ */}
+        {hasAccess('jazdy') && (
           <>
-            <Link href="/admin/jazdy" className={linkClass('/admin/jazdy')}>
-              <FileText size={19} className={iconClass('/admin/jazdy')} /> Prijaté jazdy
-            </Link>
-            <Link href="/admin/vozidla" className={linkClass('/admin/vozidla')}>
-              <Car size={19} className={iconClass('/admin/vozidla')} /> Vozidlá
-            </Link>
-            <Link href="/admin/zamestnanci" className={linkClass('/admin/zamestnanci')}>
-              <Users size={19} className={iconClass('/admin/zamestnanci')} /> Zamestnanci
-            </Link>
-            <Link href="/admin/paliva" className={linkClass('/admin/paliva')}>
-              <Fuel size={19} className={iconClass('/admin/paliva')} /> Ceny palív
-            </Link>
-            <Link href="/admin/sadzby" className={linkClass('/admin/sadzby')}>
-              <Scale size={19} className={iconClass('/admin/sadzby')} /> Sadzby náhrad
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link href="/" className={linkClass('/')}>
-              <LayoutDashboard size={19} className={iconClass('/')} /> Dashboard
-            </Link>
-            <Link href="/nova-jazda" className={linkClass('/nova-jazda')}>
-              <PlusCircle size={19} className={iconClass('/nova-jazda')} /> Nová jazda
-            </Link>
-            <Link href="/moje-jazdy" className={linkClass('/moje-jazdy')}>
-              <FolderOpen size={19} className={iconClass('/moje-jazdy')} /> Moje jazdy
-            </Link>
-            <Link href="/moja-karta" className={linkClass('/moja-karta')}>
-              <CreditCard size={19} className={iconClass('/moja-karta')} /> Moja karta
-            </Link>
+            {sectionLabel('Kniha jázd')}
+            {canEdit('jazdy') ? (
+              <>
+                <Link href="/admin/jazdy" className={linkClass('/admin/jazdy')}>
+                  <FileText size={19} className={iconClass('/admin/jazdy')} /> Prijaté jazdy
+                </Link>
+                <Link href="/admin/paliva" className={linkClass('/admin/paliva')}>
+                  <Fuel size={19} className={iconClass('/admin/paliva')} /> Ceny palív
+                </Link>
+                <Link href="/admin/sadzby" className={linkClass('/admin/sadzby')}>
+                  <Scale size={19} className={iconClass('/admin/sadzby')} /> Sadzby náhrad
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/nova-jazda" className={linkClass('/nova-jazda')}>
+                  <PlusCircle size={19} className={iconClass('/nova-jazda')} /> Nová jazda
+                </Link>
+                <Link href="/moje-jazdy" className={linkClass('/moje-jazdy')}>
+                  <FolderOpen size={19} className={iconClass('/moje-jazdy')} /> Moje jazdy
+                </Link>
+              </>
+            )}
           </>
         )}
 
-        {(!isAdmin || isItAdmin) && (
+        {/* ═══ VOZOVÝ PARK ═══ */}
+        {hasAccess('vozovy_park') && (
           <>
             {sectionLabel('Vozový park')}
-
-            {hasFleetAccess ? (
+            {canEdit('vozovy_park') ? (
               <>
                 <Link href="/fleet" className={linkClass('/fleet')}>
                   <Gauge size={19} className={iconClass('/fleet')} /> Dashboard
@@ -128,9 +134,6 @@ export default function Sidebar({ profile }: { profile: Profile }) {
                 </Link>
                 <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}>
                   <AlertTriangle size={19} className={iconClass('/fleet/hlasenia')} /> Hlásenia
-                </Link>
-                <Link href="/nahlasit-udalost" className={linkClass('/nahlasit-udalost')}>
-                  <ShieldAlert size={19} className={iconClass('/nahlasit-udalost')} /> Poistná udalosť
                 </Link>
               </>
             ) : (
@@ -149,60 +152,115 @@ export default function Sidebar({ profile }: { profile: Profile }) {
           </>
         )}
 
-        {sectionLabel('Dochádzka')}
-
-        {isAdmin ? (
+        {/* ═══ ZAMESTNANECKÁ KARTA ═══ */}
+        {hasAccess('zamestnanecka_karta') && (
           <>
-            <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka')}>
-              <Clock size={19} className={iconClass('/admin/dochadzka')} /> Dochádzka
-            </Link>
-            <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
-              <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Dovolenky
-            </Link>
-            <Link href="/admin/dochadzka/reporty" className={linkClass('/admin/dochadzka/reporty')}>
-              <BarChart3 size={19} className={iconClass('/admin/dochadzka/reporty')} /> Reporty
-            </Link>
-            <Link href="/admin/sluzobne-cesty" className={linkClass('/admin/sluzobne-cesty')}>
-              <Plane size={19} className={iconClass('/admin/sluzobne-cesty')} /> Služobné cesty
-            </Link>
-
-            {sectionLabel('Dokumenty')}
-            <Link href="/admin/archiv" className={linkClass('/admin/archiv')}>
-              <Archive size={19} className={iconClass('/admin/archiv')} /> Archív
+            {sectionLabel('Zamestnanecká karta')}
+            <Link href="/moja-karta" className={linkClass('/moja-karta')}>
+              <CreditCard size={19} className={iconClass('/moja-karta')} /> Moja karta
             </Link>
           </>
-        ) : (
+        )}
+
+        {/* ═══ DOCHÁDZKA ═══ */}
+        {hasAccess('dochadzka') && (
           <>
-            <Link href="/dochadzka-prehled" className={linkClass('/dochadzka-prehled')}>
-              <Clock size={19} className={iconClass('/dochadzka-prehled')} /> Moja dochádzka
+            {sectionLabel('Dochádzka')}
+            {canEdit('dochadzka') ? (
+              <>
+                <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka')}>
+                  <Clock size={19} className={iconClass('/admin/dochadzka')} /> Prehľad dochádzky
+                </Link>
+                <Link href="/admin/dochadzka/reporty" className={linkClass('/admin/dochadzka/reporty')}>
+                  <BarChart3 size={19} className={iconClass('/admin/dochadzka/reporty')} /> Reporty
+                </Link>
+                <Link href="/dochadzka" className={linkClass('/dochadzka')}>
+                  <Monitor size={19} className={iconClass('/dochadzka')} /> Tablet preview
+                </Link>
+              </>
+            ) : (
+              <Link href="/dochadzka-prehled" className={linkClass('/dochadzka-prehled')}>
+                <Clock size={19} className={iconClass('/dochadzka-prehled')} /> Moja dochádzka
+              </Link>
+            )}
+          </>
+        )}
+
+        {/* ═══ DOVOLENKY ═══ */}
+        {hasAccess('dovolenky') && (
+          <>
+            {sectionLabel('Dovolenky')}
+            {canEdit('dovolenky') ? (
+              <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
+                <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Schvaľovanie
+              </Link>
+            ) : (
+              <Link href="/dovolenka" className={linkClass('/dovolenka')}>
+                <Calendar size={19} className={iconClass('/dovolenka')} /> Moja dovolenka
+              </Link>
+            )}
+          </>
+        )}
+
+        {/* ═══ SLUŽOBNÉ CESTY ═══ */}
+        {hasAccess('sluzobne_cesty') && (
+          <>
+            {sectionLabel('Služobné cesty')}
+            {canEdit('sluzobne_cesty') ? (
+              <Link href="/admin/sluzobne-cesty" className={linkClass('/admin/sluzobne-cesty')}>
+                <Plane size={19} className={iconClass('/admin/sluzobne-cesty')} /> Prehľad ciest
+              </Link>
+            ) : (
+              <Link href="/sluzobna-cesta" className={linkClass('/sluzobna-cesta')}>
+                <Plane size={19} className={iconClass('/sluzobna-cesta')} /> Moje cesty
+              </Link>
+            )}
+          </>
+        )}
+
+        {/* ═══ ARCHÍV DOKUMENTOV ═══ */}
+        {hasAccess('archiv') && (
+          <>
+            {sectionLabel('Archív dokumentov')}
+            <Link href="/admin/archiv" className={linkClass('/admin/archiv')}>
+              <Archive size={19} className={iconClass('/admin/archiv')} /> Dokumenty
             </Link>
-            <Link href="/dovolenka" className={linkClass('/dovolenka')}>
-              <Calendar size={19} className={iconClass('/dovolenka')} /> Dovolenka
-            </Link>
-            <Link href="/sluzobna-cesta" className={linkClass('/sluzobna-cesta')}>
-              <Plane size={19} className={iconClass('/sluzobna-cesta')} /> Služobná cesta
-            </Link>
+          </>
+        )}
+
+        {/* ═══ ADMINISTRÁCIA ═══ */}
+        {(hasAccess('admin_zamestnanci') || hasAccess('admin_nastavenia')) && (
+          <>
+            {sectionLabel('Administrácia')}
+            {hasAccess('admin_zamestnanci') && (
+              <>
+                <Link href="/admin/zamestnanci" className={linkClass('/admin/zamestnanci')}>
+                  <Users size={19} className={iconClass('/admin/zamestnanci')} /> Zamestnanci
+                </Link>
+                <Link href="/admin/vozidla" className={linkClass('/admin/vozidla')}>
+                  <Car size={19} className={iconClass('/admin/vozidla')} /> Vozidlá
+                </Link>
+              </>
+            )}
+            {hasAccess('admin_nastavenia') && (
+              <Link href="/admin/nastavenia" className={linkClass('/admin/nastavenia')}>
+                <Settings size={19} className={iconClass('/admin/nastavenia')} /> Nastavenia
+              </Link>
+            )}
           </>
         )}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-3 pb-4 space-y-2">
-        {(profile.role === 'admin' || isItAdmin) && (
-          <Link href="/admin/nastavenia" className={linkClass('/admin/nastavenia')}>
-            <Settings size={19} className={iconClass('/admin/nastavenia')} /> Nastavenia
-          </Link>
-        )}
-        <div className="border-t border-white/8 pt-4 mt-2 px-2">
+      {/* Bottom — user profile */}
+      <div className="px-3 pb-4">
+        <div className="border-t border-white/8 pt-4 px-2">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
               {profile.full_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{profile.full_name}</p>
-              <span className={`inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${roleBadgeColor()}`}>
-                {roleLabel()}
-              </span>
+              <p className="text-[11px] text-slate-500 truncate">{profile.pozicia || (isItAdmin ? 'IT Administrátor' : 'Zamestnanec')}</p>
             </div>
           </div>
           <form action={logout}>

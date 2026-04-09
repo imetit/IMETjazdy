@@ -3,12 +3,47 @@ export interface Profile {
   email: string
   full_name: string
   role: 'zamestnanec' | 'admin' | 'fleet_manager' | 'it_admin' | 'tablet'
+  pozicia: string | null
   vozidlo_id: string | null
   active: boolean
   created_at: string
   pin?: string | null
   pracovny_fond_hodiny?: number
   nadriadeny_id?: string | null
+}
+
+export type ModulId = 'jazdy' | 'vozovy_park' | 'zamestnanecka_karta' | 'dochadzka' | 'dovolenky' | 'sluzobne_cesty' | 'archiv' | 'admin_zamestnanci' | 'admin_nastavenia'
+export type PristupTyp = 'view' | 'edit' | 'admin'
+
+export interface UserModul {
+  id: string
+  user_id: string
+  modul: ModulId
+  pristup: PristupTyp
+  created_at: string
+}
+
+export interface Notifikacia {
+  id: string
+  user_id: string
+  typ: string
+  nadpis: string
+  sprava: string | null
+  precitane: boolean
+  link: string | null
+  created_at: string
+}
+
+export const MODUL_LABELS: Record<ModulId, string> = {
+  jazdy: 'Kniha jázd',
+  vozovy_park: 'Vozový park',
+  zamestnanecka_karta: 'Zamestnanecká karta',
+  dochadzka: 'Dochádzka',
+  dovolenky: 'Dovolenky',
+  sluzobne_cesty: 'Služobné cesty',
+  archiv: 'Archív dokumentov',
+  admin_zamestnanci: 'Správa zamestnancov',
+  admin_nastavenia: 'Nastavenia',
 }
 
 export interface Vozidlo {
