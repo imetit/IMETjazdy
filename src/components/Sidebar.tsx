@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
-  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard, Clock, Calendar
+  AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard, Clock, Calendar, BarChart3
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile } from '@/lib/types'
@@ -158,6 +158,9 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             </Link>
             <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
               <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Dovolenky
+            </Link>
+            <Link href="/admin/dochadzka/reporty" className={linkClass('/admin/dochadzka/reporty')}>
+              <BarChart3 size={19} className={iconClass('/admin/dochadzka/reporty')} /> Reporty
             </Link>
           </>
         ) : (
