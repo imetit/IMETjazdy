@@ -23,11 +23,27 @@ export async function createDovolenka(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Neprihlásený' }
 
+  const datumOd = new Date(formData.get('datum_od') as string)
+  const datumDo = new Date(formData.get('datum_do') as string)
+  if (datumOd > datumDo) return { error: 'Dátum od musí byť pred dátumom do' }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('nadriadeny_id')
     .eq('id', user.id)
     .single()
+
+  let schvalovatelId = profile?.nadriadeny_id || null
+  if (!schvalovatelId) {
+    const { data: admin } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'it_admin')
+      .eq('active', true)
+      .limit(1)
+      .single()
+    schvalovatelId = admin?.id || null
+  }
 
   const { error } = await supabase.from('dovolenky').insert({
     user_id: user.id,
@@ -35,7 +51,7 @@ export async function createDovolenka(formData: FormData) {
     datum_do: formData.get('datum_do') as string,
     typ: formData.get('typ') as string,
     poznamka: formData.get('poznamka') as string || null,
-    schvalovatel_id: profile?.nadriadeny_id || null,
+    schvalovatel_id: schvalovatelId,
   })
 
   if (error) return { error: 'Chyba pri vytváraní žiadosti' }

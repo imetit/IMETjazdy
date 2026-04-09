@@ -24,6 +24,10 @@ export async function createCesta(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Neprihlásený' }
 
+  const datumOd = new Date(formData.get('datum_od') as string)
+  const datumDo = new Date(formData.get('datum_do') as string)
+  if (datumOd > datumDo) return { error: 'Dátum od musí byť pred dátumom do' }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('nadriadeny_id')

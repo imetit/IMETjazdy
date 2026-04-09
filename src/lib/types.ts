@@ -6,6 +6,9 @@ export interface Profile {
   vozidlo_id: string | null
   active: boolean
   created_at: string
+  pin?: string | null
+  pracovny_fond_hodiny?: number
+  nadriadeny_id?: string | null
 }
 
 export interface Vozidlo {

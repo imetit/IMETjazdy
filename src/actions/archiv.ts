@@ -41,6 +41,7 @@ export async function uploadDokumentArchiv(formData: FormData) {
 
   const file = formData.get('file') as File
   if (!file || file.size === 0) return { error: 'Žiadny súbor' }
+  if (file.size > 25 * 1024 * 1024) return { error: 'Súbor je príliš veľký. Maximum 25MB.' }
 
   // Upload file to storage
   const now = new Date()

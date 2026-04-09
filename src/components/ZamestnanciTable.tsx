@@ -67,7 +67,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                 <td className="px-4 py-3">
                   <input
                     type="text"
-                    defaultValue={(z as any).pin || ''}
+                    defaultValue={z.pin || ''}
                     onBlur={(e) => updateZamestnanecPin(z.id, e.target.value)}
                     className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
                     placeholder="PIN"
@@ -77,14 +77,14 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   <input
                     type="number"
                     step="0.5"
-                    defaultValue={(z as any).pracovny_fond_hodiny || 8.5}
+                    defaultValue={z.pracovny_fond_hodiny || 8.5}
                     onBlur={(e) => updateZamestnanecFond(z.id, parseFloat(e.target.value))}
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                   />
                 </td>
                 <td className="px-4 py-3">
                   <select
-                    defaultValue={(z as any).nadriadeny_id || ''}
+                    defaultValue={z.nadriadeny_id || ''}
                     onChange={(e) => updateZamestnanecNadriadeny(z.id, e.target.value || null)}
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                   >
