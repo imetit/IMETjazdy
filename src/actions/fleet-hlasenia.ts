@@ -41,6 +41,8 @@ export async function updateHlasenieStav(id: string, stav: string) {
 
 export async function updateHlasenie(id: string, formData: FormData) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
   const stav = formData.get('stav') as string
   const { error } = await supabase.from('vozidlo_hlasenia').update({
     stav,

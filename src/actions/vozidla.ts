@@ -20,6 +20,8 @@ export async function createVozidlo(formData: FormData) {
 
 export async function updateVozidlo(id: string, formData: FormData) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
   const { error } = await supabase.from('vozidla').update({
     znacka: formData.get('znacka') as string,
     variant: formData.get('variant') as string || '',
@@ -35,6 +37,8 @@ export async function updateVozidlo(id: string, formData: FormData) {
 
 export async function deleteVozidlo(id: string) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
   const { error } = await supabase.from('vozidla').delete().eq('id', id)
   if (error) return { error: 'Chyba pri mazaní vozidla' }
   revalidatePath('/admin/vozidla')

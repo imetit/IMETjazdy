@@ -77,6 +77,8 @@ export async function getDochadzkaDetail(userId: string, mesiac: string) {
 
 export async function addManualDochadzka(formData: FormData) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
 
   const { error } = await supabase.from('dochadzka').insert({
     user_id: formData.get('user_id') as string,
@@ -94,6 +96,8 @@ export async function addManualDochadzka(formData: FormData) {
 
 export async function deleteDochadzkaZaznam(id: string, userId: string) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
   const { error } = await supabase.from('dochadzka').delete().eq('id', id)
   if (error) return { error: 'Chyba pri mazaní záznamu' }
   revalidatePath(`/admin/dochadzka/${userId}`)

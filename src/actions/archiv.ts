@@ -77,6 +77,8 @@ export async function uploadDokumentArchiv(formData: FormData) {
 
 export async function updateDokumentStav(id: string, stav: string, schvalovatelId?: string) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
 
   const updateData: any = { stav }
   if (stav === 'schvaleny' || stav === 'zamietnuty') {
@@ -94,6 +96,8 @@ export async function updateDokumentStav(id: string, stav: string, schvalovatelI
 
 export async function deleteDokumentArchiv(id: string, filePath: string) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
 
   await supabase.storage.from('archiv').remove([filePath])
 
