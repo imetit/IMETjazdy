@@ -34,6 +34,18 @@ export async function createCesta(formData: FormData) {
     .eq('id', user.id)
     .single()
 
+  let schvalovatelId = profile?.nadriadeny_id || null
+  if (!schvalovatelId) {
+    const { data: admin } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'it_admin')
+      .eq('active', true)
+      .limit(1)
+      .single()
+    schvalovatelId = admin?.id || null
+  }
+
   const { error } = await supabase.from('sluzobne_cesty').insert({
     user_id: user.id,
     datum_od: formData.get('datum_od') as string,
@@ -43,10 +55,23 @@ export async function createCesta(formData: FormData) {
     doprava: formData.get('doprava') as string,
     predpokladany_km: formData.get('predpokladany_km') ? parseInt(formData.get('predpokladany_km') as string) : null,
     poznamka: formData.get('poznamka') as string || null,
-    schvalovatel_id: profile?.nadriadeny_id || null,
+    schvalovatel_id: schvalovatelId,
   })
 
   if (error) return { error: 'Chyba pri vytváraní žiadosti' }
+
+  // Notify supervisor about new service trip request
+  if (schvalovatelId) {
+    const { data: zamestnanec } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+    await supabase.from('notifikacie').insert({
+      user_id: schvalovatelId,
+      typ: 'cesta_nova',
+      nadpis: 'Nová žiadosť o služobnú cestu',
+      sprava: `${zamestnanec?.full_name || 'Zamestnanec'} žiada o cestu do ${formData.get('ciel')} (${formData.get('datum_od')} — ${formData.get('datum_do')})`,
+      link: '/admin/sluzobne-cesty',
+    })
+  }
+
   revalidatePath('/sluzobna-cesta')
 }
 

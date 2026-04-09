@@ -55,6 +55,19 @@ export async function createDovolenka(formData: FormData) {
   })
 
   if (error) return { error: 'Chyba pri vytváraní žiadosti' }
+
+  // Notify supervisor about new leave request
+  if (schvalovatelId) {
+    const { data: zamestnanec } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+    await supabase.from('notifikacie').insert({
+      user_id: schvalovatelId,
+      typ: 'dovolenka_nova',
+      nadpis: 'Nová žiadosť o dovolenku',
+      sprava: `${zamestnanec?.full_name || 'Zamestnanec'} žiada o dovolenku ${formData.get('datum_od')} — ${formData.get('datum_do')}`,
+      link: '/admin/dovolenky',
+    })
+  }
+
   revalidatePath('/dovolenka')
 }
 

@@ -34,6 +34,24 @@ export async function createPoistnaUdalost(formData: FormData) {
     svedkovia: formData.get('svedkovia') as string || null,
   })
   if (error) return { error: 'Chyba pri vytváraní poistnej udalosti' }
+
+  // Notify fleet managers and admins about insurance event
+  const { data: managers } = await supabase
+    .from('profiles')
+    .select('id')
+    .in('role', ['fleet_manager', 'it_admin'])
+    .eq('active', true)
+
+  for (const mgr of managers || []) {
+    await supabase.from('notifikacie').insert({
+      user_id: mgr.id,
+      typ: 'poistna_udalost',
+      nadpis: 'Nahlásená poistná udalosť',
+      sprava: `Poistná udalosť: ${formData.get('miesto')} — ${formData.get('popis')?.toString().substring(0, 100)}`,
+      link: '/fleet/hlasenia',
+    })
+  }
+
   revalidatePath('/fleet/vozidla')
   revalidatePath('/moje-vozidlo')
 }
