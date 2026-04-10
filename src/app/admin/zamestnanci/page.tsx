@@ -3,13 +3,34 @@ import ZamestnanciTable from '@/components/ZamestnanciTable'
 import HelpTip from '@/components/HelpTip'
 import type { Profile, Vozidlo } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminZamestnanciPage() {
-  // Use admin client to bypass RLS - this page is already protected by middleware + layout
-  const supabase = createSupabaseAdmin()
-  const { data: zamestnanci } = await supabase.from('profiles').select('*, vozidlo:vozidla(*)').neq('role', 'tablet').order('full_name')
-  const { data: vozidla } = await supabase.from('vozidla').select('*').eq('aktivne', true).order('znacka')
+  let zamestnanci: any[] = []
+  let vozidla: any[] = []
+  let debugError: string | null = null
+
+  try {
+    const supabase = createSupabaseAdmin()
+    const { data: z, error: zErr } = await supabase.from('profiles').select('*, vozidlo:vozidla(*)').neq('role', 'tablet').order('full_name')
+    const { data: v, error: vErr } = await supabase.from('vozidla').select('*').eq('aktivne', true).order('znacka')
+
+    if (zErr) debugError = `Profiles: ${zErr.message}`
+    if (vErr) debugError = (debugError || '') + ` Vozidla: ${vErr.message}`
+
+    zamestnanci = z || []
+    vozidla = v || []
+  } catch (e: any) {
+    debugError = `Exception: ${e.message}`
+  }
+
   return (
     <div>
+      {debugError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-4 text-sm">
+          <strong>Debug:</strong> {debugError}
+        </div>
+      )}
       <HelpTip id="admin-zamestnanci" title="Správa zamestnancov"
         steps={[
           'Pridajte nového zamestnanca tlačidlom "Pridať zamestnanca" — zadáte email, meno, heslo a rolu',
@@ -20,7 +41,7 @@ export default async function AdminZamestnanciPage() {
       >
         Tu spravujete všetkých zamestnancov v systéme. Kliknite na meno pre nastavenie oprávnení a modulov.
       </HelpTip>
-      <ZamestnanciTable zamestnanci={(zamestnanci || []) as (Profile & { vozidlo?: Vozidlo | null })[]} vozidla={(vozidla || []) as Vozidlo[]} />
+      <ZamestnanciTable zamestnanci={zamestnanci as (Profile & { vozidlo?: Vozidlo | null })[]} vozidla={vozidla as Vozidlo[]} />
     </div>
   )
 }
