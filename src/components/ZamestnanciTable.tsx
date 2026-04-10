@@ -5,6 +5,7 @@ import { Plus, UserCheck, UserX } from 'lucide-react'
 import Link from 'next/link'
 import Modal from './Modal'
 import { createZamestnanec, updateZamestnanecVozidlo, toggleZamestnanecActive, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond } from '@/actions/zamestnanci'
+import { useRouter } from 'next/navigation'
 import type { Profile, Vozidlo } from '@/lib/types'
 
 export default function ZamestnanciTable({ zamestnanci, vozidla }: {
@@ -13,12 +14,13 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
   const [showAdd, setShowAdd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   async function handleCreate(formData: FormData) {
     setLoading(true); setError(null)
     const result = await createZamestnanec(formData)
     if (result && 'error' in result && result.error) { setError(result.error); setLoading(false) }
-    else { setShowAdd(false); setLoading(false) }
+    else { setShowAdd(false); setLoading(false); router.refresh() }
   }
 
   return (
@@ -65,7 +67,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <select value={z.vozidlo_id || ''} onChange={(e) => updateZamestnanecVozidlo(z.id, e.target.value || null)} className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <select value={z.vozidlo_id || ''} onChange={async (e) => { await updateZamestnanecVozidlo(z.id, e.target.value || null); router.refresh() }} className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">Žiadne</option>
                     {vozidla.map((v) => <option key={v.id} value={v.id}>{v.znacka} {v.variant} ({v.spz})</option>)}
                   </select>
@@ -79,7 +81,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   <input
                     type="text"
                     defaultValue={z.pin || ''}
-                    onBlur={(e) => updateZamestnanecPin(z.id, e.target.value)}
+                    onBlur={async (e) => { await updateZamestnanecPin(z.id, e.target.value); router.refresh() }}
                     className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
                     placeholder="PIN"
                   />
@@ -89,14 +91,14 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                     type="number"
                     step="0.5"
                     defaultValue={z.pracovny_fond_hodiny || 8.5}
-                    onBlur={(e) => updateZamestnanecFond(z.id, parseFloat(e.target.value))}
+                    onBlur={async (e) => { await updateZamestnanecFond(z.id, parseFloat(e.target.value)); router.refresh() }}
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                   />
                 </td>
                 <td className="px-4 py-3">
                   <select
                     defaultValue={z.nadriadeny_id || ''}
-                    onChange={(e) => updateZamestnanecNadriadeny(z.id, e.target.value || null)}
+                    onChange={async (e) => { await updateZamestnanecNadriadeny(z.id, e.target.value || null); router.refresh() }}
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                   >
                     <option value="">Žiadny</option>
@@ -106,7 +108,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   </select>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => toggleZamestnanecActive(z.id, !z.active)} className="text-gray-400 hover:text-primary p-1 transition-colors" title={z.active ? 'Deaktivovať' : 'Aktivovať'}>
+                  <button onClick={async () => { await toggleZamestnanecActive(z.id, !z.active); router.refresh() }} className="text-gray-400 hover:text-primary p-1 transition-colors" title={z.active ? 'Deaktivovať' : 'Aktivovať'}>
                     {z.active ? <UserX size={16} /> : <UserCheck size={16} />}
                   </button>
                 </td>
