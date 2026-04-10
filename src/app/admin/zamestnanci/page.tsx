@@ -12,7 +12,7 @@ export default async function AdminZamestnanciPage() {
 
   try {
     const supabase = createSupabaseAdmin()
-    const { data: z, error: zErr } = await supabase.from('profiles').select('*, vozidlo:vozidla(*)').neq('role', 'tablet').order('full_name')
+    const { data: z, error: zErr } = await supabase.from('profiles').select('*, vozidlo:vozidla!fk_profiles_vozidlo(*)').neq('role', 'tablet').order('full_name')
     const { data: v, error: vErr } = await supabase.from('vozidla').select('*').eq('aktivne', true).order('znacka')
 
     if (zErr) debugError = `Profiles: ${zErr.message}`

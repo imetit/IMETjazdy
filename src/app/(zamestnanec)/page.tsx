@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     { data: schvaleneDovolenky },
     { data: dovolenkaNarok },
   ] = await Promise.all([
-    supabase.from('profiles').select('*, vozidlo:vozidla(*)').eq('id', user.id).single(),
+    supabase.from('profiles').select('*, vozidlo:vozidla!fk_profiles_vozidlo(*)').eq('id', user.id).single(),
     supabase.from('jazdy').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
     supabase.from('jazdy').select('naklady_celkom').eq('user_id', user.id).eq('stav', 'spracovana').like('mesiac', `${mesiac}%`),
     supabase.from('jazdy').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('stav', 'odoslana'),
