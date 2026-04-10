@@ -9,23 +9,23 @@ import { schvalDovolenku, zamietniDovolenku } from '@/actions/dovolenky'
 import { formatDate } from '@/lib/fleet-utils'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
+import DataTable from '@/components/ui/DataTable'
+import type { Column, FilterDef } from '@/components/ui/DataTable'
 
 interface Props {
   dovolenky: Dovolenka[]
 }
 
 export default function DovolenkySchvalovanie({ dovolenky }: Props) {
-  const [filter, setFilter] = useState<string>('caka_na_schvalenie')
   const [zamietnutieId, setZamietnutieId] = useState<string | null>(null)
   const [dovod, setDovod] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const filtered = filter === 'vsetko' ? dovolenky : dovolenky.filter(d => d.stav === filter)
-
   async function handleSchval(id: string) {
     setLoading(true)
-    await schvalDovolenku(id)
+    const result = await schvalDovolenku(id)
+    if (result && 'error' in result && result.error) alert(result.error)
     setLoading(false)
     router.refresh()
   }
@@ -33,69 +33,89 @@ export default function DovolenkySchvalovanie({ dovolenky }: Props) {
   async function handleZamietni() {
     if (!zamietnutieId || !dovod.trim()) return
     setLoading(true)
-    await zamietniDovolenku(zamietnutieId, dovod)
+    const result = await zamietniDovolenku(zamietnutieId, dovod)
+    if (result && 'error' in result && result.error) alert(result.error)
     setZamietnutieId(null)
     setDovod('')
     setLoading(false)
     router.refresh()
   }
 
+  const columns: Column<Dovolenka>[] = [
+    {
+      key: 'profile',
+      label: 'Zamestnanec',
+      sortable: true,
+      render: (d) => <span className="font-medium">{(d as any).profile?.full_name || '—'}</span>,
+    },
+    {
+      key: 'datum_od',
+      label: 'Obdobie',
+      sortable: true,
+      render: (d) => <span>{formatDate(d.datum_od)} — {formatDate(d.datum_do)}</span>,
+    },
+    {
+      key: 'typ',
+      label: 'Typ',
+      render: (d) => <span>{TYP_DOVOLENKY_LABELS[d.typ]}</span>,
+    },
+    {
+      key: 'stav',
+      label: 'Stav',
+      render: (d) => (
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${STAV_DOVOLENKY_COLORS[d.stav]}`}>
+          {STAV_DOVOLENKY_LABELS[d.stav]}
+        </span>
+      ),
+    },
+    {
+      key: 'poznamka',
+      label: 'Poznámka',
+      render: (d) => <span className="text-gray-500 text-xs">{d.poznamka || '—'}</span>,
+    },
+    {
+      key: 'akcie',
+      label: 'Akcie',
+      className: 'text-right',
+      render: (d) => d.stav === 'caka_na_schvalenie' ? (
+        <div className="flex justify-end gap-2">
+          <button onClick={(e) => { e.stopPropagation(); handleSchval(d.id) }} disabled={loading} className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Schváliť">
+            <Check size={16} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setZamietnutieId(d.id) }} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Zamietnuť">
+            <X size={16} />
+          </button>
+        </div>
+      ) : null,
+    },
+  ]
+
+  const filters: FilterDef[] = [
+    {
+      key: 'stav',
+      label: 'Stav',
+      options: [
+        { value: 'caka_na_schvalenie', label: 'Čakajúce' },
+        { value: 'schvalena', label: 'Schválené' },
+        { value: 'zamietnuta', label: 'Zamietnuté' },
+      ],
+    },
+  ]
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Schvaľovanie dovoleniek</h2>
-        <select value={filter} onChange={e => setFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          <option value="caka_na_schvalenie">Čakajúce</option>
-          <option value="schvalena">Schválené</option>
-          <option value="zamietnuta">Zamietnuté</option>
-          <option value="vsetko">Všetky</option>
-        </select>
-      </div>
+      <h2 className="text-2xl font-bold">Schvaľovanie dovoleniek</h2>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-500">
-              <th className="px-4 py-3 font-medium">Zamestnanec</th>
-              <th className="px-4 py-3 font-medium">Obdobie</th>
-              <th className="px-4 py-3 font-medium">Typ</th>
-              <th className="px-4 py-3 font-medium">Stav</th>
-              <th className="px-4 py-3 font-medium">Poznámka</th>
-              <th className="px-4 py-3 font-medium text-right">Akcie</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr><td colSpan={6} className="text-center py-8 text-gray-400">Žiadne žiadosti</td></tr>
-            )}
-            {filtered.map(d => (
-              <tr key={d.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 font-medium">{(d as any).profile?.full_name || '—'}</td>
-                <td className="px-4 py-3">{formatDate(d.datum_od)} — {formatDate(d.datum_do)}</td>
-                <td className="px-4 py-3">{TYP_DOVOLENKY_LABELS[d.typ]}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${STAV_DOVOLENKY_COLORS[d.stav]}`}>
-                    {STAV_DOVOLENKY_LABELS[d.stav]}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{d.poznamka || '—'}</td>
-                <td className="px-4 py-3 text-right">
-                  {d.stav === 'caka_na_schvalenie' && (
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => handleSchval(d.id)} disabled={loading} className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Schváliť">
-                        <Check size={16} />
-                      </button>
-                      <button onClick={() => setZamietnutieId(d.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Zamietnuť">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={dovolenky}
+        columns={columns}
+        searchable
+        searchPlaceholder="Hľadať podľa mena..."
+        filters={filters}
+        pageSize={25}
+        emptyMessage="Žiadne žiadosti."
+        rowKey={(d) => d.id}
+      />
 
       {zamietnutieId && (
         <Modal title="Zamietnutie dovolenky" onClose={() => setZamietnutieId(null)}>
