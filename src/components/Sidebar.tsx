@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
@@ -7,7 +8,8 @@ import {
   Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
   AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard,
-  Clock, Calendar, BarChart3, Plane, Archive, Bell, Monitor
+  Clock, Calendar, BarChart3, Plane, Archive, Bell, Monitor,
+  Menu, X
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import type { Profile, ModulId } from '@/lib/types'
@@ -21,6 +23,26 @@ interface Props {
 export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
   const pathname = usePathname()
   const isItAdmin = profile.role === 'it_admin'
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileOpen])
+
+  const closeMobile = useCallback(() => setMobileOpen(false), [])
 
   // Check if user has access to a module
   function hasAccess(modul: ModulId): boolean {
@@ -51,8 +73,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
     <p className="px-4 pt-5 pb-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-[0.15em]">{label}</p>
   )
 
-  return (
-    <aside className="w-72 gradient-sidebar min-h-screen flex flex-col shrink-0 border-r border-white/5">
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/8">
         <div className="flex items-center justify-between">
@@ -65,15 +87,26 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               <p className="text-slate-500 text-[11px] font-medium">Interný systém</p>
             </div>
           </div>
-          {/* Notification bell */}
-          <Link href="/notifikacie" className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/8">
-            <Bell size={18} />
-            {notifCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">
-                {notifCount > 9 ? '9+' : notifCount}
-              </span>
-            )}
-          </Link>
+          <div className="flex items-center gap-1">
+            {/* Notification bell */}
+            <Link href="/notifikacie" className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/8">
+              <Bell size={18} />
+              {notifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
+            </Link>
+            {/* Close button - mobile only */}
+            <button
+              type="button"
+              onClick={closeMobile}
+              className="md:hidden p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/8"
+              aria-label="Zavrieť menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -132,6 +165,9 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
                 </Link>
                 <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}>
                   <AlertTriangle size={19} className={iconClass('/fleet/hlasenia')} /> Hlásenia
+                </Link>
+                <Link href="/fleet/reporty" className={linkClass('/fleet/reporty')}>
+                  <BarChart3 size={19} className={iconClass('/fleet/reporty')} /> Reporty
                 </Link>
               </>
             ) : (
@@ -234,6 +270,9 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
                 </Link>
               </>
             )}
+            <Link href="/admin/reporty" className={linkClass('/admin/reporty')}>
+              <BarChart3 size={19} className={iconClass('/admin/reporty')} /> Reporty
+            </Link>
             {hasAccess('admin_nastavenia') && (
               <Link href="/admin/nastavenia" className={linkClass('/admin/nastavenia')}>
                 <Settings size={19} className={iconClass('/admin/nastavenia')} /> Nastavenia
@@ -262,6 +301,42 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
           </form>
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-slate-800 text-white shadow-lg hover:bg-slate-700 transition-colors"
+        aria-label="Otvoriť menu"
+      >
+        <Menu size={22} />
+      </button>
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar - mobile: overlay, desktop: static */}
+      <aside
+        className={`
+          gradient-sidebar min-h-screen flex flex-col shrink-0 border-r border-white/5
+          md:w-72 md:relative md:translate-x-0
+          fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-in-out
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:transition-none
+        `}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   )
 }
