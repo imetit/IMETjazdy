@@ -120,6 +120,7 @@ export default function SluzobnesCestyTable({ cesty }: Props) {
         searchPlaceholder="Hľadať podľa mena, cieľa..."
         filters={filters}
         pageSize={25}
+        exportFilename="sluzobne-cesty-export"
         emptyMessage="Žiadne záznamy."
         rowKey={(c) => c.id}
       />

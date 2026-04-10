@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { exportToCSV } from '@/lib/export'
 
 export interface Column<T> {
   key: string
@@ -27,6 +28,7 @@ export interface DataTableProps<T> {
   emptyMessage?: string
   onRowClick?: (item: T) => void
   rowKey?: (item: T) => string
+  exportFilename?: string
 }
 
 export default function DataTable<T extends Record<string, any>>({
@@ -39,6 +41,7 @@ export default function DataTable<T extends Record<string, any>>({
   emptyMessage = 'Žiadne záznamy.',
   onRowClick,
   rowKey,
+  exportFilename,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
@@ -140,6 +143,23 @@ export default function DataTable<T extends Record<string, any>>({
             </div>
           )}
           <div className="flex items-center gap-2 ml-auto">
+            {exportFilename && (
+              <button
+                onClick={() => {
+                  const exportCols = columns.filter(c => c.key !== 'akcie').map(c => ({
+                    key: c.key,
+                    label: c.label,
+                    format: (item: T) => String(item[c.key] ?? ''),
+                  }))
+                  exportToCSV(filtered, exportCols, exportFilename)
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                title="Exportovať do CSV"
+              >
+                <Download size={14} />
+                CSV
+              </button>
+            )}
             {filters.map((f) => (
               <select
                 key={f.key}

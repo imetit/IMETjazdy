@@ -113,6 +113,7 @@ export default function DovolenkySchvalovanie({ dovolenky }: Props) {
         searchPlaceholder="Hľadať podľa mena..."
         filters={filters}
         pageSize={25}
+        exportFilename="dovolenky-export"
         emptyMessage="Žiadne žiadosti."
         rowKey={(d) => d.id}
       />

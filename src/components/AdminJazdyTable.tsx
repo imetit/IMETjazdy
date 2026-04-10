@@ -89,6 +89,7 @@ export default function AdminJazdyTable({ jazdy }: { jazdy: JazdaRow[] }) {
       searchPlaceholder="Hľadať podľa mena, SPZ, trasy..."
       filters={filters}
       pageSize={25}
+      exportFilename="jazdy-export"
       emptyMessage="Žiadne jazdy."
       rowKey={(j) => j.id}
       onRowClick={(j) => router.push(`/admin/jazdy/${j.id}`)}

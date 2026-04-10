@@ -99,6 +99,7 @@ export default function ArchivTable({ dokumenty }: Props) {
         searchPlaceholder="Hľadať podľa názvu, dodávateľa, č. faktúry..."
         filters={filters}
         pageSize={25}
+        exportFilename="archiv-dokumenty-export"
         emptyMessage="Žiadne dokumenty."
         rowKey={(d) => d.id}
         onRowClick={(d) => router.push(`/admin/archiv/${d.id}`)}
