@@ -1,6 +1,5 @@
 'use server'
 
-import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
@@ -16,7 +15,6 @@ export async function createZamestnanec(formData: FormData) {
   const password = formData.get('password') as string
   const role = formData.get('role') as string || 'zamestnanec'
 
-  // Admin client needed for auth.admin.createUser()
   const adminClient = createSupabaseAdmin()
 
   const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
@@ -29,8 +27,6 @@ export async function createZamestnanec(formData: FormData) {
   if (authError) return { error: `Chyba pri vytváraní účtu: ${authError.message}` }
   if (!authData.user) return { error: 'Účet sa nepodarilo vytvoriť' }
 
-  // Trigger handle_new_user() creates the profile automatically.
-  // But we need to update additional fields that the trigger doesn't set:
   const updates: Record<string, unknown> = {}
   if (vozidlo_id) updates.vozidlo_id = vozidlo_id
   if (role !== 'zamestnanec') updates.role = role
@@ -49,11 +45,9 @@ export async function deleteZamestnanec(profileId: string) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  // Get profile info for audit
-  const { data: profile } = await auth.supabase.from('profiles').select('email, full_name').eq('id', profileId).single()
-
-  // Delete auth user (cascades to profile via FK)
   const adminClient = createSupabaseAdmin()
+  const { data: profile } = await adminClient.from('profiles').select('email, full_name').eq('id', profileId).single()
+
   const { error } = await adminClient.auth.admin.deleteUser(profileId)
   if (error) return { error: `Chyba pri mazaní účtu: ${error.message}` }
 
@@ -67,7 +61,8 @@ export async function updateZamestnanecVozidlo(profileId: string, vozidloId: str
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const { error } = await auth.supabase.from('profiles').update({ vozidlo_id: vozidloId }).eq('id', profileId)
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({ vozidlo_id: vozidloId }).eq('id', profileId)
   if (error) return { error: 'Chyba pri priraďovaní vozidla' }
   revalidatePath('/admin/zamestnanci')
 }
@@ -76,7 +71,8 @@ export async function toggleZamestnanecActive(profileId: string, active: boolean
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const { error } = await auth.supabase.from('profiles').update({ active }).eq('id', profileId)
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({ active }).eq('id', profileId)
   if (error) return { error: 'Chyba pri zmene stavu' }
 
   await logAudit(active ? 'aktivacia_zamestnanca' : 'deaktivacia_zamestnanca', 'profiles', profileId)
@@ -88,22 +84,25 @@ export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyI
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const { error } = await auth.supabase.from('profiles').update({
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
     nadriadeny_id: nadriadenyId || null,
   }).eq('id', profileId)
   if (error) return { error: 'Chyba pri aktualizácii' }
   revalidatePath('/admin/zamestnanci')
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
 export async function updateZamestnanecPin(profileId: string, pin: string | null) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const { error } = await auth.supabase.from('profiles').update({
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
     pin: pin || null,
   }).eq('id', profileId)
   if (error) return { error: 'Chyba pri aktualizácii' }
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
 export async function updateZamestnanecRole(profileId: string, role: string) {
@@ -113,7 +112,8 @@ export async function updateZamestnanecRole(profileId: string, role: string) {
   const validRoles = ['zamestnanec', 'admin', 'fleet_manager', 'it_admin']
   if (!validRoles.includes(role)) return { error: 'Neplatná rola' }
 
-  const { error } = await auth.supabase.from('profiles').update({ role }).eq('id', profileId)
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({ role }).eq('id', profileId)
   if (error) return { error: 'Chyba pri zmene roly' }
 
   await logAudit('zmena_roly', 'profiles', profileId, { nova_rola: role })
@@ -126,11 +126,12 @@ export async function updateZamestnanecFond(profileId: string, fond: number) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const { error } = await auth.supabase.from('profiles').update({
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
     pracovny_fond_hodiny: fond,
   }).eq('id', profileId)
   if (error) return { error: 'Chyba pri aktualizácii' }
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
 export async function resetZamestnanecPassword(profileId: string, newPassword: string) {

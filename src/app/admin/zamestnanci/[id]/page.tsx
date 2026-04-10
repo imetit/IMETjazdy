@@ -9,8 +9,11 @@ import ZamestnanecDetail from '@/components/ZamestnanecDetail'
 import RfidKartySection from '@/components/RfidKartySection'
 import DovolenkaNarokSection from '@/components/DovolenkaNarokSection'
 import UserPermissionsSection from '@/components/UserPermissionsSection'
+import ZamestnanecSettingsSection from '@/components/ZamestnanecSettingsSection'
 import { updateZamestnanecRole } from '@/actions/zamestnanci'
 import type { Profile, Vozidlo } from '@/lib/types'
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminZamestnanecDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,7 +27,7 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
 
   if (!profile) redirect('/admin/zamestnanci')
 
-  const [vozidloResult, majetokResult, licencieResult, rfidResult, narokResult, modulyResult] = await Promise.all([
+  const [vozidloResult, majetokResult, licencieResult, rfidResult, narokResult, modulyResult, allVozidlaResult, allProfilesResult] = await Promise.all([
     profile.vozidlo_id
       ? supabase.from('vozidla').select('*').eq('id', profile.vozidlo_id).single()
       : Promise.resolve({ data: null }),
@@ -33,6 +36,8 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
     getRfidKarty(id),
     getDovolenkaNarok(id, new Date().getFullYear()),
     getUserModuly(id),
+    supabase.from('vozidla').select('id, znacka, variant, spz').eq('aktivne', true).order('znacka'),
+    supabase.from('profiles').select('id, full_name, role').eq('active', true).neq('role', 'tablet').neq('id', id).order('full_name'),
   ])
 
   async function handleRoleChange(role: string) {
@@ -51,6 +56,19 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
         readonly={false}
         backUrl="/admin/zamestnanci"
       />
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <ZamestnanecSettingsSection
+          userId={id}
+          currentVozidloId={profile.vozidlo_id || null}
+          currentNadriadenyId={profile.nadriadeny_id || null}
+          currentPin={profile.pin || ''}
+          currentFond={profile.pracovny_fond_hodiny || 8.5}
+          currentPozicia={profile.pozicia || ''}
+          vozidla={(allVozidlaResult.data || []) as { id: string; znacka: string; variant: string; spz: string }[]}
+          zamestnanci={(allProfilesResult.data || []) as { id: string; full_name: string; role: string }[]}
+        />
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <UserPermissionsSection
