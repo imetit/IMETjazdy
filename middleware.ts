@@ -43,9 +43,9 @@ export async function middleware(request: NextRequest) {
 
     const url = request.nextUrl.clone()
     if (profile?.role === 'it_admin') {
-      url.pathname = '/admin/jazdy'
+      url.pathname = '/admin'
     } else if (profile?.role === 'admin') {
-      url.pathname = '/admin/jazdy'
+      url.pathname = '/admin'
     } else if (profile?.role === 'fleet_manager') {
       url.pathname = '/fleet'
     } else {
