@@ -17,7 +17,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
   async function handleCreate(formData: FormData) {
     setLoading(true); setError(null)
     const result = await createZamestnanec(formData)
-    if (result?.error) { setError(result.error); setLoading(false) }
+    if (result && 'error' in result && result.error) { setError(result.error); setLoading(false) }
     else { setShowAdd(false); setLoading(false) }
   }
 
@@ -123,6 +123,15 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Meno *</label><input name="full_name" required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Ján Novák" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label><input name="email" type="email" required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="jan.novak@firma.sk" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Heslo *</label><input name="password" type="password" required minLength={6} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rola</label>
+                <select name="role" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                  <option value="zamestnanec">Zamestnanec</option>
+                  <option value="admin">Admin (účtovníčka)</option>
+                  <option value="fleet_manager">Fleet Manager</option>
+                  <option value="it_admin">IT Admin</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vozidlo</label>
                 <select name="vozidlo_id" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
