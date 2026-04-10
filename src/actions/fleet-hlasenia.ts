@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 
 export async function getHlasenia(filters?: { stav?: string }) {
@@ -33,16 +34,19 @@ export async function createHlasenie(formData: FormData) {
 }
 
 export async function updateHlasenieStav(id: string, stav: string) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('vozidlo_hlasenia').update({ stav }).eq('id', id)
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidlo_hlasenia').update({ stav }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii stavu' }
   revalidatePath('/fleet/hlasenia')
 }
 
 export async function updateHlasenie(id: string, formData: FormData) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const supabase = auth.supabase
   const stav = formData.get('stav') as string
   const { error } = await supabase.from('vozidlo_hlasenia').update({
     stav,

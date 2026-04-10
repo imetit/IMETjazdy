@@ -2,7 +2,10 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireNadriadeny, requireAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
+import { isPracovnyDen } from '@/lib/dochadzka-utils'
+import { logAudit } from './audit'
 
 export async function getMyCesty() {
   const supabase = await createSupabaseServer()
@@ -77,6 +80,17 @@ export async function createCesta(formData: FormData) {
 
 export async function updateSkutocneKm(cestaId: string, km: number) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  // Len vlastník alebo admin môže aktualizovať km
+  const { data: cesta } = await supabase.from('sluzobne_cesty').select('user_id').eq('id', cestaId).single()
+  if (!cesta) return { error: 'Cesta nenájdená' }
+  if (cesta.user_id !== user.id) {
+    const auth = await requireAdmin()
+    if ('error' in auth) return auth
+  }
+
   const { error } = await supabase.from('sluzobne_cesty').update({
     skutocny_km: km,
   }).eq('id', cestaId)
@@ -120,6 +134,19 @@ export async function getCestaDetail(id: string) {
 export async function schvalCestu(id: string) {
   const supabase = await createSupabaseServer()
 
+  // Načítame cestu pre overenie
+  const { data: cestaData } = await supabase
+    .from('sluzobne_cesty')
+    .select('user_id, datum_od, datum_do, predpokladany_km, ciel')
+    .eq('id', id)
+    .single()
+
+  if (!cestaData) return { error: 'Cesta nenájdená' }
+
+  // Overenie že user je nadriadený alebo it_admin
+  const auth = await requireNadriadeny(cestaData.user_id)
+  if ('error' in auth) return auth
+
   // Update trip status
   const { error } = await supabase.from('sluzobne_cesty').update({
     stav: 'schvalena',
@@ -129,43 +156,75 @@ export async function schvalCestu(id: string) {
   if (error) return { error: 'Chyba pri schvaľovaní' }
 
   // Auto-vytvorenie jazdy zo schválenej služobnej cesty
-  const { data: cesta } = await supabase
-    .from('sluzobne_cesty')
-    .select('user_id, datum_od, predpokladany_km')
-    .eq('id', id)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('vozidlo_id')
+    .eq('id', cestaData.user_id)
     .single()
 
-  if (cesta) {
-    // Získať vozidlo zamestnanca
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('vozidlo_id')
-      .eq('id', cesta.user_id)
-      .single()
-
-    if (profile?.vozidlo_id) {
-      await supabase.from('jazdy').insert({
-        user_id: cesta.user_id,
-        mesiac: cesta.datum_od.substring(0, 7), // YYYY-MM
-        km: cesta.predpokladany_km || 0,
-        vozidlo_id: profile.vozidlo_id,
-        odchod_z: '',
-        prichod_do: '',
-        cas_odchodu: '00:00',
-        cas_prichodu: '00:00',
-        stav: 'odoslana',
-      })
-    }
-
-    // Notifikácia zamestnancovi
-    await supabase.from('notifikacie').insert({
-      user_id: cesta.user_id,
-      typ: 'sluzobna_cesta',
-      nadpis: 'Služobná cesta schválená',
-      sprava: 'Vaša žiadosť o služobnú cestu bola schválená.',
-      link: '/sluzobna-cesta',
+  if (profile?.vozidlo_id) {
+    await supabase.from('jazdy').insert({
+      user_id: cestaData.user_id,
+      mesiac: cestaData.datum_od.substring(0, 7), // YYYY-MM
+      km: cestaData.predpokladany_km || 0,
+      vozidlo_id: profile.vozidlo_id,
+      odchod_z: '',
+      prichod_do: cestaData.ciel || '',
+      cas_odchodu: '00:00',
+      cas_prichodu: '00:00',
+      stav: 'odoslana',
     })
   }
+
+  // Vytvoriť záznamy v dochádzke pre schválenú cestu
+  const od = new Date(cestaData.datum_od)
+  const do_ = new Date(cestaData.datum_do)
+  const current = new Date(od)
+  while (current <= do_) {
+    if (isPracovnyDen(current)) {
+      const datum = current.toISOString().split('T')[0]
+      const ranoCas = new Date(current)
+      ranoCas.setHours(8, 0, 0, 0)
+      const vecerCas = new Date(current)
+      vecerCas.setHours(16, 30, 0, 0)
+
+      await supabase.from('dochadzka').insert([
+        {
+          user_id: cestaData.user_id,
+          datum,
+          smer: 'prichod',
+          dovod: 'sluzobna_cesta',
+          cas: ranoCas.toISOString(),
+          zdroj: 'system',
+        },
+        {
+          user_id: cestaData.user_id,
+          datum,
+          smer: 'odchod',
+          dovod: 'sluzobna_cesta',
+          cas: vecerCas.toISOString(),
+          zdroj: 'system',
+        },
+      ])
+    }
+    current.setDate(current.getDate() + 1)
+  }
+
+  // Notifikácia zamestnancovi
+  await supabase.from('notifikacie').insert({
+    user_id: cestaData.user_id,
+    typ: 'sluzobna_cesta',
+    nadpis: 'Služobná cesta schválená',
+    sprava: 'Vaša žiadosť o služobnú cestu bola schválená.',
+    link: '/sluzobna-cesta',
+  })
+
+  await logAudit('schvalenie_cesty', 'sluzobne_cesty', id, {
+    zamestnanec_id: cestaData.user_id,
+    ciel: cestaData.ciel,
+    datum_od: cestaData.datum_od,
+    datum_do: cestaData.datum_do,
+  })
 
   revalidatePath('/admin/sluzobne-cesty')
   revalidatePath('/sluzobna-cesta')
@@ -173,22 +232,42 @@ export async function schvalCestu(id: string) {
 
 export async function zamietniCestu(id: string) {
   const supabase = await createSupabaseServer()
+
+  const { data: cesta } = await supabase
+    .from('sluzobne_cesty')
+    .select('user_id')
+    .eq('id', id)
+    .single()
+
+  if (!cesta) return { error: 'Cesta nenájdená' }
+
+  const auth = await requireNadriadeny(cesta.user_id)
+  if ('error' in auth) return auth
+
   const { error } = await supabase.from('sluzobne_cesty').update({
     stav: 'zamietnuta',
     schvalene_at: new Date().toISOString(),
   }).eq('id', id)
 
   if (error) return { error: 'Chyba pri zamietnutí' }
+
+  await logAudit('zamietnutie_cesty', 'sluzobne_cesty', id, { zamestnanec_id: cesta.user_id })
+
   revalidatePath('/admin/sluzobne-cesty')
 }
 
 export async function ukoncCestu(id: string) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('sluzobne_cesty').update({
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('sluzobne_cesty').update({
     stav: 'ukoncena',
   }).eq('id', id)
 
   if (error) return { error: 'Chyba' }
+
+  await logAudit('ukoncenie_cesty', 'sluzobne_cesty', id)
+
   revalidatePath('/admin/sluzobne-cesty')
   revalidatePath(`/admin/sluzobne-cesty/${id}`)
 }

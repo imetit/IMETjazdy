@@ -1,8 +1,10 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import type { ModulId, PristupTyp } from '@/lib/types'
+import { logAudit } from './audit'
 
 export async function getUserModuly(userId: string) {
   const supabase = await createSupabaseServer()
@@ -44,32 +46,32 @@ export async function getMyModuly() {
 }
 
 export async function setUserModul(userId: string, modul: ModulId, pristup: PristupTyp | null) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireRole(['it_admin'])
+  if ('error' in auth) return auth
 
   if (pristup === null) {
     // Remove access
-    await supabase.from('user_moduly').delete().eq('user_id', userId).eq('modul', modul)
+    await auth.supabase.from('user_moduly').delete().eq('user_id', userId).eq('modul', modul)
   } else {
     // Upsert access
-    await supabase.from('user_moduly').upsert({
+    await auth.supabase.from('user_moduly').upsert({
       user_id: userId,
       modul,
       pristup,
     }, { onConflict: 'user_id,modul' })
   }
 
+  await logAudit('zmena_opravneni', 'user_moduly', userId, { modul, pristup })
+
   revalidatePath(`/admin/zamestnanci/${userId}`)
   revalidatePath('/admin/zamestnanci')
 }
 
 export async function updateUserPozicia(userId: string, pozicia: string) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireRole(['it_admin', 'admin'])
+  if ('error' in auth) return auth
 
-  await supabase.from('profiles').update({ pozicia }).eq('id', userId)
+  await auth.supabase.from('profiles').update({ pozicia }).eq('id', userId)
   revalidatePath(`/admin/zamestnanci/${userId}`)
   revalidatePath('/admin/zamestnanci')
 }

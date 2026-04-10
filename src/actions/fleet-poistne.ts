@@ -57,8 +57,11 @@ export async function createPoistnaUdalost(formData: FormData) {
 }
 
 export async function updatePoistnaUdalostStav(id: string, stav: string) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('poistne_udalosti').update({ stav }).eq('id', id)
+  const { requireFleetOrAdmin } = await import('@/lib/auth-helpers')
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('poistne_udalosti').update({ stav }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii stavu' }
   revalidatePath('/fleet/vozidla')
 }

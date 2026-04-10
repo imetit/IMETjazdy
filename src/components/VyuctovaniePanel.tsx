@@ -36,7 +36,7 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
       skutocnaLitrov ? parseFloat(skutocnaLitrov) : null,
       skutocnaCena ? parseFloat(skutocnaCena) : null,
     )
-    if (result?.error) alert(result.error)
+    if (result && 'error' in result && result.error) alert(result.error)
     setLoading(false)
   }
 

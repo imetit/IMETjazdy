@@ -1,9 +1,11 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { calculateVyuctovanie, generateDocNumber } from '@/lib/calculations'
 import type { Vozidlo, Paliva, Settings, JazdaTyp } from '@/lib/types'
+import { logAudit } from './audit'
 
 export async function processJazda(
   jazdaId: string,
@@ -11,19 +13,20 @@ export async function processJazda(
   skutocnaSpotreba?: number | null,
   skutocnaCena?: number | null,
 ) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
 
-  const { data: jazda } = await supabase.from('jazdy').select('*, vozidlo:vozidla(*)').eq('id', jazdaId).single()
+  const { data: jazda } = await auth.supabase.from('jazdy').select('*, vozidlo:vozidla(*)').eq('id', jazdaId).single()
   if (!jazda) return { error: 'Jazda nenájdená' }
 
-  const { data: paliva } = await supabase.from('paliva').select('*').single()
-  const { data: settings } = await supabase.from('settings').select('*').single()
+  const { data: paliva } = await auth.supabase.from('paliva').select('*').single()
+  const { data: settings } = await auth.supabase.from('settings').select('*').single()
   if (!paliva || !settings) return { error: 'Chýbajú nastavenia' }
 
   const result = calculateVyuctovanie(typ, jazda.km, jazda.cas_odchodu, jazda.cas_prichodu, jazda.vozidlo as Vozidlo, paliva as Paliva, settings as Settings)
   const cislo_dokladu = generateDocNumber(settings.last_doc_number)
 
-  const { error: updateError } = await supabase.from('jazdy').update({
+  const { error: updateError } = await auth.supabase.from('jazdy').update({
     typ, stav: 'spracovana', cislo_dokladu,
     spotreba_pouzita: result.spotreba_pouzita, palivo_typ: result.palivo_typ,
     cena_za_liter: result.cena_za_liter, sadzba_za_km: result.sadzba_za_km,
@@ -36,7 +39,9 @@ export async function processJazda(
 
   if (updateError) return { error: 'Chyba pri spracovaní' }
 
-  await supabase.from('settings').update({ last_doc_number: settings.last_doc_number + 1 }).eq('id', settings.id)
+  await auth.supabase.from('settings').update({ last_doc_number: settings.last_doc_number + 1 }).eq('id', settings.id)
+
+  await logAudit('spracovanie_jazdy', 'jazdy', jazdaId, { cislo_dokladu, typ, naklady_celkom: result.naklady_celkom })
 
   revalidatePath('/admin/jazdy')
   revalidatePath(`/admin/jazdy/${jazdaId}`)
@@ -46,8 +51,10 @@ export async function processJazda(
 }
 
 export async function returnJazda(jazdaId: string, komentar: string) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('jazdy').update({
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('jazdy').update({
     stav: 'rozpracovana', komentar, typ: null, cislo_dokladu: null,
     spotreba_pouzita: null, cena_za_liter: null, sadzba_za_km: null,
     stravne: null, vreckove: null, naklady_phm: null, naklady_celkom: null,
@@ -55,6 +62,9 @@ export async function returnJazda(jazdaId: string, komentar: string) {
     spracovane_at: null,
   }).eq('id', jazdaId)
   if (error) return { error: 'Chyba pri vracaní' }
+
+  await logAudit('vratenie_jazdy', 'jazdy', jazdaId, { komentar })
+
   revalidatePath('/admin/jazdy')
   revalidatePath(`/admin/jazdy/${jazdaId}`)
   revalidatePath('/moje-jazdy')
@@ -62,10 +72,11 @@ export async function returnJazda(jazdaId: string, komentar: string) {
 }
 
 export async function reopenJazda(jazdaId: string) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('jazdy').update({
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('jazdy').update({
     stav: 'odoslana',
-    // Keep existing data for reference but allow reprocessing
     spracovane_at: null,
   }).eq('id', jazdaId)
   if (error) return { error: 'Chyba pri otváraní' }

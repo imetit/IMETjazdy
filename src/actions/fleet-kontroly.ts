@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 
 export async function getKontroly(filters?: { vozidloId?: string; typ?: string }) {
@@ -18,10 +19,10 @@ export async function getKontroly(filters?: { vozidloId?: string; typ?: string }
 }
 
 export async function createKontrola(formData: FormData) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
-  const { error } = await supabase.from('vozidlo_kontroly').insert({
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidlo_kontroly').insert({
     vozidlo_id: formData.get('vozidlo_id') as string,
     typ: formData.get('typ') as string,
     datum_vykonania: formData.get('datum_vykonania') as string,
@@ -37,10 +38,10 @@ export async function createKontrola(formData: FormData) {
 }
 
 export async function updateKontrola(id: string, formData: FormData) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
-  const { error } = await supabase.from('vozidlo_kontroly').update({
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidlo_kontroly').update({
     typ: formData.get('typ') as string,
     datum_vykonania: formData.get('datum_vykonania') as string,
     platnost_do: formData.get('platnost_do') as string,
@@ -55,10 +56,10 @@ export async function updateKontrola(id: string, formData: FormData) {
 }
 
 export async function toggleZaplatene(id: string, zaplatene: boolean) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
-  const { error } = await supabase.from('vozidlo_kontroly').update({
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidlo_kontroly').update({
     zaplatene,
     datum_platby: zaplatene ? new Date().toISOString().split('T')[0] : null,
   }).eq('id', id)
@@ -68,10 +69,10 @@ export async function toggleZaplatene(id: string, zaplatene: boolean) {
 }
 
 export async function deleteKontrola(id: string) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
-  const { error } = await supabase.from('vozidlo_kontroly').delete().eq('id', id)
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidlo_kontroly').delete().eq('id', id)
   if (error) return { error: 'Chyba pri mazaní kontroly' }
   revalidatePath('/fleet/kontroly')
 }

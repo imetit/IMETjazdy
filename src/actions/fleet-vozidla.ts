@@ -1,7 +1,9 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from './audit'
 
 export async function getVozidla(filters?: { stav?: string; typ?: string; search?: string }) {
   const supabase = await createSupabaseServer()
@@ -31,8 +33,10 @@ export async function getVozidloDetail(id: string) {
 }
 
 export async function createFleetVozidlo(formData: FormData) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('vozidla').insert({
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidla').insert({
     znacka: formData.get('znacka') as string,
     variant: formData.get('variant') as string || '',
     spz: formData.get('spz') as string,
@@ -56,7 +60,10 @@ export async function createFleetVozidlo(formData: FormData) {
 }
 
 export async function updateFleetVozidlo(id: string, formData: FormData) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const supabase = auth.supabase
   const novyVodicId = formData.get('priradeny_vodic_id') as string || null
 
   // Zistíme aktuálneho vodiča pred updateom
@@ -146,7 +153,10 @@ export async function updateFleetVozidlo(id: string, formData: FormData) {
 }
 
 export async function updateKm(vozidloId: string, km: number, zdroj: 'manualne' | 'jazda' | 'servis') {
-  const supabase = await createSupabaseServer()
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const supabase = auth.supabase
 
   const { error: kmError } = await supabase.from('km_historia').insert({
     vozidlo_id: vozidloId,

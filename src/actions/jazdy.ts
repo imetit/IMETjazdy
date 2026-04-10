@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireAuth, requireAdmin, requireOwnerOrAdmin } from '@/lib/auth-helpers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -11,6 +12,17 @@ export async function createJazda(formData: FormData) {
 
   const { data: profile } = await supabase.from('profiles').select('vozidlo_id').eq('id', user.id).single()
   if (!profile?.vozidlo_id) return { error: 'Nemáte priradené vozidlo' }
+
+  // Overenie že vozidlo stále existuje a je aktívne
+  const { data: vozidlo } = await supabase
+    .from('vozidla')
+    .select('id, stav')
+    .eq('id', profile.vozidlo_id)
+    .single()
+
+  if (!vozidlo || vozidlo.stav === 'vyradene') {
+    return { error: 'Priradené vozidlo nie je aktívne. Kontaktujte správcu vozového parku.' }
+  }
 
   const stav = formData.get('stav') as string
 
@@ -57,8 +69,10 @@ export async function updateJazdaAdmin(jazdaId: string, data: {
   mesiac?: string; odchod_z?: string; prichod_do?: string; cez?: string;
   km?: number; cas_odchodu?: string; cas_prichodu?: string;
 }) {
-  const supabase = await createSupabaseServer()
-  const { error } = await supabase.from('jazdy').update(data).eq('id', jazdaId)
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('jazdy').update(data).eq('id', jazdaId)
   if (error) return { error: 'Chyba pri aktualizácii jazdy' }
   revalidatePath(`/admin/jazdy/${jazdaId}`)
   revalidatePath('/admin/jazdy')
@@ -66,6 +80,16 @@ export async function updateJazdaAdmin(jazdaId: string, data: {
 
 export async function deleteJazda(jazdaId: string) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
+  // Overenie vlastníctva alebo admin role
+  const { data: jazda } = await supabase.from('jazdy').select('user_id').eq('id', jazdaId).single()
+  if (!jazda) return { error: 'Jazda nenájdená' }
+
+  const auth = await requireOwnerOrAdmin(jazda.user_id)
+  if ('error' in auth) return auth
+
   const { data: prilohy } = await supabase.from('jazdy_prilohy').select('file_path').eq('jazda_id', jazdaId)
   if (prilohy && prilohy.length > 0) {
     await supabase.storage.from('blocky').remove(prilohy.map(p => p.file_path))

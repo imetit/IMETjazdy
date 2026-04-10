@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -32,9 +33,10 @@ export async function getServisDetail(id: string) {
 }
 
 export async function createServis(formData: FormData) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const supabase = auth.supabase
   const vozidloId = formData.get('vozidlo_id') as string
   const kmPriServise = formData.get('km_pri_servise') ? parseInt(formData.get('km_pri_servise') as string) : null
 
@@ -83,19 +85,19 @@ export async function createServis(formData: FormData) {
 }
 
 export async function updateServisStav(id: string, stav: string) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
-  const { error } = await supabase.from('vozidlo_servisy').update({ stav }).eq('id', id)
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('vozidlo_servisy').update({ stav }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii stavu' }
   revalidatePath('/fleet/servisy')
 }
 
 export async function deleteServis(id: string) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
 
+  const supabase = auth.supabase
   const { data: prilohy } = await supabase
     .from('servis_prilohy')
     .select('file_path')
