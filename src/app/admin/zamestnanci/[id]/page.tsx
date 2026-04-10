@@ -1,4 +1,4 @@
-import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { redirect } from 'next/navigation'
 import { getMajetok } from '@/actions/majetok'
 import { getLicencie } from '@/actions/licencie'
@@ -14,7 +14,7 @@ import type { Profile, Vozidlo } from '@/lib/types'
 
 export default async function AdminZamestnanecDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createSupabaseServer()
+  const supabase = createSupabaseAdmin()
 
   const { data: profile } = await supabase
     .from('profiles')
