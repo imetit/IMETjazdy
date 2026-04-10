@@ -71,6 +71,22 @@ export async function updateZamestnanecPin(profileId: string, pin: string | null
   revalidatePath('/admin/zamestnanci')
 }
 
+export async function updateZamestnanecRole(profileId: string, role: string) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const validRoles = ['zamestnanec', 'admin', 'fleet_manager', 'it_admin']
+  if (!validRoles.includes(role)) return { error: 'Neplatná rola' }
+
+  const { error } = await auth.supabase.from('profiles').update({ role }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri zmene roly' }
+
+  await logAudit('zmena_roly', 'profiles', profileId, { nova_rola: role })
+
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+  revalidatePath('/admin/zamestnanci')
+}
+
 export async function updateZamestnanecFond(profileId: string, fond: number) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth

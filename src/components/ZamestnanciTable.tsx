@@ -35,6 +35,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Meno</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Email</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Rola</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Vozidlo</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Stav</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">PIN</th>
@@ -44,7 +45,7 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
             </tr>
           </thead>
           <tbody>
-            {zamestnanci.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-gray-400">Žiadni zamestnanci.</td></tr>}
+            {zamestnanci.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-gray-400">Žiadni zamestnanci.</td></tr>}
             {zamestnanci.map((z) => (
               <tr key={z.id} className="border-b border-gray-100">
                 <td className="px-4 py-3 text-sm font-medium">
@@ -53,6 +54,16 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{z.email}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    z.role === 'it_admin' ? 'bg-purple-100 text-purple-800' :
+                    z.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                    z.role === 'fleet_manager' ? 'bg-teal-100 text-teal-800' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {z.role === 'it_admin' ? 'IT Admin' : z.role === 'admin' ? 'Admin' : z.role === 'fleet_manager' ? 'Fleet' : 'Zamestnanec'}
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   <select value={z.vozidlo_id || ''} onChange={(e) => updateZamestnanecVozidlo(z.id, e.target.value || null)} className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">Žiadne</option>
