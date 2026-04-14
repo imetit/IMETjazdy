@@ -23,6 +23,7 @@ export interface Profile {
   nadriadeny_id?: string | null
   zastupuje_id?: string | null
   typ_uvazku?: TypUvazku
+  ical_token?: string | null
 }
 
 export type ModulId = 'jazdy' | 'vozovy_park' | 'zamestnanecka_karta' | 'dochadzka' | 'dovolenky' | 'sluzobne_cesty' | 'archiv' | 'admin_zamestnanci' | 'admin_nastavenia'

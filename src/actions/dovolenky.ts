@@ -1,7 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { requireAuth, requireNadriadeny } from '@/lib/auth-helpers'
+import { requireNadriadeny, resolveCurrentApprover } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { isPracovnyDen } from '@/lib/dochadzka-utils'
 import { logAudit } from './audit'
@@ -30,13 +30,8 @@ export async function createDovolenka(formData: FormData) {
   const datumDo = new Date(formData.get('datum_do') as string)
   if (datumOd > datumDo) return { error: 'Dátum od musí byť pred dátumom do' }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('nadriadeny_id')
-    .eq('id', user.id)
-    .single()
-
-  let schvalovatelId = profile?.nadriadeny_id || null
+  // Aktuálny schvaľovateľ (zohľadní zastupujúceho ak je primárny na dovolenke)
+  let schvalovatelId = await resolveCurrentApprover(supabase, user.id)
   if (!schvalovatelId) {
     const { data: admin } = await supabase
       .from('profiles')
@@ -44,7 +39,7 @@ export async function createDovolenka(formData: FormData) {
       .eq('role', 'it_admin')
       .eq('active', true)
       .limit(1)
-      .single()
+      .single<{ id: string }>()
     schvalovatelId = admin?.id || null
   }
 

@@ -82,7 +82,8 @@ export async function requireOwnerOrAdmin(ownerId: string): Promise<AuthResult &
 }
 
 /**
- * Overí, že prihlásený user je nadriadený daného zamestnanca ALEBO it_admin.
+ * Overí, že prihlásený user je nadriadený daného zamestnanca,
+ * alebo je zastupujúci nadriadeného (profiles.zastupuje_id), alebo it_admin.
  */
 export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResult & { error?: never } | { error: string }> {
   const result = await requireAuth()
@@ -91,16 +92,69 @@ export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResu
   // it_admin môže všetko
   if (result.profile.role === 'it_admin') return result
 
-  // Overíme nadriadený vzťah
   const { data: zamestnanec } = await result.supabase
     .from('profiles')
     .select('nadriadeny_id')
     .eq('id', zamestnanecId)
-    .single()
+    .single<{ nadriadeny_id: string | null }>()
 
-  if (!zamestnanec || zamestnanec.nadriadeny_id !== result.user.id) {
+  if (!zamestnanec?.nadriadeny_id) {
     return { error: 'Nie ste nadriadený tohto zamestnanca' }
   }
 
-  return result
+  // Priamy nadriadený
+  if (zamestnanec.nadriadeny_id === result.user.id) return result
+
+  // Zastupujúci: primárny nadriadený má zastupuje_id = ja
+  const { data: primary } = await result.supabase
+    .from('profiles')
+    .select('zastupuje_id')
+    .eq('id', zamestnanec.nadriadeny_id)
+    .single<{ zastupuje_id: string | null }>()
+
+  if (primary?.zastupuje_id === result.user.id) return result
+
+  return { error: 'Nie ste nadriadený tohto zamestnanca' }
+}
+
+/**
+ * Vráti ID aktuálneho schvaľovateľa pre daného zamestnanca.
+ * Ak je priamy nadriadený dnes na schválenej dovolenke, vráti jeho zastupuje_id
+ * (ak je nastavený). Inak vráti priameho nadriadeného. Môže vrátiť null ak nemá nikoho.
+ */
+export async function resolveCurrentApprover(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  zamestnanecId: string,
+): Promise<string | null> {
+  const { data: emp } = await supabase
+    .from('profiles')
+    .select('nadriadeny_id')
+    .eq('id', zamestnanecId)
+    .single<{ nadriadeny_id: string | null }>()
+
+  const primary = emp?.nadriadeny_id
+  if (!primary) return null
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data: onLeave } = await supabase
+    .from('dovolenky')
+    .select('id')
+    .eq('user_id', primary)
+    .eq('stav', 'schvalena')
+    .lte('datum_od', today)
+    .gte('datum_do', today)
+    .limit(1)
+
+  if (onLeave && onLeave.length > 0) {
+    const { data: primaryProfile } = await supabase
+      .from('profiles')
+      .select('zastupuje_id')
+      .eq('id', primary)
+      .single<{ zastupuje_id: string | null }>()
+
+    if (primaryProfile?.zastupuje_id) return primaryProfile.zastupuje_id
+  }
+
+  return primary
 }

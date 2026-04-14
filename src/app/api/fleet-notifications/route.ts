@@ -34,7 +34,8 @@ export async function GET(request: Request) {
       const { data: fleetManagers } = await supabase
         .from('profiles')
         .select('id, email')
-        .in('role', ['fleet_manager', 'admin', 'it_admin'])
+        .in('role', ['fleet_manager', 'admin', 'it_admin', 'fin_manager'])
+        .eq('active', true)
 
       const subject = `${typLabels[k.typ] || k.typ} - ${k.vozidlo.spz} expiruje o ${diffDays} dní`
       const body = `Vozidlo ${k.vozidlo.znacka} ${k.vozidlo.variant} (${k.vozidlo.spz}) má ${typLabels[k.typ]} platnú do ${k.platnost_do}. Zostáva ${diffDays} dní.`
@@ -43,14 +44,15 @@ export async function GET(request: Request) {
         notifications.push({ email: fm.email, userId: fm.id, subject, body, typ: `kontrola_${k.typ}`, vozidloId: k.vozidlo.id })
       }
 
-      if (k.vozidlo.priradeny_vodic_id && ['stk', 'ek'].includes(k.typ)) {
-        const { data: driver } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .eq('id', k.vozidlo.priradeny_vodic_id)
-          .single()
+      // Upozorniť všetkých priradených vodičov vozidla (zdieľané vozidlá)
+      const { data: vodici } = await supabase
+        .from('vozidlo_vodici')
+        .select('user_id, profile:profiles!user_id(id, email, active)')
+        .eq('vozidlo_id', k.vozidlo.id)
 
-        if (driver) {
+      for (const vv of vodici || []) {
+        const driver = (vv as any).profile
+        if (driver?.active && driver?.email) {
           notifications.push({ email: driver.email, userId: driver.id, subject, body, typ: `kontrola_${k.typ}`, vozidloId: k.vozidlo.id })
         }
       }
@@ -71,7 +73,8 @@ export async function GET(request: Request) {
       const { data: fleetManagers } = await supabase
         .from('profiles')
         .select('id, email')
-        .in('role', ['fleet_manager', 'admin', 'it_admin'])
+        .in('role', ['fleet_manager', 'admin', 'it_admin', 'fin_manager'])
+        .eq('active', true)
 
       const subject = `Dokument "${d.nazov}" - ${d.vozidlo.spz} expiruje o ${diffDays} dní`
       const body = `Dokument "${d.nazov}" pre vozidlo ${d.vozidlo.znacka} ${d.vozidlo.variant} (${d.vozidlo.spz}) expiruje ${d.platnost_do}. Zostáva ${diffDays} dní.`
@@ -96,7 +99,8 @@ export async function GET(request: Request) {
       const { data: fleetManagers } = await supabase
         .from('profiles')
         .select('id, email')
-        .in('role', ['fleet_manager', 'admin', 'it_admin'])
+        .in('role', ['fleet_manager', 'admin', 'it_admin', 'fin_manager'])
+        .eq('active', true)
 
       const subject = `Leasing - ${v.spz} končí o ${diffDays} dní`
       const body = `Vozidlo ${v.znacka} ${v.variant} (${v.spz}) má koniec leasingu ${v.leasing_koniec}. Zostáva ${diffDays} dní.`
