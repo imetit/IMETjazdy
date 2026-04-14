@@ -90,9 +90,10 @@ export default function ZamestnanciTable({ zamestnanci, vozidla }: {
                   <input
                     type="number"
                     step="0.5"
-                    defaultValue={z.pracovny_fond_hodiny || 8.5}
-                    onBlur={async (e) => { await updateZamestnanecFond(z.id, parseFloat(e.target.value)); router.refresh() }}
+                    defaultValue={z.tyzdnovy_fond_hodiny || (z.pracovny_fond_hodiny ? z.pracovny_fond_hodiny * (z.pracovne_dni_tyzdne || 5) : 42.5)}
+                    onBlur={async (e) => { await updateZamestnanecFond(z.id, parseFloat(e.target.value), z.pracovne_dni_tyzdne || 5); router.refresh() }}
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                    title="Týždňový fond (h/týž.)"
                   />
                 </td>
                 <td className="px-4 py-3">

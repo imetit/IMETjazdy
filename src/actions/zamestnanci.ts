@@ -223,16 +223,63 @@ export async function updateZamestnanecZastupuje(profileId: string, zastupujeId:
   revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
-export async function updateZamestnanecFond(profileId: string, fond: number) {
+export async function updateZamestnanecFond(profileId: string, tyzdnovyFond: number, pracovneDniTyzdne: number) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  if (tyzdnovyFond <= 0 || tyzdnovyFond > 60) return { error: 'Neplatný týždňový fond' }
+  if (pracovneDniTyzdne < 1 || pracovneDniTyzdne > 7) return { error: 'Neplatný počet dní' }
+
+  const denny = tyzdnovyFond / pracovneDniTyzdne
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
+    tyzdnovy_fond_hodiny: tyzdnovyFond,
+    pracovne_dni_tyzdne: pracovneDniTyzdne,
+    pracovny_fond_hodiny: denny,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+}
+
+export async function updateZamestnanecFirma(profileId: string, firmaId: string | null) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.from('profiles').update({
-    pracovny_fond_hodiny: fond,
+    firma_id: firmaId || null,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri priraďovaní firmy' }
+
+  await logAudit('zmena_firmy', 'profiles', profileId, { firma_id: firmaId })
+
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+  revalidatePath('/admin/zamestnanci')
+}
+
+export async function updateZamestnanecDatumNastupu(profileId: string, datum: string | null) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
+    datum_nastupu: datum || null,
   }).eq('id', profileId)
   if (error) return { error: 'Chyba pri aktualizácii' }
+
   revalidatePath(`/admin/zamestnanci/${profileId}`)
+}
+
+export async function getFirmy() {
+  const auth = await requireAdmin()
+  if ('error' in auth) return { data: [] }
+  const { data } = await auth.supabase
+    .from('firmy')
+    .select('id, kod, nazov, je_matka, aktivna')
+    .eq('aktivna', true)
+    .order('poradie')
+  return { data: data || [] }
 }
 
 export async function resetZamestnanecPassword(profileId: string, newPassword: string) {

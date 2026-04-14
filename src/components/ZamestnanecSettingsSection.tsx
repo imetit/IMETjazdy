@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, Key, Car, UserCheck, Clock, Briefcase, Users, Building2 } from 'lucide-react'
-import { updateZamestnanecVozidlo, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond, resetZamestnanecPassword, updateZamestnanecTypUvazku, updateZamestnanecZastupuje } from '@/actions/zamestnanci'
+import { Settings, Key, Car, UserCheck, Clock, Briefcase, Users, Building2, Building, Calendar } from 'lucide-react'
+import { updateZamestnanecVozidlo, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond, resetZamestnanecPassword, updateZamestnanecTypUvazku, updateZamestnanecZastupuje, updateZamestnanecFirma, updateZamestnanecDatumNastupu } from '@/actions/zamestnanci'
 import { updateUserPozicia } from '@/actions/permissions'
 import { useRouter } from 'next/navigation'
 import { TYP_UVAZKU_LABELS, type TypUvazku } from '@/lib/types'
@@ -14,23 +14,32 @@ interface Props {
   currentZastupujeId: string | null
   currentTypUvazku: TypUvazku
   currentPin: string
-  currentFond: number
+  currentTyzdnovyFond: number
+  currentPracovneDniTyzdne: number
   currentPozicia: string
+  currentFirmaId: string | null
+  currentDatumNastupu: string | null
   vozidla: { id: string; znacka: string; variant: string; spz: string }[]
   zamestnanci: { id: string; full_name: string; role: string }[]
+  firmy: { id: string; kod: string; nazov: string }[]
 }
 
 export default function ZamestnanecSettingsSection({
-  userId, currentVozidloId, currentNadriadenyId, currentZastupujeId, currentTypUvazku, currentPin, currentFond, currentPozicia, vozidla, zamestnanci,
+  userId, currentVozidloId, currentNadriadenyId, currentZastupujeId, currentTypUvazku, currentPin, currentTyzdnovyFond, currentPracovneDniTyzdne, currentPozicia, currentFirmaId, currentDatumNastupu, vozidla, zamestnanci, firmy,
 }: Props) {
   const [vozidloId, setVozidloId] = useState(currentVozidloId || '')
   const [nadriadenyId, setNadriadenyId] = useState(currentNadriadenyId || '')
   const [zastupujeId, setZastupujeId] = useState(currentZastupujeId || '')
   const [typUvazku, setTypUvazku] = useState<TypUvazku>(currentTypUvazku)
   const [pin, setPin] = useState(currentPin)
-  const [fond, setFond] = useState(currentFond)
+  const [tyzdnovyFond, setTyzdnovyFond] = useState(currentTyzdnovyFond)
+  const [pracovneDni, setPracovneDni] = useState(currentPracovneDniTyzdne)
   const [pozicia, setPozicia] = useState(currentPozicia)
+  const [firmaId, setFirmaId] = useState(currentFirmaId || '')
+  const [datumNastupu, setDatumNastupu] = useState(currentDatumNastupu || '')
   const [newPassword, setNewPassword] = useState('')
+
+  const dennyFond = (tyzdnovyFond / pracovneDni).toFixed(2)
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
@@ -173,23 +182,84 @@ export default function ZamestnanecSettingsSection({
           </select>
         </div>
 
-        {/* Pracovný fond */}
+        {/* Firma */}
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
-            <Clock size={14} className="text-gray-400" /> Pracovný fond (hodiny/deň)
+            <Building size={14} className="text-gray-400" /> Firma
+          </label>
+          <select
+            value={firmaId}
+            onChange={e => { setFirmaId(e.target.value); save('firma', () => updateZamestnanecFirma(userId, e.target.value || null)) }}
+            disabled={saving === 'firma'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          >
+            <option value="">—</option>
+            {firmy.map(f => (
+              <option key={f.id} value={f.id}>{f.nazov}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Dátum nástupu */}
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+            <Calendar size={14} className="text-gray-400" /> Dátum nástupu
           </label>
           <div className="flex gap-2">
             <input
-              type="number"
-              step="0.5"
-              min="1"
-              max="24"
-              value={fond}
-              onChange={e => setFond(parseFloat(e.target.value) || 8.5)}
+              type="date"
+              value={datumNastupu}
+              onChange={e => setDatumNastupu(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
             <button
-              onClick={() => save('fond', () => updateZamestnanecFond(userId, fond))}
+              onClick={() => save('datum_nastupu', () => updateZamestnanecDatumNastupu(userId, datumNastupu || null))}
+              disabled={saving === 'datum_nastupu'}
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+            >
+              {saving === 'datum_nastupu' ? '...' : 'Uložiť'}
+            </button>
+          </div>
+        </div>
+
+        {/* Pracovný fond — týždňový + dni/týždeň */}
+        <div className="md:col-span-2">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+            <Clock size={14} className="text-gray-400" /> Pracovný fond
+          </label>
+          <div className="flex gap-2 items-center">
+            <div className="flex-1">
+              <input
+                type="number"
+                step="0.5"
+                min="1"
+                max="60"
+                value={tyzdnovyFond}
+                onChange={e => setTyzdnovyFond(parseFloat(e.target.value) || 42.5)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                placeholder="hodín/týždeň"
+              />
+              <p className="text-xs text-gray-400 mt-0.5">h / týždeň</p>
+            </div>
+            <span className="text-gray-400 text-sm">/</span>
+            <div className="w-20">
+              <input
+                type="number"
+                min="1"
+                max="7"
+                value={pracovneDni}
+                onChange={e => setPracovneDni(parseInt(e.target.value) || 5)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-center"
+              />
+              <p className="text-xs text-gray-400 mt-0.5">dní/týž.</p>
+            </div>
+            <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm">
+              <span className="text-gray-500">= </span>
+              <span className="font-semibold">{dennyFond}</span>
+              <span className="text-gray-400 text-xs ml-1">h/deň</span>
+            </div>
+            <button
+              onClick={() => save('fond', () => updateZamestnanecFond(userId, tyzdnovyFond, pracovneDni))}
               disabled={saving === 'fond'}
               className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
             >

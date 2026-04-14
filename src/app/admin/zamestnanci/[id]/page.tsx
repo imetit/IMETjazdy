@@ -27,7 +27,7 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
 
   if (!profile) redirect('/admin/zamestnanci')
 
-  const [vozidloResult, majetokResult, licencieResult, rfidResult, narokResult, modulyResult, allVozidlaResult, allProfilesResult] = await Promise.all([
+  const [vozidloResult, majetokResult, licencieResult, rfidResult, narokResult, modulyResult, allVozidlaResult, allProfilesResult, firmyResult] = await Promise.all([
     profile.vozidlo_id
       ? supabase.from('vozidla').select('*').eq('id', profile.vozidlo_id).single()
       : Promise.resolve({ data: null }),
@@ -38,6 +38,7 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
     getUserModuly(id),
     supabase.from('vozidla').select('id, znacka, variant, spz').eq('aktivne', true).order('znacka'),
     supabase.from('profiles').select('id, full_name, role').eq('active', true).neq('role', 'tablet').neq('id', id).order('full_name'),
+    supabase.from('firmy').select('id, kod, nazov').eq('aktivna', true).order('poradie'),
   ])
 
   async function handleRoleChange(role: string) {
@@ -65,10 +66,14 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
           currentZastupujeId={profile.zastupuje_id || null}
           currentTypUvazku={(profile.typ_uvazku as any) || 'tpp'}
           currentPin={profile.pin || ''}
-          currentFond={profile.pracovny_fond_hodiny || 8.5}
+          currentTyzdnovyFond={profile.tyzdnovy_fond_hodiny || 42.5}
+          currentPracovneDniTyzdne={profile.pracovne_dni_tyzdne || 5}
           currentPozicia={profile.pozicia || ''}
+          currentFirmaId={profile.firma_id || null}
+          currentDatumNastupu={profile.datum_nastupu || null}
           vozidla={(allVozidlaResult.data || []) as { id: string; znacka: string; variant: string; spz: string }[]}
           zamestnanci={(allProfilesResult.data || []) as { id: string; full_name: string; role: string }[]}
+          firmy={(firmyResult.data || []) as { id: string; kod: string; nazov: string }[]}
         />
       </div>
 

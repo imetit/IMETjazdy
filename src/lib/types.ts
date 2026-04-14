@@ -1,3 +1,22 @@
+export interface Firma {
+  id: string
+  kod: string
+  nazov: string
+  ico: string | null
+  dic: string | null
+  ic_dph: string | null
+  adresa: string | null
+  mesto: string | null
+  krajina: string
+  mena: string
+  je_matka: boolean
+  moduly_default: string[]
+  aktivna: boolean
+  poradie: number
+  logo_url: string | null
+  created_at: string
+}
+
 export type TypUvazku = 'tpp' | 'dohoda' | 'brigada' | 'extern' | 'materska' | 'rodicovska'
 
 export const TYP_UVAZKU_LABELS: Record<TypUvazku, string> = {
@@ -24,6 +43,10 @@ export interface Profile {
   zastupuje_id?: string | null
   typ_uvazku?: TypUvazku
   ical_token?: string | null
+  firma_id?: string | null
+  tyzdnovy_fond_hodiny?: number
+  pracovne_dni_tyzdne?: number
+  datum_nastupu?: string | null
 }
 
 export type ModulId = 'jazdy' | 'vozovy_park' | 'zamestnanecka_karta' | 'dochadzka' | 'dovolenky' | 'sluzobne_cesty' | 'archiv' | 'admin_zamestnanci' | 'admin_nastavenia'
