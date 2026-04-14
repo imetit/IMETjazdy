@@ -154,6 +154,12 @@ export async function schvalDovolenku(id: string) {
   const auth = await requireNadriadeny(dovolenka.user_id)
   if ('error' in auth) return auth
 
+  // Zamedziť aby si niekto schválil vlastnú žiadosť
+  // (napr. po zmene nadriadeny_id = self, alebo it_admin žiada o vlastnú dovolenku)
+  if (dovolenka.user_id === auth.user.id) {
+    return { error: 'Nemôžete schváliť vlastnú žiadosť o dovolenku' }
+  }
+
   const { error } = await supabase.from('dovolenky').update({
     stav: 'schvalena',
     schvalene_at: new Date().toISOString(),
@@ -162,49 +168,41 @@ export async function schvalDovolenku(id: string) {
   if (error) return { error: 'Chyba pri schvaľovaní' }
 
   // Vytvoriť záznamy v dochádzke pre schválenú dovolenku
+  // Batch-fetch existujúcich práca záznamov za celé obdobie (namiesto N+1)
   const od = new Date(dovolenka.datum_od)
   const do_ = new Date(dovolenka.datum_do)
+
+  const { data: existujuce } = await supabase
+    .from('dochadzka')
+    .select('datum')
+    .eq('user_id', dovolenka.user_id)
+    .eq('dovod', 'praca')
+    .gte('datum', dovolenka.datum_od)
+    .lte('datum', dovolenka.datum_do)
+
+  const dniSPracou = new Set((existujuce || []).map((r: { datum: string }) => r.datum))
+
+  const inserts: Array<Record<string, unknown>> = []
   const current = new Date(od)
   while (current <= do_) {
     if (isPracovnyDen(current)) {
       const datum = current.toISOString().split('T')[0]
-      // Skontrolujeme či už existuje záznam na ten deň
-      const { data: existujuci } = await supabase
-        .from('dochadzka')
-        .select('id')
-        .eq('user_id', dovolenka.user_id)
-        .eq('datum', datum)
-        .eq('dovod', 'praca')
-        .limit(1)
-
-      // Ak zamestnanec nemal záznam práce na ten deň, vytvoríme dovolenku
-      if (!existujuci || existujuci.length === 0) {
+      if (!dniSPracou.has(datum)) {
         const ranoCas = new Date(current)
         ranoCas.setHours(8, 0, 0, 0)
         const vecerCas = new Date(current)
         vecerCas.setHours(16, 30, 0, 0)
-
-        await supabase.from('dochadzka').insert([
-          {
-            user_id: dovolenka.user_id,
-            datum,
-            smer: 'prichod',
-            dovod: 'dovolenka',
-            cas: ranoCas.toISOString(),
-            zdroj: 'system',
-          },
-          {
-            user_id: dovolenka.user_id,
-            datum,
-            smer: 'odchod',
-            dovod: 'dovolenka',
-            cas: vecerCas.toISOString(),
-            zdroj: 'system',
-          },
-        ])
+        inserts.push(
+          { user_id: dovolenka.user_id, datum, smer: 'prichod', dovod: 'dovolenka', cas: ranoCas.toISOString(), zdroj: 'system' },
+          { user_id: dovolenka.user_id, datum, smer: 'odchod', dovod: 'dovolenka', cas: vecerCas.toISOString(), zdroj: 'system' },
+        )
       }
     }
     current.setDate(current.getDate() + 1)
+  }
+
+  if (inserts.length > 0) {
+    await supabase.from('dochadzka').insert(inserts)
   }
 
   // Notifikácia zamestnancovi
@@ -240,6 +238,10 @@ export async function zamietniDovolenku(id: string, dovod: string) {
 
   const auth = await requireNadriadeny(dovolenka.user_id)
   if ('error' in auth) return auth
+
+  if (dovolenka.user_id === auth.user.id) {
+    return { error: 'Nemôžete zamietnuť vlastnú žiadosť o dovolenku' }
+  }
 
   const { error } = await supabase.from('dovolenky').update({
     stav: 'zamietnuta',

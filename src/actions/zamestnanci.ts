@@ -75,6 +75,28 @@ export async function toggleZamestnanecActive(profileId: string, active: boolean
   const { error } = await adminClient.from('profiles').update({ active }).eq('id', profileId)
   if (error) return { error: 'Chyba pri zmene stavu' }
 
+  // Pri deaktivácii automaticky zamietnuť pending žiadosti, aby nezostali visieť
+  if (!active) {
+    const now = new Date().toISOString()
+
+    await adminClient.from('dovolenky')
+      .update({
+        stav: 'zamietnuta',
+        dovod_zamietnutia: 'Automatické zamietnutie — zamestnanec deaktivovaný',
+        schvalene_at: now,
+      })
+      .eq('user_id', profileId)
+      .eq('stav', 'caka_na_schvalenie')
+
+    await adminClient.from('sluzobne_cesty')
+      .update({
+        stav: 'zamietnuta',
+        schvalene_at: now,
+      })
+      .eq('user_id', profileId)
+      .eq('stav', 'nova')
+  }
+
   await logAudit(active ? 'aktivacia_zamestnanca' : 'deaktivacia_zamestnanca', 'profiles', profileId)
 
   revalidatePath('/admin/zamestnanci')
@@ -85,10 +107,54 @@ export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyI
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
+
+  // Self-reference check
+  if (nadriadenyId && nadriadenyId === profileId) {
+    return { error: 'Zamestnanec nemôže byť sám sebe nadriadeným' }
+  }
+
+  // Cycle detection — prejdeme reťaz od nadriadenyId nahor,
+  // ak v nej nájdeme profileId, vznikol by cyklus
+  if (nadriadenyId) {
+    let current: string | null = nadriadenyId
+    const visited = new Set<string>()
+    while (current) {
+      if (current === profileId) {
+        return { error: 'Nastavenie by vytvorilo cyklus v hierarchii nadriadených' }
+      }
+      if (visited.has(current)) break // existujúci cyklus inde — prerušíme
+      visited.add(current)
+      const res = await adminClient
+        .from('profiles')
+        .select('nadriadeny_id')
+        .eq('id', current)
+        .single()
+      const parent = res.data as { nadriadeny_id: string | null } | null
+      current = parent?.nadriadeny_id ?? null
+    }
+  }
+
   const { error } = await adminClient.from('profiles').update({
     nadriadeny_id: nadriadenyId || null,
   }).eq('id', profileId)
   if (error) return { error: 'Chyba pri aktualizácii' }
+
+  // Cascade: aktualizujeme schvalovatel_id na všetkých pending žiadostiach
+  // tohto zamestnanca, aby ich videl nový nadriadený (nie starý)
+  if (nadriadenyId) {
+    await adminClient.from('dovolenky')
+      .update({ schvalovatel_id: nadriadenyId })
+      .eq('user_id', profileId)
+      .eq('stav', 'caka_na_schvalenie')
+
+    await adminClient.from('sluzobne_cesty')
+      .update({ schvalovatel_id: nadriadenyId })
+      .eq('user_id', profileId)
+      .eq('stav', 'nova')
+  }
+
+  await logAudit('zmena_nadriadeneho', 'profiles', profileId, { novy_nadriadeny_id: nadriadenyId })
+
   revalidatePath('/admin/zamestnanci')
   revalidatePath(`/admin/zamestnanci/${profileId}`)
 }

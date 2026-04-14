@@ -1,13 +1,14 @@
 // src/actions/archiv.ts
 'use server'
 
-import { createSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
 export async function getAllDokumenty(filters?: { typ?: string; stav?: string; search?: string }) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error }
+  const supabase = auth.supabase
   let query = supabase
     .from('dokumenty_archiv')
     .select('*, nahral:profiles!nahral_id(full_name)')
@@ -26,7 +27,9 @@ export async function getAllDokumenty(filters?: { typ?: string; stav?: string; s
 }
 
 export async function getDokument(id: string) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error }
+  const supabase = auth.supabase
   const { data, error } = await supabase
     .from('dokumenty_archiv')
     .select('*, nahral:profiles!nahral_id(full_name), schvalovatel:profiles!schvalovatel_id(full_name)')

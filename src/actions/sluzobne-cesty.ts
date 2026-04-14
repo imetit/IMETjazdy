@@ -100,7 +100,9 @@ export async function updateSkutocneKm(cestaId: string, km: number) {
 }
 
 export async function getAllCesty(filter?: { stav?: string }) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error }
+  const supabase = auth.supabase
   let query = supabase
     .from('sluzobne_cesty')
     .select('*, profile:profiles!user_id(full_name), schvalovatel:profiles!schvalovatel_id(full_name)')
@@ -114,7 +116,9 @@ export async function getAllCesty(filter?: { stav?: string }) {
 }
 
 export async function getCestaDetail(id: string) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error, cesta: null, prikaz: null }
+  const supabase = auth.supabase
 
   const { data: cesta } = await supabase
     .from('sluzobne_cesty')
@@ -146,6 +150,10 @@ export async function schvalCestu(id: string) {
   // Overenie že user je nadriadený alebo it_admin
   const auth = await requireNadriadeny(cestaData.user_id)
   if ('error' in auth) return auth
+
+  if (cestaData.user_id === auth.user.id) {
+    return { error: 'Nemôžete schváliť vlastnú služobnú cestu' }
+  }
 
   // Update trip status
   const { error } = await supabase.from('sluzobne_cesty').update({
@@ -243,6 +251,10 @@ export async function zamietniCestu(id: string) {
 
   const auth = await requireNadriadeny(cesta.user_id)
   if ('error' in auth) return auth
+
+  if (cesta.user_id === auth.user.id) {
+    return { error: 'Nemôžete zamietnuť vlastnú služobnú cestu' }
+  }
 
   const { error } = await supabase.from('sluzobne_cesty').update({
     stav: 'zamietnuta',

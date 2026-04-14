@@ -1,11 +1,14 @@
 'use server'
 
-import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
 
 export async function getDochadzkaZamestnancov(mesiac: string) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error, profiles: [], zaznamy: [] as DochadzkaZaznam[] }
+  const supabase = auth.supabase
+
   const [rok, mes] = mesiac.split('-').map(Number)
   const startDate = `${rok}-${String(mes).padStart(2, '0')}-01`
   const endDate = `${rok}-${String(mes).padStart(2, '0')}-${new Date(rok, mes, 0).getDate()}`
@@ -28,7 +31,10 @@ export async function getDochadzkaZamestnancov(mesiac: string) {
 }
 
 export async function getDnesVPraci() {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error, data: [] }
+  const supabase = auth.supabase
+
   const dnes = new Date().toISOString().split('T')[0]
 
   const { data } = await supabase
@@ -53,7 +59,10 @@ export async function getDnesVPraci() {
 }
 
 export async function getDochadzkaDetail(userId: string, mesiac: string) {
-  const supabase = await createSupabaseServer()
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error, zaznamy: [] as DochadzkaZaznam[], profile: null }
+  const supabase = auth.supabase
+
   const [rok, mes] = mesiac.split('-').map(Number)
   const startDate = `${rok}-${String(mes).padStart(2, '0')}-01`
   const endDate = `${rok}-${String(mes).padStart(2, '0')}-${new Date(rok, mes, 0).getDate()}`
@@ -76,9 +85,9 @@ export async function getDochadzkaDetail(userId: string, mesiac: string) {
 }
 
 export async function addManualDochadzka(formData: FormData) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error }
+  const supabase = auth.supabase
 
   const { error } = await supabase.from('dochadzka').insert({
     user_id: formData.get('user_id') as string,
@@ -95,9 +104,10 @@ export async function addManualDochadzka(formData: FormData) {
 }
 
 export async function deleteDochadzkaZaznam(id: string, userId: string) {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Neprihlásený' }
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error }
+  const supabase = auth.supabase
+
   const { error } = await supabase.from('dochadzka').delete().eq('id', id)
   if (error) return { error: 'Chyba pri mazaní záznamu' }
   revalidatePath(`/admin/dochadzka/${userId}`)
