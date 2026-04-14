@@ -1,5 +1,6 @@
-export type TypDovolenky = 'dovolenka' | 'sick_leave' | 'nahradne_volno' | 'neplatene_volno'
+export type TypDovolenky = 'dovolenka' | 'sick_leave' | 'ocr' | 'nahradne_volno' | 'neplatene_volno'
 export type StavDovolenky = 'caka_na_schvalenie' | 'schvalena' | 'zamietnuta'
+export type CastDna = 'dopoludnie' | 'popoludnie'
 
 export interface Dovolenka {
   id: string
@@ -12,6 +13,8 @@ export interface Dovolenka {
   schvalovatel_id: string | null
   schvalene_at: string | null
   dovod_zamietnutia: string | null
+  pol_dna: boolean
+  cast_dna: CastDna | null
   created_at: string
   profile?: { full_name: string }
   schvalovatel?: { full_name: string }
@@ -27,9 +30,15 @@ export interface DovolenkaNarok {
 
 export const TYP_DOVOLENKY_LABELS: Record<TypDovolenky, string> = {
   dovolenka: 'Dovolenka',
-  sick_leave: 'PN / Sick leave',
+  sick_leave: 'PN',
+  ocr: 'OČR',
   nahradne_volno: 'Náhradné voľno',
   neplatene_volno: 'Neplatené voľno',
+}
+
+export const CAST_DNA_LABELS: Record<CastDna, string> = {
+  dopoludnie: 'Dopoludnie',
+  popoludnie: 'Popoludnie',
 }
 
 export const STAV_DOVOLENKY_LABELS: Record<StavDovolenky, string> = {

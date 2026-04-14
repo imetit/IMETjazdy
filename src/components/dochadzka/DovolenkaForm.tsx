@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { Dovolenka, TypDovolenky } from '@/lib/dovolenka-types'
-import { TYP_DOVOLENKY_LABELS, STAV_DOVOLENKY_LABELS, STAV_DOVOLENKY_COLORS } from '@/lib/dovolenka-types'
+import { TYP_DOVOLENKY_LABELS, STAV_DOVOLENKY_LABELS, STAV_DOVOLENKY_COLORS, CAST_DNA_LABELS } from '@/lib/dovolenka-types'
 import { createDovolenka } from '@/actions/dovolenky'
 import { formatDate } from '@/lib/fleet-utils'
 import { useRouter } from 'next/navigation'
@@ -18,18 +18,30 @@ export default function DovolenkaForm({ dovolenky, narok }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [datumOd, setDatumOd] = useState('')
+  const [datumDo, setDatumDo] = useState('')
+  const [polDna, setPolDna] = useState(false)
   const router = useRouter()
+
+  // Pol dňa je možný iba pri 1-dňovej žiadosti
+  const isSingleDay = datumOd !== '' && datumOd === datumDo
+  const canUsePolDna = isSingleDay
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError('')
     const formData = new FormData(e.currentTarget)
+    if (!canUsePolDna && formData.get('pol_dna')) {
+      formData.delete('pol_dna')
+      formData.delete('cast_dna')
+    }
     const result = await createDovolenka(formData)
     if (result?.error) {
       setError(result.error)
     } else {
       setShowForm(false)
+      setDatumOd(''); setDatumDo(''); setPolDna(false)
       e.currentTarget.reset()
     }
     setLoading(false)
@@ -70,11 +82,11 @@ export default function DovolenkaForm({ dovolenky, narok }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Od *</label>
-                <input name="datum_od" type="date" required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                <input name="datum_od" type="date" required value={datumOd} onChange={e => { setDatumOd(e.target.value); if (e.target.value !== datumDo) setPolDna(false) }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Do *</label>
-                <input name="datum_do" type="date" required className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                <input name="datum_do" type="date" required value={datumDo} onChange={e => { setDatumDo(e.target.value); if (e.target.value !== datumOd) setPolDna(false) }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
               </div>
             </div>
             <div>
@@ -84,6 +96,31 @@ export default function DovolenkaForm({ dovolenky, narok }: Props) {
                   <option key={t} value={t}>{TYP_DOVOLENKY_LABELS[t]}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Pol dňa — iba keď jednoduchá 1-dňová žiadosť */}
+            <div className={`rounded-lg border p-3 ${canUsePolDna ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-gray-50 opacity-50'}`}>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="pol_dna"
+                  checked={polDna}
+                  onChange={e => setPolDna(e.target.checked)}
+                  disabled={!canUsePolDna}
+                  value="true"
+                />
+                Pol dňa
+                {!canUsePolDna && <span className="text-xs text-gray-400 font-normal">(iba pri žiadosti na jeden deň)</span>}
+              </label>
+              {polDna && canUsePolDna && (
+                <div className="mt-2">
+                  <select name="cast_dna" required className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm">
+                    {(Object.keys(CAST_DNA_LABELS) as Array<keyof typeof CAST_DNA_LABELS>).map(k => (
+                      <option key={k} value={k}>{CAST_DNA_LABELS[k]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Poznámka</label>

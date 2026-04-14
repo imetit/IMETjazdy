@@ -21,6 +21,10 @@ export const getSession = cache(async () => {
   if (profile.role === 'it_admin') {
     moduly = ['jazdy','vozovy_park','zamestnanecka_karta','dochadzka','dovolenky','sluzobne_cesty','archiv','admin_zamestnanci','admin_nastavenia']
       .map(m => ({ modul: m, pristup: 'admin' }))
+  } else if (profile.role === 'fin_manager') {
+    // Finančná manažérka vidí všetky moduly okrem správy zamestnancov a nastavení
+    moduly = ['jazdy','vozovy_park','zamestnanecka_karta','dochadzka','dovolenky','sluzobne_cesty','archiv']
+      .map(m => ({ modul: m, pristup: 'admin' }))
   } else {
     const { data } = await supabase.from('user_moduly').select('modul, pristup').eq('user_id', user.id)
     moduly = data || []

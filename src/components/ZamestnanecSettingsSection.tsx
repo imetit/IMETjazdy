@@ -1,15 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, Key, Car, UserCheck, Clock, Briefcase } from 'lucide-react'
-import { updateZamestnanecVozidlo, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond, resetZamestnanecPassword } from '@/actions/zamestnanci'
+import { Settings, Key, Car, UserCheck, Clock, Briefcase, Users, Building2 } from 'lucide-react'
+import { updateZamestnanecVozidlo, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond, resetZamestnanecPassword, updateZamestnanecTypUvazku, updateZamestnanecZastupuje } from '@/actions/zamestnanci'
 import { updateUserPozicia } from '@/actions/permissions'
 import { useRouter } from 'next/navigation'
+import { TYP_UVAZKU_LABELS, type TypUvazku } from '@/lib/types'
 
 interface Props {
   userId: string
   currentVozidloId: string | null
   currentNadriadenyId: string | null
+  currentZastupujeId: string | null
+  currentTypUvazku: TypUvazku
   currentPin: string
   currentFond: number
   currentPozicia: string
@@ -18,10 +21,12 @@ interface Props {
 }
 
 export default function ZamestnanecSettingsSection({
-  userId, currentVozidloId, currentNadriadenyId, currentPin, currentFond, currentPozicia, vozidla, zamestnanci,
+  userId, currentVozidloId, currentNadriadenyId, currentZastupujeId, currentTypUvazku, currentPin, currentFond, currentPozicia, vozidla, zamestnanci,
 }: Props) {
   const [vozidloId, setVozidloId] = useState(currentVozidloId || '')
   const [nadriadenyId, setNadriadenyId] = useState(currentNadriadenyId || '')
+  const [zastupujeId, setZastupujeId] = useState(currentZastupujeId || '')
+  const [typUvazku, setTypUvazku] = useState<TypUvazku>(currentTypUvazku)
   const [pin, setPin] = useState(currentPin)
   const [fond, setFond] = useState(currentFond)
   const [pozicia, setPozicia] = useState(currentPozicia)
@@ -44,8 +49,19 @@ export default function ZamestnanecSettingsSection({
     router.refresh()
   }
 
-  // Filter nadriadeny options - only admin/fleet_manager/it_admin
-  const nadriadenyOptions = zamestnanci.filter(z => ['admin', 'fleet_manager', 'it_admin'].includes(z.role))
+  // Filter nadriadeny options - role ktorá môže schvaľovať
+  const nadriadenyOptions = zamestnanci.filter(z => ['admin', 'fleet_manager', 'it_admin', 'fin_manager'].includes(z.role))
+
+  // Zastupujúci — ktokoľvek okrem seba
+  const zastupujeOptions = zamestnanci.filter(z => z.id !== userId)
+
+  const roleLabel = (r: string) => {
+    if (r === 'it_admin') return 'IT Admin'
+    if (r === 'admin') return 'Admin'
+    if (r === 'fleet_manager') return 'Fleet'
+    if (r === 'fin_manager') return 'Fin. manažér'
+    return r
+  }
 
   return (
     <div className="space-y-5">
@@ -116,7 +132,43 @@ export default function ZamestnanecSettingsSection({
           >
             <option value="">Žiadny nadriadený</option>
             {nadriadenyOptions.map(z => (
-              <option key={z.id} value={z.id}>{z.full_name} ({z.role === 'it_admin' ? 'IT Admin' : z.role === 'admin' ? 'Admin' : 'Fleet'})</option>
+              <option key={z.id} value={z.id}>{z.full_name} ({roleLabel(z.role)})</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Zastupujúci */}
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+            <Users size={14} className="text-gray-400" /> Zastupujúci (počas neprítomnosti nadriadeného)
+          </label>
+          <select
+            value={zastupujeId}
+            onChange={e => { setZastupujeId(e.target.value); save('zastupuje', () => updateZamestnanecZastupuje(userId, e.target.value || null)) }}
+            disabled={saving === 'zastupuje'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          >
+            <option value="">Žiadny zástupca</option>
+            {zastupujeOptions.map(z => (
+              <option key={z.id} value={z.id}>{z.full_name} ({roleLabel(z.role)})</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">Keď je tento zamestnanec na schválenej dovolenke, jeho podriadení idú na zástupcu.</p>
+        </div>
+
+        {/* Typ úväzku */}
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
+            <Building2 size={14} className="text-gray-400" /> Typ úväzku
+          </label>
+          <select
+            value={typUvazku}
+            onChange={e => { const v = e.target.value as TypUvazku; setTypUvazku(v); save('typ_uvazku', () => updateZamestnanecTypUvazku(userId, v)) }}
+            disabled={saving === 'typ_uvazku'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          >
+            {(Object.keys(TYP_UVAZKU_LABELS) as TypUvazku[]).map(k => (
+              <option key={k} value={k}>{TYP_UVAZKU_LABELS[k]}</option>
             ))}
           </select>
         </div>

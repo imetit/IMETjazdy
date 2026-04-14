@@ -1,8 +1,19 @@
+export type TypUvazku = 'tpp' | 'dohoda' | 'brigada' | 'extern' | 'materska' | 'rodicovska'
+
+export const TYP_UVAZKU_LABELS: Record<TypUvazku, string> = {
+  tpp: 'Trvalý pracovný pomer',
+  dohoda: 'Dohoda (DoPČ/DoVP)',
+  brigada: 'Brigáda (študent)',
+  extern: 'Externý konzultant',
+  materska: 'Materská dovolenka',
+  rodicovska: 'Rodičovská dovolenka',
+}
+
 export interface Profile {
   id: string
   email: string
   full_name: string
-  role: 'zamestnanec' | 'admin' | 'fleet_manager' | 'it_admin' | 'tablet'
+  role: 'zamestnanec' | 'admin' | 'fleet_manager' | 'it_admin' | 'tablet' | 'fin_manager'
   pozicia: string | null
   vozidlo_id: string | null
   active: boolean
@@ -10,6 +21,8 @@ export interface Profile {
   pin?: string | null
   pracovny_fond_hodiny?: number
   nadriadeny_id?: string | null
+  zastupuje_id?: string | null
+  typ_uvazku?: TypUvazku
 }
 
 export type ModulId = 'jazdy' | 'vozovy_park' | 'zamestnanecka_karta' | 'dochadzka' | 'dovolenky' | 'sluzobne_cesty' | 'archiv' | 'admin_zamestnanci' | 'admin_nastavenia'

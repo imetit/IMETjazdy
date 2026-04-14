@@ -30,6 +30,7 @@ const ROLE_OPTIONS = [
   { value: 'zamestnanec', label: 'Zamestnanec' },
   { value: 'admin', label: 'Admin (účtovníčka)' },
   { value: 'fleet_manager', label: 'Fleet Manager' },
+  { value: 'fin_manager', label: 'Finančný manažér' },
   { value: 'it_admin', label: 'IT Admin (plný prístup)' },
 ]
 
@@ -40,9 +41,13 @@ export default function UserPermissionsSection({ userId, currentRole, moduly, on
   const router = useRouter()
 
   const isItAdmin = role === 'it_admin'
+  const isFinManager = role === 'fin_manager'
+
+  const FIN_MANAGER_MODULY: ModulId[] = ['jazdy', 'vozovy_park', 'zamestnanecka_karta', 'dochadzka', 'dovolenky', 'sluzobne_cesty', 'archiv']
 
   function getCurrentPristup(modul: ModulId): PristupTyp | '' {
     if (isItAdmin) return 'admin'
+    if (isFinManager && FIN_MANAGER_MODULY.includes(modul)) return 'admin'
     const m = moduly.find(m => m.modul === modul)
     return (m?.pristup as PristupTyp) || ''
   }
@@ -91,6 +96,9 @@ export default function UserPermissionsSection({ userId, currentRole, moduly, on
         {isItAdmin && (
           <p className="text-xs text-teal-600 mt-2">IT Admin má automaticky plný prístup ku všetkým modulom.</p>
         )}
+        {isFinManager && (
+          <p className="text-xs text-teal-600 mt-2">Finančný manažér má automaticky prístup ku všetkým modulom okrem správy zamestnancov a nastavení.</p>
+        )}
       </div>
 
       {/* Module permissions */}
@@ -103,7 +111,7 @@ export default function UserPermissionsSection({ userId, currentRole, moduly, on
               <div key={modul} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 border border-gray-100">
                 <span className="text-sm font-medium text-gray-700">{MODUL_LABELS[modul]}</span>
                 <div className="flex items-center gap-2">
-                  {isItAdmin ? (
+                  {isItAdmin || (isFinManager && FIN_MANAGER_MODULY.includes(modul)) ? (
                     <span className="text-xs text-teal-600 font-medium px-2 py-1 bg-teal-50 rounded">Plný prístup</span>
                   ) : (
                     <select

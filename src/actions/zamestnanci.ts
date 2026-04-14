@@ -175,7 +175,7 @@ export async function updateZamestnanecRole(profileId: string, role: string) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const validRoles = ['zamestnanec', 'admin', 'fleet_manager', 'it_admin']
+  const validRoles = ['zamestnanec', 'admin', 'fleet_manager', 'it_admin', 'fin_manager']
   if (!validRoles.includes(role)) return { error: 'Neplatná rola' }
 
   const adminClient = createSupabaseAdmin()
@@ -186,6 +186,41 @@ export async function updateZamestnanecRole(profileId: string, role: string) {
 
   revalidatePath(`/admin/zamestnanci/${profileId}`)
   revalidatePath('/admin/zamestnanci')
+}
+
+export async function updateZamestnanecTypUvazku(profileId: string, typ: string) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const validTypy = ['tpp', 'dohoda', 'brigada', 'extern', 'materska', 'rodicovska']
+  if (!validTypy.includes(typ)) return { error: 'Neplatný typ úväzku' }
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({ typ_uvazku: typ }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+
+  await logAudit('zmena_typu_uvazku', 'profiles', profileId, { typ })
+
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+}
+
+export async function updateZamestnanecZastupuje(profileId: string, zastupujeId: string | null) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  if (zastupujeId && zastupujeId === profileId) {
+    return { error: 'Zamestnanec nemôže zastupovať sám seba' }
+  }
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
+    zastupuje_id: zastupujeId || null,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+
+  await logAudit('zmena_zastupujuceho', 'profiles', profileId, { zastupuje_id: zastupujeId })
+
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
 export async function updateZamestnanecFond(profileId: string, fond: number) {

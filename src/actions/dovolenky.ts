@@ -48,13 +48,24 @@ export async function createDovolenka(formData: FormData) {
     schvalovatelId = admin?.id || null
   }
 
+  const polDna = formData.get('pol_dna') === 'true'
+  const castDna = polDna ? (formData.get('cast_dna') as string) : null
+  const datumOdStr = formData.get('datum_od') as string
+  const datumDoStr = formData.get('datum_do') as string
+
+  if (polDna && datumOdStr !== datumDoStr) {
+    return { error: 'Pol dňa je možné iba pri žiadosti na jeden deň' }
+  }
+
   const { error } = await supabase.from('dovolenky').insert({
     user_id: user.id,
-    datum_od: formData.get('datum_od') as string,
-    datum_do: formData.get('datum_do') as string,
+    datum_od: datumOdStr,
+    datum_do: datumDoStr,
     typ: formData.get('typ') as string,
     poznamka: formData.get('poznamka') as string || null,
     schvalovatel_id: schvalovatelId,
+    pol_dna: polDna,
+    cast_dna: castDna,
   })
 
   if (error) return { error: 'Chyba pri vytváraní žiadosti' }
@@ -89,7 +100,7 @@ export async function getMyDovolenkaNarok() {
 
   const { data: schvalene } = await supabase
     .from('dovolenky')
-    .select('datum_od, datum_do')
+    .select('datum_od, datum_do, pol_dna')
     .eq('user_id', user.id)
     .eq('stav', 'schvalena')
     .eq('typ', 'dovolenka')
@@ -97,7 +108,13 @@ export async function getMyDovolenkaNarok() {
     .lte('datum_do', `${rok}-12-31`)
 
   let cerpaneDni = 0
-  for (const d of schvalene || []) {
+  for (const d of (schvalene || []) as Array<{ datum_od: string; datum_do: string; pol_dna?: boolean }>) {
+    if (d.pol_dna) {
+      // Pol dňa = 0.5 dňa, iba ak je to pracovný deň
+      const deň = new Date(d.datum_od)
+      if (isPracovnyDen(deň)) cerpaneDni += 0.5
+      continue
+    }
     const od = new Date(d.datum_od)
     const do_ = new Date(d.datum_do)
     const current = new Date(od)

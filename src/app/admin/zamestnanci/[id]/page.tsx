@@ -62,6 +62,8 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
           userId={id}
           currentVozidloId={profile.vozidlo_id || null}
           currentNadriadenyId={profile.nadriadeny_id || null}
+          currentZastupujeId={profile.zastupuje_id || null}
+          currentTypUvazku={(profile.typ_uvazku as any) || 'tpp'}
           currentPin={profile.pin || ''}
           currentFond={profile.pracovny_fond_hodiny || 8.5}
           currentPozicia={profile.pozicia || ''}

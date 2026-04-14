@@ -60,6 +60,14 @@ export async function requireFleetOrAdmin(): Promise<AuthResult & { error?: neve
 }
 
 /**
+ * Vyžaduje finančnú manažérku, admin alebo it_admin rolu.
+ * Používať pri akciách, ktoré majú vidieť aj fin_manager (archív, reporty, schvaľovanie).
+ */
+export async function requireFinOrAdmin(): Promise<AuthResult & { error?: never } | { error: string }> {
+  return requireRole(['fin_manager', 'admin', 'it_admin'])
+}
+
+/**
  * Overí, že prihlásený user je vlastníkom záznamu ALEBO admin.
  */
 export async function requireOwnerOrAdmin(ownerId: string): Promise<AuthResult & { error?: never } | { error: string }> {

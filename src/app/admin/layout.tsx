@@ -8,6 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Must have admin-level access
   const hasAdminAccess = profile.role === 'it_admin' || profile.role === 'admin' ||
+    profile.role === 'fin_manager' ||
     moduly.some(m => m.pristup === 'edit' || m.pristup === 'admin')
   if (!hasAdminAccess) redirect('/')
 
