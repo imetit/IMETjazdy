@@ -1,24 +1,22 @@
 #!/usr/bin/env node
 /**
- * Import zamestnancov z CSV/XLSX exportu starej dochádzky.
+ * Import zamestnancov z TSV exportu starej dochádzky.
+ *
+ * Vytvára LEN KOSTRY — iba meno, priezvisko, datum_nastupu, oddelenie → pozicia.
+ * Firma, typ úväzku, pracovný fond, PIN, nadriadený → admin nastaví manuálne
+ * v admin paneli (/admin/zamestnanci).
+ *
+ * Preskakuje:
+ *   - Ukončených (oddelenie = "Ukončení" alebo Zamestnaný_do < dnes)
+ *   - Testovacie účty (99999xxx ID, meno "Dočasná", priezvisko "Imeťák", …)
+ *
+ * Každý nový profile dostane dummy email:
+ *   {slug(meno)}.{slug(priezvisko)}@import.imet.sk
+ *   (ak už existuje, príjme suffix -2, -3, …)
  *
  * Použitie:
- *   node scripts/import-zamestnanci.mjs --file private/zamestnanci.csv --firma AKE_SKALICA --dry-run
- *   node scripts/import-zamestnanci.mjs --file private/zamestnanci.csv --firma AKE_SKALICA
- *
- * Očakávané stĺpce CSV (auto-detekt podľa hlavičky):
- *   - meno, priezvisko (povinne)
- *   - oddelenie (text, voľný)
- *   - datum_nastupu (YYYY-MM-DD alebo DD.MM.YYYY)
- *   - tyzdnovy_fond alebo fond_tyzden (hodín / týždeň, napr. 40, 42.5)
- *   - pracovne_dni_tyzdne (voliteľné, default 5)
- *
- * Pre každého:
- *   1. Vygeneruje dummy email: {meno}.{priezvisko}-{FIRMA_KOD}@internal.imet.sk
- *   2. Vytvorí auth user (random password — never used, vstup cez tablet PIN/RFID)
- *   3. Vytvorí profile: role=zamestnanec, typ_uvazku=tpp, firma_id=<firma>, tyzdnovy_fond, pracovne_dni, datum_nastupu, pozicia=oddelenie
- *
- * Pri --dry-run nič nezapisuje, iba vypíše plán.
+ *   node scripts/import-zamestnanci.mjs --file private/export-2026-04-14.tsv --dry-run
+ *   node scripts/import-zamestnanci.mjs --file private/export-2026-04-14.tsv
  *
  * Env:
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -32,20 +30,18 @@ import crypto from 'crypto'
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, cur, i, arr) => {
     if (cur.startsWith('--')) {
-      const key = cur.slice(2)
       const val = arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : 'true'
-      acc.push([key, val])
+      acc.push([cur.slice(2), val])
     }
     return acc
   }, [])
 )
 
 const file = args.file
-const firmaKod = args.firma
 const dryRun = args['dry-run'] === 'true'
 
-if (!file || !firmaKod) {
-  console.error('Usage: node scripts/import-zamestnanci.mjs --file <path> --firma <KOD> [--dry-run]')
+if (!file) {
+  console.error('Usage: node scripts/import-zamestnanci.mjs --file <tsv> [--dry-run]')
   process.exit(1)
 }
 
@@ -75,74 +71,93 @@ function parseDate(s) {
   return null
 }
 
-function parseFloatSafe(s, def) {
-  if (s === null || s === undefined || s === '') return def
-  const n = parseFloat(String(s).replace(',', '.'))
-  return isNaN(n) ? def : n
-}
-
-function parseCsv(text) {
-  const lines = text.split(/\r?\n/).filter(Boolean)
-  if (!lines.length) return []
-  const sep = lines[0].includes(';') ? ';' : ','
-  const header = lines[0].split(sep).map(h => h.trim().toLowerCase())
-  return lines.slice(1).map(line => {
-    const cells = line.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
-    return Object.fromEntries(header.map((h, i) => [h, cells[i] || '']))
-  })
-}
-
-function pick(row, keys) {
-  for (const k of keys) {
-    if (row[k] !== undefined && row[k] !== '') return row[k]
+// Parser anchorovaný na dátumy sprava (DD.MM.YYYY) — zvláda rôzny počet tab-ov
+function parseLine(line) {
+  const m = line.match(/^(\S+)\t(.*?)(\d{2}\.\d{2}\.\d{4})(?:\t(\d{2}\.\d{2}\.\d{4}))?\s*$/)
+  if (!m) return null
+  const parts = m[2].split('\t')
+  return {
+    id: m[1],
+    titul: (parts[0] || '').trim(),
+    meno: (parts[1] || '').trim(),
+    priezvisko: (parts[2] || '').trim(),
+    oddelenie: (parts[3] || '').trim(),
+    datumOd: m[3],
+    datumDo: m[4] || null,
   }
-  return ''
+}
+
+function isTestAccount(r) {
+  if (r.id.startsWith('99999')) return true
+  if (r.oddelenie === 'TEST') return true
+  if (/^(DvS|DVS|MM|BP)$/i.test(r.meno) || /^(DvS|DVS|MM|BP)$/i.test(r.priezvisko)) return true
+  if (/^Dočasná$/i.test(r.meno)) return true
+  if (r.priezvisko === 'Imeťák') return true
+  if (/^\d+$/.test(r.priezvisko)) return true
+  return false
+}
+
+function isActive(r, today) {
+  if (r.oddelenie === 'Ukončení') return false
+  if (!r.datumDo) return true
+  const d = parseDate(r.datumDo)
+  if (!d) return true
+  return new Date(d) > today
 }
 
 async function main() {
-  // 1. Load firma
-  const { data: firma } = await supabase.from('firmy').select('*').eq('kod', firmaKod).single()
-  if (!firma) {
-    console.error(`Firma s kódom "${firmaKod}" neexistuje.`)
-    process.exit(1)
-  }
-  console.log(`Firma: ${firma.nazov} (${firma.kod})`)
-
-  // 2. Parse CSV
   const text = readFileSync(file, 'utf-8')
-  const rows = parseCsv(text)
-  console.log(`Spracúvam ${rows.length} riadkov${dryRun ? ' (DRY RUN)' : ''}...`)
+  const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.startsWith('ID\t'))
+  const today = new Date('2026-04-14')
 
-  let created = 0
-  let skipped = 0
-  let failed = 0
+  const raw = lines.map(parseLine).filter(Boolean)
+  const real = raw.filter(r => !isTestAccount(r))
+  const active = real.filter(r => isActive(r, today))
 
-  for (const row of rows) {
-    const meno = pick(row, ['meno', 'first_name'])
-    const priezvisko = pick(row, ['priezvisko', 'surname', 'last_name'])
-    if (!meno || !priezvisko) {
-      console.warn('  ! chýba meno alebo priezvisko, skip:', row)
-      skipped++
-      continue
+  // Dedup podľa (meno, priezvisko), ber najnovší datumOd
+  const keyFor = r => `${r.meno.toLowerCase()}|${r.priezvisko.toLowerCase()}`
+  const byKey = new Map()
+  for (const r of active) {
+    const k = keyFor(r)
+    const existing = byKey.get(k)
+    if (!existing) byKey.set(k, r)
+    else {
+      const a = parseDate(existing.datumOd)
+      const b = parseDate(r.datumOd)
+      if (b && a && new Date(b) > new Date(a)) byKey.set(k, r)
     }
+  }
+  const uniqueActive = [...byKey.values()]
 
-    const full_name = `${meno} ${priezvisko}`.trim()
-    const oddelenie = pick(row, ['oddelenie', 'department'])
-    const datumNastupu = parseDate(pick(row, ['datum_nastupu', 'nastup', 'zamestnany_od']))
-    const tyzdnovy = parseFloatSafe(pick(row, ['tyzdnovy_fond', 'fond_tyzden', 'fond', 'tyzden_h', 'hodiny_tyzden']), 40)
-    const pracovneDni = parseFloatSafe(pick(row, ['pracovne_dni_tyzdne', 'dni_tyzden']), 5)
-    const email = `${slug(meno)}.${slug(priezvisko)}-${firma.kod}@internal.imet.sk`
+  console.log(`Spracujem ${uniqueActive.length} aktívnych (z ${raw.length} riadkov)${dryRun ? ' — DRY RUN' : ''}\n`)
 
-    console.log(`  → ${full_name}  ${firma.kod}  fond=${tyzdnovy}h/${pracovneDni}d  nástup=${datumNastupu || 'N/A'}  odd=${oddelenie || '-'}  email=${email}`)
+  let created = 0, skipped = 0, failed = 0
+  const usedEmails = new Set()
+
+  for (const r of uniqueActive) {
+    const full_name = [r.titul, r.meno, r.priezvisko].filter(Boolean).join(' ').trim()
+    const datumNastupu = parseDate(r.datumOd)
+    const pozicia = r.oddelenie || null
+
+    // Email — dummy, unique
+    let base = `${slug(r.meno)}.${slug(r.priezvisko)}@import.imet.sk`
+    let email = base
+    let n = 1
+    while (usedEmails.has(email)) { n++; email = base.replace('@', `-${n}@`) }
+    usedEmails.add(email)
+
+    console.log(`  ${full_name.padEnd(40)}  nástup=${datumNastupu || '?'}  odd="${pozicia || ''}"`)
 
     if (dryRun) { created++; continue }
 
-    // Check if user already exists by email
-    const { data: existing } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle()
-    if (existing) {
-      console.log('    ℹ existuje, skip')
-      skipped++
-      continue
+    // Preskočiť ak existuje v DB
+    const { data: ex } = await supabase.from('profiles').select('id').ilike('full_name', full_name).maybeSingle()
+    if (ex) { console.log('    ℹ existuje'); skipped++; continue }
+
+    // Unikátnosť emailu v DB
+    const { data: exEmail } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle()
+    if (exEmail) {
+      email = email.replace('@', `-${Date.now().toString(36)}@`)
     }
 
     const password = crypto.randomBytes(24).toString('hex')
@@ -153,31 +168,24 @@ async function main() {
       user_metadata: { full_name, role: 'zamestnanec', imported: true },
     })
     if (authErr || !authData.user) {
-      console.error('    ✗ auth fail:', authErr?.message)
+      console.error('    ✗ auth:', authErr?.message)
       failed++
       continue
     }
 
     const { error: profErr } = await supabase.from('profiles').update({
-      firma_id: firma.id,
       full_name,
-      pozicia: oddelenie || null,
-      tyzdnovy_fond_hodiny: tyzdnovy,
-      pracovne_dni_tyzdne: pracovneDni,
-      pracovny_fond_hodiny: +(tyzdnovy / pracovneDni).toFixed(2),
+      pozicia,
       datum_nastupu: datumNastupu,
       typ_uvazku: 'tpp',
       active: true,
     }).eq('id', authData.user.id)
-    if (profErr) {
-      console.error('    ✗ profile fail:', profErr.message)
-      failed++
-      continue
-    }
+    if (profErr) { console.error('    ✗ profile:', profErr.message); failed++; continue }
     created++
   }
 
   console.log(`\nHotovo: ${created} vytvorených, ${skipped} preskočených, ${failed} chýb.`)
+  console.log('\nĎalší krok: otvor /admin/zamestnanci a priradaj firmy / fond / typ úväzku cez dropdowny.')
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
