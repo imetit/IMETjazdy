@@ -282,6 +282,60 @@ export async function getFirmy() {
   return { data: data || [] }
 }
 
+export async function updateZamestnanecEmail(profileId: string, email: string) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const normalized = email.trim().toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    return { error: 'Neplatný formát emailu' }
+  }
+
+  const adminClient = createSupabaseAdmin()
+
+  const { data: existing } = await adminClient
+    .from('profiles')
+    .select('id')
+    .eq('email', normalized)
+    .maybeSingle()
+  if (existing && existing.id !== profileId) {
+    return { error: 'Email už používa iný zamestnanec' }
+  }
+
+  const { data: current } = await adminClient
+    .from('profiles')
+    .select('email')
+    .eq('id', profileId)
+    .maybeSingle()
+  const oldEmail = current?.email ?? null
+
+  const { error: authErr } = await adminClient.auth.admin.updateUserById(profileId, {
+    email: normalized,
+    email_confirm: true,
+  })
+  if (authErr) return { error: `Chyba pri zmene emailu v auth: ${authErr.message}` }
+
+  const { error: profErr } = await adminClient
+    .from('profiles')
+    .update({ email: normalized })
+    .eq('id', profileId)
+  if (profErr) {
+    if (oldEmail) {
+      await adminClient.auth.admin.updateUserById(profileId, {
+        email: oldEmail,
+        email_confirm: true,
+      })
+    }
+    return { error: `Chyba pri zmene emailu v profile: ${profErr.message}` }
+  }
+
+  await logAudit('zmena_emailu', 'profiles', profileId, { stary: oldEmail, novy: normalized })
+
+  revalidatePath('/admin/zamestnanci')
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+  return { success: true }
+}
+
 export async function resetZamestnanecPassword(profileId: string, newPassword: string) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth

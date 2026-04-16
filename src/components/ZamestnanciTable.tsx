@@ -12,6 +12,7 @@ import {
   updateZamestnanecFond,
   updateZamestnanecFirma,
   updateZamestnanecTypUvazku,
+  updateZamestnanecEmail,
 } from '@/actions/zamestnanci'
 import { updateUserPozicia } from '@/actions/permissions'
 import { useRouter } from 'next/navigation'
@@ -115,7 +116,19 @@ export default function ZamestnanciTable({
               <tr key={z.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                 <td className="px-3 py-2 font-medium">
                   <Link href={`/admin/zamestnanci/${z.id}`} className="text-primary hover:underline">{z.full_name}</Link>
-                  <div className="text-xs text-gray-400">{z.email}</div>
+                  <input
+                    type="email"
+                    defaultValue={z.email}
+                    onBlur={async (e) => {
+                      const v = e.target.value.trim().toLowerCase()
+                      if (!v || v === (z.email || '').toLowerCase()) { e.target.value = z.email || ''; return }
+                      const res = await updateZamestnanecEmail(z.id, v)
+                      if (res && 'error' in res) { alert(res.error); e.target.value = z.email || ''; return }
+                      router.refresh()
+                    }}
+                    title="Klikni pre úpravu emailu (uloží sa pri opustení poľa)"
+                    className="block w-56 text-xs text-gray-500 bg-transparent border border-transparent hover:border-gray-200 focus:border-primary focus:bg-white focus:text-gray-800 focus:outline-none rounded px-1 py-0.5 mt-0.5"
+                  />
                 </td>
                 <td className="px-3 py-2">
                   <select
