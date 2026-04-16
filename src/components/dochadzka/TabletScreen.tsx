@@ -38,6 +38,41 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
     return () => clearInterval(interval)
   }, [])
 
+  // Kiosk: blokovanie Android back gesture + reset pri návrate z pozadia
+  useEffect(() => {
+    if (demoMode) return
+    // push fiktívny history entry, aby popstate nevzal user preč
+    history.pushState(null, '', window.location.href)
+    const onPop = () => {
+      history.pushState(null, '', window.location.href)
+      setScreen('idle')
+      setUser(null)
+      setError(null)
+    }
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setScreen('idle')
+        setUser(null)
+        setError(null)
+      }
+    }
+    const onContextMenu = (e: MouseEvent) => e.preventDefault()
+    window.addEventListener('popstate', onPop)
+    window.addEventListener('beforeunload', onBeforeUnload)
+    document.addEventListener('visibilitychange', onVisibility)
+    document.addEventListener('contextmenu', onContextMenu)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      document.removeEventListener('visibilitychange', onVisibility)
+      document.removeEventListener('contextmenu', onContextMenu)
+    }
+  }, [demoMode])
+
   // Auto-return timeout (disabled in demo mode)
   useEffect(() => {
     if (demoMode) return

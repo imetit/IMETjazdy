@@ -55,7 +55,10 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const url = request.nextUrl.clone()
-    if (profile?.role === 'it_admin' || profile?.role === 'admin' || profile?.role === 'fin_manager') {
+    if (profile?.role === 'tablet') {
+      url.pathname = '/dochadzka'
+      url.searchParams.set('smer', 'prichod')
+    } else if (profile?.role === 'it_admin' || profile?.role === 'admin' || profile?.role === 'fin_manager') {
       url.pathname = '/admin'
     } else if (profile?.role === 'fleet_manager') {
       url.pathname = '/fleet'
@@ -63,6 +66,22 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/'
     }
     return NextResponse.redirect(url)
+  }
+
+  // Kiosk režim: role=tablet môže ísť iba na /dochadzka (+ /login a auth API)
+  if (user && pathname !== '/dochadzka' && pathname !== '/login' && !pathname.startsWith('/api/')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role === 'tablet') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dochadzka'
+      url.searchParams.set('smer', 'prichod')
+      return NextResponse.redirect(url)
+    }
   }
 
   if (user && pathname.startsWith('/admin')) {
