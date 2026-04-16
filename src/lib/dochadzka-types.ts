@@ -70,3 +70,18 @@ export const DOVOD_ICONS: Record<DovodDochadzky, string> = {
   sukromne: '🏠',
   dovolenka: '🏖️',
 }
+
+// Lucide ikony používané na tablete (profesionálny vzhľad)
+// Import v komponentoch kvôli tree-shakingu
+export const DOVOD_LUCIDE: Record<DovodDochadzky, string> = {
+  praca: 'Briefcase',
+  obed: 'Utensils',
+  lekar: 'Stethoscope',
+  lekar_doprovod: 'HeartHandshake',
+  sluzobne: 'ClipboardList',
+  sluzobna_cesta: 'Car',
+  prechod: 'Repeat',
+  fajcenie: 'Cigarette',
+  sukromne: 'Home',
+  dovolenka: 'Palmtree',
+}

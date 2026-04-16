@@ -153,8 +153,10 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-6 pt-10 select-none">
-      <div className={`px-8 py-3 rounded-full text-2xl font-bold mb-6 ${
+    <div className="min-h-screen flex flex-col items-center p-6 pt-6 select-none">
+      <Image src="/imet-logo.png" alt="IMET" width={120} height={120} priority className="mb-4" />
+
+      <div className={`px-8 py-3 rounded-full text-2xl font-bold mb-5 ${
         isPrichod ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
       }`}>
         {isPrichod ? 'PRÍCHOD' : 'ODCHOD'}
@@ -167,9 +169,6 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
         <div className="w-full flex flex-col items-center gap-6">
           <p className="text-xl text-slate-300">Vyberte dôvod</p>
           <DovodButtons smer={smer} onSelect={onDovodSelect} loading={loading} />
-          <div className="mt-8 opacity-30">
-            <Image src="/imet-logo.png" alt="IMET" width={48} height={48} />
-          </div>
         </div>
       )}
 
