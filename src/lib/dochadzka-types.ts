@@ -44,6 +44,20 @@ export const DOVOD_LABELS: Record<DovodDochadzky, string> = {
   dovolenka: 'Dovolenka',
 }
 
+export function labelForSmer(dovod: DovodDochadzky, smer: SmerDochadzky): string {
+  if (dovod === 'praca') return smer === 'prichod' ? 'Začiatok práce' : 'Koniec práce'
+  if (dovod === 'sluzobna_cesta') return smer === 'prichod' ? 'Návrat z cesty' : 'Služobná cesta'
+  if (dovod === 'obed') return smer === 'prichod' ? 'Návrat z obeda' : 'Obed'
+  if (dovod === 'lekar') return smer === 'prichod' ? 'Návrat od lekára' : 'Lekár'
+  if (dovod === 'sluzobne') return smer === 'prichod' ? 'Návrat služobne' : 'Služobné'
+  return DOVOD_LABELS[dovod]
+}
+
+export const DOVODY_PRE_SMER: Record<SmerDochadzky, DovodDochadzky[]> = {
+  prichod: ['praca', 'obed', 'lekar', 'lekar_doprovod', 'sluzobne', 'sluzobna_cesta', 'sukromne', 'prechod'],
+  odchod:  ['praca', 'sluzobna_cesta', 'obed', 'lekar', 'lekar_doprovod', 'sluzobne', 'sukromne', 'fajcenie', 'prechod'],
+}
+
 export const DOVOD_ICONS: Record<DovodDochadzky, string> = {
   praca: '💼',
   obed: '🍽️',

@@ -1,7 +1,7 @@
 'use client'
 
 import type { SmerDochadzky, DovodDochadzky } from '@/lib/dochadzka-types'
-import { DOVOD_LABELS } from '@/lib/dochadzka-types'
+import { labelForSmer } from '@/lib/dochadzka-types'
 import { Check } from 'lucide-react'
 
 interface Props {
@@ -26,7 +26,7 @@ export default function ConfirmationFlash({ smer, dovod, meno, cas }: Props) {
       </h1>
       <p className="text-2xl text-white/80 mb-4">{meno}</p>
       <p className="text-xl text-white/70">
-        {DOVOD_LABELS[dovod]} — {cas}
+        {labelForSmer(dovod, smer)} — {cas}
       </p>
     </div>
   )

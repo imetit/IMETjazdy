@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import type { SmerDochadzky, DovodDochadzky, IdentifiedUser } from '@/lib/dochadzka-types'
-import { identifyByRfid, identifyByPin, getMesacnyStav, recordDochadzka } from '@/actions/dochadzka'
-import { formatMinutyNaHodiny } from '@/lib/dochadzka-utils'
+import { labelForSmer } from '@/lib/dochadzka-types'
+import { identifyByRfid, identifyByPin, recordDochadzka } from '@/actions/dochadzka'
 import PinPad from './PinPad'
 import DovodButtons from './DovodButtons'
 import ConfirmationFlash from './ConfirmationFlash'
 
-type Screen = 'idle' | 'pin' | 'dovod' | 'confirm'
+type Screen = 'select_dovod' | 'identify' | 'pin' | 'confirm'
 
 interface Props {
   defaultSmer: SmerDochadzky
@@ -17,48 +17,48 @@ interface Props {
 }
 
 export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
-  const [screen, setScreen] = useState<Screen>(demoMode ? 'dovod' : 'idle')
+  const [screen, setScreen] = useState<Screen>(demoMode ? 'confirm' : 'select_dovod')
   const [smer] = useState<SmerDochadzky>(defaultSmer)
+  const [selectedDovod, setSelectedDovod] = useState<DovodDochadzky>('praca')
   const [user, setUser] = useState<IdentifiedUser | null>(
     demoMode ? { id: 'demo', full_name: 'Ján Novák (Demo)', pracovny_fond_hodiny: 8.5 } : null
   )
-  const [stavRozdiel, setStavRozdiel] = useState<number | null>(demoMode ? 150 : null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lastDovod, setLastDovod] = useState<DovodDochadzky>('praca')
   const [lastCas, setLastCas] = useState('')
   const [time, setTime] = useState(new Date())
-  const [identZdroj, setIdentZdroj] = useState<'pin' | 'rfid'>('rfid')
   const rfidInputRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Clock
+  // Hodiny
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // Kiosk: blokovanie Android back gesture + reset pri návrate z pozadia
+  const resetToStart = useCallback(() => {
+    setScreen('select_dovod')
+    setSelectedDovod('praca')
+    setUser(null)
+    setError(null)
+    setLoading(false)
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+  }, [])
+
+  // Kiosk: block Android back gesture + reset pri návrate z pozadia
   useEffect(() => {
     if (demoMode) return
-    // push fiktívny history entry, aby popstate nevzal user preč
     history.pushState(null, '', window.location.href)
     const onPop = () => {
       history.pushState(null, '', window.location.href)
-      setScreen('idle')
-      setUser(null)
-      setError(null)
+      resetToStart()
     }
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
       e.returnValue = ''
     }
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        setScreen('idle')
-        setUser(null)
-        setError(null)
-      }
+      if (document.visibilityState === 'visible') resetToStart()
     }
     const onContextMenu = (e: MouseEvent) => e.preventDefault()
     window.addEventListener('popstate', onPop)
@@ -71,47 +71,48 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
       document.removeEventListener('visibilitychange', onVisibility)
       document.removeEventListener('contextmenu', onContextMenu)
     }
-  }, [demoMode])
+  }, [demoMode, resetToStart])
 
-  // Auto-return timeout (disabled in demo mode)
+  // Auto-timeout: identify (20s), confirm (3s)
   useEffect(() => {
     if (demoMode) return
-    if (screen === 'dovod') {
-      timeoutRef.current = setTimeout(() => resetToIdle(), 15000)
+    if (screen === 'identify') {
+      timeoutRef.current = setTimeout(resetToStart, 20000)
       return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
     }
     if (screen === 'confirm') {
-      timeoutRef.current = setTimeout(() => resetToIdle(), 3000)
+      timeoutRef.current = setTimeout(resetToStart, 3000)
       return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
     }
-  }, [screen, demoMode])
+  }, [screen, demoMode, resetToStart])
 
-  // Keep RFID input focused on idle
+  // RFID input focus počas identify
   useEffect(() => {
-    if (screen === 'idle') {
+    if (screen === 'identify') {
       rfidInputRef.current?.focus()
       const interval = setInterval(() => rfidInputRef.current?.focus(), 500)
       return () => clearInterval(interval)
     }
   }, [screen])
 
-  function resetToIdle() {
-    setScreen('idle')
-    setUser(null)
-    setStavRozdiel(null)
+  function onDovodSelect(dovod: DovodDochadzky) {
+    setSelectedDovod(dovod)
     setError(null)
-    setLoading(false)
+    setScreen('identify')
   }
 
-  const handleIdentified = useCallback(async (identified: IdentifiedUser, zdroj: 'pin' | 'rfid') => {
+  async function finalizeZapis(identified: IdentifiedUser, zdroj: 'pin' | 'rfid') {
+    const result = await recordDochadzka(identified.id, smer, selectedDovod, zdroj)
+    if (result.error) {
+      setError(result.error)
+      setLoading(false)
+      return
+    }
     setUser(identified)
-    setIdentZdroj(zdroj)
-    setScreen('dovod')
-    setLoading(true)
-    const mesacnyStav = await getMesacnyStav(identified.id, identified.pracovny_fond_hodiny)
-    setStavRozdiel(mesacnyStav.rozdiel_min)
+    setLastCas(new Date().toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }))
+    setScreen('confirm')
     setLoading(false)
-  }, [])
+  }
 
   async function handleRfidInput(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return
@@ -127,7 +128,7 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
       setLoading(false)
       setTimeout(() => setError(null), 3000)
     } else if (result.data) {
-      await handleIdentified(result.data, 'rfid')
+      await finalizeZapis(result.data, 'rfid')
     }
   }
 
@@ -139,32 +140,7 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
       setError(result.error)
       setLoading(false)
     } else if (result.data) {
-      await handleIdentified(result.data, 'pin')
-    }
-  }
-
-  async function handleDovodSelect(dovod: DovodDochadzky) {
-    if (!user) return
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    setLoading(true)
-
-    if (demoMode) {
-      // Demo mode — len ukážka, nezapisuje sa
-      setLastDovod(dovod)
-      setLastCas(time.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }))
-      setScreen('confirm')
-      return
-    }
-
-    const result = await recordDochadzka(user.id, smer, dovod, identZdroj)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-    } else {
-      setLastDovod(dovod)
-      setLastCas(time.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }))
-      setScreen('confirm')
+      await finalizeZapis(result.data, 'pin')
     }
   }
 
@@ -173,25 +149,39 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
   const timeStr = time.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   if (screen === 'confirm' && user) {
-    return <ConfirmationFlash smer={smer} dovod={lastDovod} meno={user.full_name} cas={lastCas} />
+    return <ConfirmationFlash smer={smer} dovod={selectedDovod} meno={user.full_name} cas={lastCas} />
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 select-none">
-      <div className={`px-8 py-3 rounded-full text-2xl font-bold mb-8 ${
+    <div className="min-h-screen flex flex-col items-center p-6 pt-10 select-none">
+      <div className={`px-8 py-3 rounded-full text-2xl font-bold mb-6 ${
         isPrichod ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
       }`}>
         {isPrichod ? 'PRÍCHOD' : 'ODCHOD'}
       </div>
 
-      <div className="text-7xl font-bold text-white mb-2 font-mono tabular-nums">{timeStr}</div>
-      <div className="text-xl text-slate-400 mb-10 capitalize">{dateStr}</div>
+      <div className="text-6xl font-bold text-white mb-1 font-mono tabular-nums">{timeStr}</div>
+      <div className="text-lg text-slate-400 mb-8 capitalize">{dateStr}</div>
 
-      {screen === 'idle' && (
-        <div className="flex flex-col items-center gap-8">
+      {screen === 'select_dovod' && (
+        <div className="w-full flex flex-col items-center gap-6">
+          <p className="text-xl text-slate-300">Vyberte dôvod</p>
+          <DovodButtons smer={smer} onSelect={onDovodSelect} loading={loading} />
+          <div className="mt-8 opacity-30">
+            <Image src="/imet-logo.png" alt="IMET" width={48} height={48} />
+          </div>
+        </div>
+      )}
+
+      {screen === 'identify' && (
+        <div className="flex flex-col items-center gap-8 w-full max-w-xl">
+          <div className="px-6 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-white text-xl">
+            Dôvod: <span className="font-bold text-teal-400">{labelForSmer(selectedDovod, smer)}</span>
+          </div>
+
           {error && <p className="text-red-400 text-xl animate-pulse">{error}</p>}
 
-          <p className="text-2xl text-slate-300">Priložte kartu alebo zadajte PIN</p>
+          <p className="text-3xl text-slate-200 text-center">Priložte kartu<br/><span className="text-xl text-slate-400">alebo zadajte PIN</span></p>
 
           <input
             ref={rfidInputRef}
@@ -202,15 +192,21 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
             tabIndex={-1}
           />
 
-          <button
-            onClick={() => setScreen('pin')}
-            className="px-8 py-4 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-xl font-medium transition-colors"
-          >
-            Zadať PIN
-          </button>
-
-          <div className="mt-8 opacity-30">
-            <Image src="/imet-logo.png" alt="IMET" width={48} height={48} />
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={() => setScreen('pin')}
+              disabled={loading}
+              className="px-8 py-4 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-xl font-medium transition-colors disabled:opacity-50"
+            >
+              Zadať PIN
+            </button>
+            <button
+              onClick={resetToStart}
+              disabled={loading}
+              className="px-8 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xl font-medium transition-colors disabled:opacity-50"
+            >
+              Zrušiť
+            </button>
           </div>
         </div>
       )}
@@ -218,28 +214,10 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
       {screen === 'pin' && (
         <PinPad
           onSubmit={handlePinSubmit}
-          onCancel={resetToIdle}
+          onCancel={() => { setError(null); setScreen('identify') }}
           loading={loading}
           error={error}
         />
-      )}
-
-      {screen === 'dovod' && user && (
-        <div className="flex flex-col items-center gap-6 w-full max-w-4xl">
-          <h2 className="text-3xl font-bold text-white">{user.full_name}</h2>
-
-          {stavRozdiel !== null && (
-            <div className={`text-2xl font-bold ${stavRozdiel >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {formatMinutyNaHodiny(stavRozdiel)}
-            </div>
-          )}
-
-          <DovodButtons onSelect={handleDovodSelect} loading={loading} />
-
-          <button onClick={resetToIdle} className="text-slate-500 hover:text-slate-300 text-sm mt-4">
-            Zrušiť
-          </button>
-        </div>
       )}
     </div>
   )
