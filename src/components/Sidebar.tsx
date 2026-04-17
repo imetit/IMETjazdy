@@ -12,6 +12,7 @@ import {
   Menu, X
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
+import ThemeToggle from '@/components/ThemeToggle'
 import type { Profile, ModulId } from '@/lib/types'
 
 interface Props {
@@ -294,6 +295,7 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               <p className="text-[11px] text-slate-500 truncate">{profile.pozicia || (isItAdmin ? 'IT Administrátor' : 'Zamestnanec')}</p>
             </div>
           </div>
+          <ThemeToggle />
           <form action={logout}>
             <button type="submit" className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:text-white hover:bg-white/8 transition-all duration-200">
               <LogOut size={15} /> Odhlásiť sa
