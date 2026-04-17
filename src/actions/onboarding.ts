@@ -52,7 +52,7 @@ export async function getOnboardingItems(profileId: string) {
 
   const { data, error } = await supabase
     .from('onboarding_items')
-    .select('*, splnil:profiles!onboarding_items_splnil_id_fkey(full_name)')
+    .select('*, splnil:profiles!splnil_id(full_name)')
     .eq('profile_id', profileId)
     .order('created_at', { ascending: true })
 

@@ -102,7 +102,7 @@ export async function getExpiraceSkoleni() {
 
   const { data, error } = await supabase
     .from('skolenia')
-    .select('*, profile:profiles!skolenia_profile_id_fkey(full_name, active)')
+    .select('*, profile:profiles!profile_id(full_name, active)')
     .lte('platnost_do', thirtyDaysFromNow.toISOString().split('T')[0])
     .gte('platnost_do', new Date().toISOString().split('T')[0])
     .order('platnost_do')
