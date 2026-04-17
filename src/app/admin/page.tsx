@@ -1,6 +1,8 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
-import { FileText, Car, Calendar, Plane, Archive, Users, AlertTriangle, Clock, CheckCircle } from 'lucide-react'
+import { FileText, Car, Calendar, Plane, Archive, Users, AlertTriangle, Clock, CheckCircle, FileWarning, GraduationCap } from 'lucide-react'
+import { getExpiringDocuments } from '@/actions/archiv'
+import { getExpiraceSkoleni } from '@/actions/skolenia'
 
 export default async function AdminDashboard() {
   const supabase = await createSupabaseServer()
@@ -19,6 +21,8 @@ export default async function AdminDashboard() {
     { data: posledneJazdy },
     { data: posledneAudit },
     { data: bliziaceSaKontroly },
+    expiringDocsResult,
+    skoleniaExpResult,
   ] = await Promise.all([
     supabase.from('jazdy').select('*', { count: 'exact', head: true }),
     supabase.from('jazdy').select('*', { count: 'exact', head: true }).eq('stav', 'odoslana'),
@@ -34,7 +38,12 @@ export default async function AdminDashboard() {
       .gte('platnost_do', now.toISOString().split('T')[0])
       .order('platnost_do')
       .limit(5),
+    getExpiringDocuments(),
+    getExpiraceSkoleni(),
   ])
+
+  const expiringDocs = expiringDocsResult?.data || []
+  const expiraceSkoleni = skoleniaExpResult.data || []
 
   const cards = [
     { label: 'Jazdy tento mesiac', value: jazdyCelkom ?? 0, sub: `${jazdyOdoslane ?? 0} čaká na spracovanie`, icon: FileText, color: 'text-blue-600 bg-blue-50', href: '/admin/jazdy' },
@@ -146,6 +155,55 @@ export default async function AdminDashboard() {
                 <div key={i} className={`p-3 rounded-lg border ${daysLeft <= 7 ? 'border-red-200 bg-red-50' : 'border-orange-200 bg-orange-50'}`}>
                   <p className="text-sm font-medium">{k.vozidlo?.spz} — {k.vozidlo?.znacka}</p>
                   <p className="text-xs text-gray-500">{k.typ.toUpperCase()} · platnosť do {new Date(k.platnost_do).toLocaleDateString('sk-SK')}</p>
+                  <p className={`text-xs font-semibold mt-1 ${daysLeft <= 7 ? 'text-red-600' : 'text-orange-600'}`}>
+                    {daysLeft <= 0 ? 'EXPIROVANÉ!' : `${daysLeft} dní`}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Expiring documents */}
+      {expiringDocs.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <FileWarning size={18} className="text-orange-500" />
+            <h3 className="font-semibold text-gray-900">Expirujúce dokumenty (30 dní)</h3>
+            <Link href="/admin/archiv" className="ml-auto text-xs text-primary hover:underline">Zobraziť všetky</Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {expiringDocs.map((d: any, i: number) => {
+              const daysLeft = Math.ceil((new Date(d.platnost_do).getTime() - Date.now()) / 86400000)
+              return (
+                <Link key={i} href={`/admin/archiv/${d.id}`} className={`p-3 rounded-lg border ${daysLeft <= 7 ? 'border-red-200 bg-red-50' : 'border-orange-200 bg-orange-50'} hover:shadow-sm transition-shadow`}>
+                  <p className="text-sm font-medium">{d.nazov}</p>
+                  <p className="text-xs text-gray-500">{d.typ} · platnosť do {new Date(d.platnost_do).toLocaleDateString('sk-SK')}</p>
+                  <p className={`text-xs font-semibold mt-1 ${daysLeft <= 7 ? 'text-red-600' : 'text-orange-600'}`}>
+                    {daysLeft <= 0 ? 'EXPIROVANÉ!' : `${daysLeft} dní`}
+                  </p>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Expiring trainings */}
+      {expiraceSkoleni.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <GraduationCap size={18} className="text-orange-500" />
+            <h3 className="font-semibold text-gray-900">Expirujúce školenia (30 dní)</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {expiraceSkoleni.map((s: any, i: number) => {
+              const daysLeft = Math.ceil((new Date(s.platnost_do).getTime() - Date.now()) / 86400000)
+              return (
+                <div key={i} className={`p-3 rounded-lg border ${daysLeft <= 7 ? 'border-red-200 bg-red-50' : 'border-orange-200 bg-orange-50'}`}>
+                  <p className="text-sm font-medium">{s.profile?.full_name || 'Neznámy'}</p>
+                  <p className="text-xs text-gray-500">{s.nazov} · platnosť do {new Date(s.platnost_do).toLocaleDateString('sk-SK')}</p>
                   <p className={`text-xs font-semibold mt-1 ${daysLeft <= 7 ? 'text-red-600' : 'text-orange-600'}`}>
                     {daysLeft <= 0 ? 'EXPIROVANÉ!' : `${daysLeft} dní`}
                   </p>

@@ -5,11 +5,16 @@ import { getLicencie } from '@/actions/licencie'
 import { getRfidKarty } from '@/actions/rfid-karty'
 import { getDovolenkaNarok } from '@/actions/dovolenky-naroky'
 import { getUserModuly } from '@/actions/permissions'
+import { getOnboardingItems } from '@/actions/onboarding'
+import { getSkolenia } from '@/actions/skolenia'
 import ZamestnanecDetail from '@/components/ZamestnanecDetail'
 import RfidKartySection from '@/components/RfidKartySection'
 import DovolenkaNarokSection from '@/components/DovolenkaNarokSection'
 import UserPermissionsSection from '@/components/UserPermissionsSection'
 import ZamestnanecSettingsSection from '@/components/ZamestnanecSettingsSection'
+import OnboardingSection from '@/components/OnboardingSection'
+import SkoleniaSection from '@/components/SkoleniaSection'
+import AdminZamestnanecActions from '@/components/AdminZamestnanecActions'
 import { updateZamestnanecRole } from '@/actions/zamestnanci'
 import type { Profile, Vozidlo } from '@/lib/types'
 
@@ -27,7 +32,7 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
 
   if (!profile) redirect('/admin/zamestnanci')
 
-  const [vozidloResult, majetokResult, licencieResult, rfidResult, narokResult, modulyResult, allVozidlaResult, allProfilesResult, firmyResult] = await Promise.all([
+  const [vozidloResult, majetokResult, licencieResult, rfidResult, narokResult, modulyResult, allVozidlaResult, allProfilesResult, firmyResult, onboardingResult, skoleniaResult] = await Promise.all([
     profile.vozidlo_id
       ? supabase.from('vozidla').select('*').eq('id', profile.vozidlo_id).single()
       : Promise.resolve({ data: null }),
@@ -39,7 +44,19 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
     supabase.from('vozidla').select('id, znacka, variant, spz').eq('aktivne', true).order('znacka'),
     supabase.from('profiles').select('id, full_name, role').eq('active', true).neq('role', 'tablet').neq('id', id).order('full_name'),
     supabase.from('firmy').select('id, kod, nazov').eq('aktivna', true).order('poradie'),
+    getOnboardingItems(id),
+    getSkolenia(id),
   ])
+
+  // Separate onboarding and offboarding items
+  const allOnboardingItems = onboardingResult.data || []
+  const onboardingItems = allOnboardingItems.filter((i: any) => !i.typ.startsWith('offboarding_'))
+  const offboardingItems = allOnboardingItems.filter((i: any) => i.typ.startsWith('offboarding_'))
+
+  // Get firma info for PDF
+  const firmaForProfile = profile.firma_id
+    ? (firmyResult.data || []).find((f: any) => f.id === profile.firma_id)
+    : null
 
   async function handleRoleChange(role: string) {
     'use server'
@@ -91,6 +108,32 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
       </div>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <DovolenkaNarokSection userId={id} narok={narokResult.data || null} />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <OnboardingSection profileId={id} items={onboardingItems} />
+      </div>
+
+      {offboardingItems.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <OnboardingSection profileId={id} items={offboardingItems} isOffboarding />
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <SkoleniaSection profileId={id} skolenia={skoleniaResult.data || []} />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <AdminZamestnanecActions
+          profile={profile as Profile}
+          vozidlo={(vozidloResult.data as Vozidlo) || null}
+          majetok={(majetokResult.data as any) || []}
+          licencie={(licencieResult.data as any) || []}
+          skolenia={skoleniaResult.data || []}
+          firma={firmaForProfile}
+          hasOffboardingItems={offboardingItems.length > 0}
+        />
       </div>
     </div>
   )
