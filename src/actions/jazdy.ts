@@ -60,6 +60,19 @@ export async function createJazda(formData: FormData) {
     }
   }
 
+  // Notifikácia adminom pri odoslaní jazdy
+  if (stav === 'odoslana') {
+    const { createNotifikacia } = await import('./notifikacie')
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'it_admin', 'fin_manager'])
+      .eq('active', true)
+    for (const admin of admins || []) {
+      await createNotifikacia(admin.id, 'nova_jazda', 'Nová jazda na spracovanie', `Nová jazda za mesiac ${formData.get('mesiac')}.`, `/admin/jazdy/${jazda.id}`)
+    }
+  }
+
   revalidatePath('/')
   revalidatePath('/moje-jazdy')
   redirect('/moje-jazdy')
