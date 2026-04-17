@@ -1,7 +1,7 @@
 // src/lib/archiv-types.ts
 
 export type TypDokumentuArchiv = 'faktura' | 'zmluva' | 'objednavka' | 'dodaci_list' | 'ine'
-export type StavDokumentuArchiv = 'nahrany' | 'caka_na_schvalenie' | 'schvaleny' | 'na_uhradu' | 'uhradeny' | 'zamietnuty'
+export type StavDokumentuArchiv = 'nahrany' | 'caka_na_schvalenie' | 'schvaleny' | 'na_uhradu' | 'uhradeny' | 'zamietnuty' | 'nahradeny' | 'expirujuci'
 
 export interface DokumentArchiv {
   id: string
@@ -24,6 +24,22 @@ export interface DokumentArchiv {
   created_at: string
   nahral?: { full_name: string }
   schvalovatel?: { full_name: string }
+  verzia?: number
+  povodny_dokument_id?: string | null
+  platnost_do?: string | null
+  kategoria_id?: string | null
+}
+
+export interface ArchivKategoria {
+  id: string
+  nazov: string
+  parent_id: string | null
+  popis: string | null
+  pristup_role: string[] | null
+  poradie: number
+  farba: string | null
+  ikona: string | null
+  created_at: string
 }
 
 export const TYP_DOKUMENTU_ARCHIV_LABELS: Record<TypDokumentuArchiv, string> = {
@@ -41,6 +57,8 @@ export const STAV_DOKUMENTU_ARCHIV_LABELS: Record<StavDokumentuArchiv, string> =
   na_uhradu: 'Na úhradu',
   uhradeny: 'Uhradený',
   zamietnuty: 'Zamietnutý',
+  nahradeny: 'Nahradený',
+  expirujuci: 'Expirujúci',
 }
 
 export const STAV_DOKUMENTU_ARCHIV_COLORS: Record<StavDokumentuArchiv, string> = {
@@ -50,4 +68,6 @@ export const STAV_DOKUMENTU_ARCHIV_COLORS: Record<StavDokumentuArchiv, string> =
   na_uhradu: 'bg-blue-100 text-blue-800',
   uhradeny: 'bg-teal-100 text-teal-800',
   zamietnuty: 'bg-red-100 text-red-800',
+  nahradeny: 'bg-gray-200 text-gray-600',
+  expirujuci: 'bg-yellow-100 text-yellow-800',
 }
