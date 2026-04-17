@@ -278,22 +278,13 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
         )}
 
         {/* ═══ POMOC ═══ */}
-        {sectionLabel('Pomoc')}
-        {canEdit('jazdy') || canEdit('vozovy_park') || canEdit('dochadzka') ? (
+        {(isItAdmin || ['admin', 'fin_manager'].includes(profile.role)) && (
           <>
-            {canEdit('vozovy_park') && (
-              <Link href="/fleet/manual" className={linkClass('/fleet/manual')}>
-                <HelpCircle size={19} className={iconClass('/fleet/manual')} /> Fleet manuál
-              </Link>
-            )}
+            {sectionLabel('Pomoc')}
             <Link href="/admin/manual" className={linkClass('/admin/manual')}>
-              <HelpCircle size={19} className={iconClass('/admin/manual')} /> Admin manuál
+              <HelpCircle size={19} className={iconClass('/admin/manual')} /> Manuál systému
             </Link>
           </>
-        ) : (
-          <Link href="/manual" className={linkClass('/manual')}>
-            <HelpCircle size={19} className={iconClass('/manual')} /> Manuál
-          </Link>
         )}
       </nav>
 
