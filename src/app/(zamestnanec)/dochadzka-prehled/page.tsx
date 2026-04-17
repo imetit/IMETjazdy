@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import MojaDochadzka from '@/components/dochadzka/MojaDochadzka'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
 
 export default function DochadzkaPrehlad() {
@@ -26,5 +27,15 @@ export default function DochadzkaPrehlad() {
 
   if (loading) return <div className="text-gray-500 p-8">Načítavam...</div>
 
-  return <MojaDochadzka zaznamy={zaznamy} fondHodiny={fondHodiny} mesiac={mesiac} onMesiacChange={setMesiac} />
+  return (
+    <div>
+      <ModuleHelp title="Moja dochádzka">
+        <p><strong>Čo tu nájdete:</strong> Váš mesačný výkaz dochádzky — príchody, odchody, odpracované hodiny.</p>
+        <p><strong>Mesiac:</strong> Prepínajte medzi mesiacmi pre zobrazenie histórie.</p>
+        <p><strong>Bilancia:</strong> Porovnanie odpracovaných hodín s mesačným fondom. Nadčas alebo nedopracované hodiny.</p>
+        <p><strong>Záznam dochádzky:</strong> Príchod a odchod sa zaznamenáva cez tablet (RFID karta alebo PIN kód).</p>
+      </ModuleHelp>
+      <MojaDochadzka zaznamy={zaznamy} fondHodiny={fondHodiny} mesiac={mesiac} onMesiacChange={setMesiac} />
+    </div>
+  )
 }

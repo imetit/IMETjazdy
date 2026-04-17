@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import AdminDochadzkaTable from '@/components/dochadzka/AdminDochadzkaTable'
 import { getDochadzkaZamestnancov, getDnesVPraci } from '@/actions/admin-dochadzka'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
 
 export default function AdminDochadzkaPage() {
@@ -31,5 +32,15 @@ export default function AdminDochadzkaPage() {
 
   if (loading) return <div className="text-gray-500 p-8">Načítavam...</div>
 
-  return <AdminDochadzkaTable profiles={profiles} zaznamy={zaznamy} vPraci={vPraci} mesiac={mesiac} onMesiacChange={setMesiac} />
+  return (
+    <div>
+      <ModuleHelp title="Prehľad dochádzky">
+        <p><strong>Čo tu nájdete:</strong> Dochádzka všetkých zamestnancov — príchody, odchody, odpracované hodiny.</p>
+        <p><strong>Filter:</strong> Vyberte mesiac a zamestnanca pre zobrazenie detailu.</p>
+        <p><strong>Kliknutie na zamestnanca:</strong> Otvorí mesačný výkaz s dennými záznamami.</p>
+        <p><strong>Farebné indikátory:</strong> Zelená = splnený fond, Oranžová = chýbajú záznamy, Červená = absencia.</p>
+      </ModuleHelp>
+      <AdminDochadzkaTable profiles={profiles} zaznamy={zaznamy} vPraci={vPraci} mesiac={mesiac} onMesiacChange={setMesiac} />
+    </div>
+  )
 }

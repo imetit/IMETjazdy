@@ -16,6 +16,7 @@ import OnboardingSection from '@/components/OnboardingSection'
 import SkoleniaSection from '@/components/SkoleniaSection'
 import AdminZamestnanecActions from '@/components/AdminZamestnanecActions'
 import { updateZamestnanecRole } from '@/actions/zamestnanci'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { Profile, Vozidlo } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,18 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
 
   return (
     <div className="space-y-6">
+      <ModuleHelp title="Detail zamestnanca">
+        <p><strong>Čo tu nájdete:</strong> Kompletný profil zamestnanca so všetkými priradeniami a akciami.</p>
+        <p><strong>Oprávnenia:</strong> Nastavte rolu (zamestnanec/admin/fleet/fin_manager/it_admin) a prístup k jednotlivým modulom (view/edit/admin).</p>
+        <p><strong>Nastavenia:</strong> Priradenie vozidla, nadriadeného, zastupujúceho, firma, úväzok, fond hodín, PIN, dátum nástupu.</p>
+        <p><strong>Majetok:</strong> Zoznam prideleného IT vybavenia (notebook, telefón...). Pridať/odobrať.</p>
+        <p><strong>Licencie:</strong> Softvérové licencie priradené zamestnancovi.</p>
+        <p><strong>RFID karty:</strong> Prístupové karty pre dochádzku a vstup.</p>
+        <p><strong>Školenia:</strong> BOZP, OPP, vodičák, odborné. Nahrajte certifikát, nastavte platnosť — systém upozorní na expiráciu.</p>
+        <p><strong>Onboarding:</strong> Checklist pre nového zamestnanca (BOZP, majetok, karty, prístupy, zmluva). Kliknite &quot;Spustiť onboarding&quot;.</p>
+        <p><strong>Offboarding:</strong> Pri odchode kliknite &quot;Spustiť offboarding&quot; — vytvorí sa checklist (vrátenie majetku, kariet, vozidla). Po dokončení sa profil deaktivuje.</p>
+        <p><strong>&quot;Exportovať PDF&quot;:</strong> Stiahne kompletnú zamestnaneckú kartu ako PDF.</p>
+      </ModuleHelp>
       <ZamestnanecDetail
         profile={profile as Profile}
         vozidlo={(vozidloResult.data as Vozidlo) || null}

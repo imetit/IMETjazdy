@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { PlusCircle, Car, Clock, Calendar, TrendingUp, FileText } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import { PALIVO_LABELS } from '@/lib/types'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { Jazda, Vozidlo, JazdaStav } from '@/lib/types'
 import { calculateMesacnyStav, formatMinutyNaHodiny, isPracovnyDen } from '@/lib/dochadzka-utils'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
@@ -67,6 +68,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleHelp title="Môj prehľad">
+        <p><strong>Čo tu nájdete:</strong> Váš osobný dashboard — rýchly prehľad najdôležitejších informácií.</p>
+        <p><strong>Štatistiky:</strong> Počet vašich jázd, mesačné náhrady, priradené vozidlo, zostatok dovolenky.</p>
+        <p><strong>Rýchle odkazy:</strong> Nová jazda, Moje jazdy, Moja dochádzka, Moja dovolenka.</p>
+        <p><strong>Notifikácie:</strong> Zvonček v sidebar ukazuje neprečítané správy.</p>
+      </ModuleHelp>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Prehľad</h2>
         <Link href="/nova-jazda" className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">

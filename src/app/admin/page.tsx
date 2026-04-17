@@ -1,6 +1,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { FileText, Car, Calendar, Plane, Archive, Users, AlertTriangle, Clock, CheckCircle, FileWarning, GraduationCap } from 'lucide-react'
+import ModuleHelp from '@/components/ModuleHelp'
 import { getExpiringDocuments } from '@/actions/archiv'
 import { getExpiraceSkoleni } from '@/actions/skolenia'
 
@@ -70,6 +71,13 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <ModuleHelp title="Admin Dashboard">
+        <p><strong>Čo tu nájdete:</strong> Centrálny prehľad celého systému — metriky, audit log, expirácie.</p>
+        <p><strong>Metriky:</strong> Jazdy na spracovanie, dovolenky na schválenie, nové cesty, hlásenia, aktívni zamestnanci.</p>
+        <p><strong>Audit log:</strong> Posledné akcie v systéme — kto čo urobil a kedy.</p>
+        <p><strong>Expirácie:</strong> Blížiace sa STK/EK, expirujúce školenia, dokumenty s končiacou platnosťou.</p>
+        <p><strong>Kliknutie na kartu:</strong> Presmeruje na príslušný modul.</p>
+      </ModuleHelp>
       <h2 className="text-2xl font-bold text-gray-900">Prehľad systému</h2>
 
       {/* Stat cards */}
