@@ -2,6 +2,7 @@
 import { getAllDokumenty } from '@/actions/archiv'
 import { getKategorie } from '@/actions/archiv-kategorie'
 import ArchivPageClient from '@/components/archiv/ArchivPageClient'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { DokumentArchiv, ArchivKategoria } from '@/lib/archiv-types'
 
 export default async function AdminArchivPage({ searchParams }: { searchParams: Promise<{ kategoria?: string }> }) {
@@ -27,11 +28,21 @@ export default async function AdminArchivPage({ searchParams }: { searchParams: 
   }
 
   return (
-    <ArchivPageClient
-      dokumenty={dokumenty}
-      kategorie={kategorie}
-      counts={counts}
-      selectedKategoria={kategoriaId || null}
-    />
+    <div>
+      <ModuleHelp title="Archív dokumentov">
+        <p><strong>Čo tu nájdete:</strong> Centrálne úložisko firemných dokumentov s kategóriami a workflow.</p>
+        <p><strong>Kategórie (ľavý panel):</strong> Kliknite na kategóriu pre filtrovanie dokumentov. "Všetky" zobrazí všetko.</p>
+        <p><strong>"Nahrať dokument":</strong> Nahrajte nový dokument — vyberte súbor, kategóriu, typ, zadajte metadata.</p>
+        <p><strong>Hľadanie:</strong> Fulltextové vyhľadávanie v názvoch a popisoch dokumentov.</p>
+        <p><strong>Stav dokumentu:</strong> Nahraný → Schválený / Zamietnutý. Pre faktúry: → Na úhradu → Uhradený.</p>
+        <p><strong>Kliknutie na riadok:</strong> Otvorí detail s verziami, schvaľovaním a stiahnutím súboru.</p>
+      </ModuleHelp>
+      <ArchivPageClient
+        dokumenty={dokumenty}
+        kategorie={kategorie}
+        counts={counts}
+        selectedKategoria={kategoriaId || null}
+      />
+    </div>
   )
 }

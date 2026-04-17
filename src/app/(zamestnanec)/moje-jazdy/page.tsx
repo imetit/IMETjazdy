@@ -1,6 +1,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { Jazda, JazdaStav } from '@/lib/types'
 
 export default async function MojeJazdyPage() {
@@ -14,6 +15,11 @@ export default async function MojeJazdyPage() {
 
   return (
     <div>
+      <ModuleHelp title="Moje jazdy">
+        <p><strong>Čo tu nájdete:</strong> Zoznam všetkých vašich jázd zoradených podľa dátumu.</p>
+        <p><strong>Stavy:</strong> Rozpracovaná (môžete upraviť), Odoslaná (čaká na spracovanie), Spracovaná (náhrady vypočítané — kliknite pre detail).</p>
+        <p><strong>Kliknutie na riadok:</strong> Otvorí detail jazdy s údajmi a vypočítanými náhradami.</p>
+      </ModuleHelp>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Moje jazdy</h2>
       <div className="bg-white rounded-card shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full table-striped">

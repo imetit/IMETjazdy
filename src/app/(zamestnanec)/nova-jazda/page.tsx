@@ -1,6 +1,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import JazdaForm from '@/components/JazdaForm'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { Vozidlo } from '@/lib/types'
 
 export default async function NovaJazdaPage() {
@@ -29,6 +30,15 @@ export default async function NovaJazdaPage() {
 
   return (
     <div>
+      <ModuleHelp title="Nová jazda">
+        <p><strong>Čo tu robíte:</strong> Zadávate novú služobnú jazdu pre výpočet cestovných náhrad.</p>
+        <p><strong>Mesiac:</strong> Vyberte mesiac, ku ktorému jazda patrí.</p>
+        <p><strong>Trasa:</strong> Zadajte odkiaľ → cez (voliteľné) → kam ste cestovali.</p>
+        <p><strong>KM:</strong> Počet najazdených kilometrov na tejto jazde.</p>
+        <p><strong>Bločky:</strong> Voliteľne nahrajte bločky (parkovné, mýto). Podporované: PDF, JPG, PNG.</p>
+        <p><strong>"Odoslať":</strong> Odošle jazdu na spracovanie účtovníčke. Po odoslaní ju nemôžete upraviť.</p>
+        <p><strong>"Uložiť rozpracovanú":</strong> Uloží jazdu ako rozpracovanú — môžete sa k nej vrátiť a dokončiť neskôr.</p>
+      </ModuleHelp>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Nová jazda</h2>
       <JazdaForm vozidlo={vozidlo as Vozidlo} userName={profile!.full_name} canUpload={canUpload} />
     </div>

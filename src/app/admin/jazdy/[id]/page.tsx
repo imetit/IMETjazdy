@@ -5,6 +5,7 @@ import { ArrowLeft, Download, Eye } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import VyuctovaniePanel from '@/components/VyuctovaniePanel'
 import JazdaEditForm from '@/components/JazdaEditForm'
+import ModuleHelp from '@/components/ModuleHelp'
 import type { Jazda, Vozidlo, Paliva, Settings, JazdaStav, JazdaPriloha } from '@/lib/types'
 
 export default async function AdminJazdaDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +30,15 @@ export default async function AdminJazdaDetailPage({ params }: { params: Promise
 
   return (
     <div>
+      <ModuleHelp title="Detail jazdy — Vyúčtovanie">
+        <p><strong>Čo tu nájdete:</strong> Kompletné údaje o jazde — trasa, km, bločky, a panel na spracovanie.</p>
+        <p><strong>Typ jazdy:</strong> Vyberte typ — firemné auto (doma/zahraničie) alebo súkromné auto (doma/zahraničie). Toto ovplyvňuje výpočet náhrad.</p>
+        <p><strong>"Vypočítať náhľad":</strong> Zobrazí predbežný výpočet náhrad bez uloženia — PHM, stravné, celkom.</p>
+        <p><strong>"Spracovať a prideliť č. dokladu":</strong> Finálne spracovanie — pridelí evidenčné číslo, uloží výpočet, zmení stav na "Spracovaná".</p>
+        <p><strong>"Vrátiť":</strong> Vráti jazdu zamestnancovi s komentárom — stav sa zmení na "Rozpracovaná".</p>
+        <p><strong>Reálna spotreba:</strong> Voliteľne zadajte skutočnú spotrebu z bločkov — systém porovná s normovanou.</p>
+        <p><strong>"Tlačiť" / "PDF":</strong> Po spracovaní vytlačte alebo stiahnite cestovný príkaz.</p>
+      </ModuleHelp>
       <Link href="/admin/jazdy" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4"><ArrowLeft size={16} /> Späť na zoznam</Link>
       <div className="flex items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Detail jazdy</h2>
