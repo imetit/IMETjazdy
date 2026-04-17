@@ -103,7 +103,12 @@ export interface PoistnaUdalost {
   skoda_popis: string | null
   policajna_sprava: boolean
   svedkovia: string | null
-  stav: 'nahlasena' | 'riesena' | 'uzavreta'
+  cislo_poistky: string | null
+  skoda_odhad: number | null
+  skoda_skutocna: number | null
+  poistovna_plnenie: number | null
+  spoluucast: number | null
+  stav: 'nahlasena' | 'riesena' | 'u_poistovne' | 'vyriesena' | 'zamietnuta' | 'uzavreta'
   created_at: string
   profile?: import('@/lib/types').Profile
   vozidlo?: import('@/lib/types').Vozidlo
@@ -140,7 +145,32 @@ export interface OdovzdavaciProtokol {
 export const STAV_POISTNEJ_LABELS: Record<string, string> = {
   nahlasena: 'Nahlásená',
   riesena: 'Riešená',
+  u_poistovne: 'U poisťovne',
+  vyriesena: 'Vyriešená',
+  zamietnuta: 'Zamietnutá',
   uzavreta: 'Uzavretá',
+}
+
+export const POISTNA_STAV_TRANSITIONS: Record<string, string[]> = {
+  nahlasena: ['riesena'],
+  riesena: ['u_poistovne', 'vyriesena', 'zamietnuta'],
+  u_poistovne: ['vyriesena', 'zamietnuta'],
+  vyriesena: ['uzavreta'],
+  zamietnuta: ['uzavreta'],
+  uzavreta: [],
+}
+
+export interface UpcomingServis {
+  id: string
+  typ: string
+  nasledny_servis_datum: string
+  nasledny_servis_km: number | null
+  vozidlo: {
+    spz: string
+    znacka: string
+    variant: string
+    aktualne_km: number | null
+  }
 }
 
 export interface NotifikaciaLog {
@@ -174,6 +204,7 @@ export interface FleetDashboardData {
   vyradene: number
   vozidlaVServise: VozidloVServise[]
   bliziaceSaKontroly: (VozidloKontrola & { vozidlo: import('@/lib/types').Vozidlo })[]
+  bliziaceSaServisy: UpcomingServis[]
   poistenie: PoisteniePrehled[]
   noveHlasenia: number
   mesacneNaklady: number
@@ -234,4 +265,49 @@ export const STAV_HLASENIA_LABELS: Record<StavHlasenia, string> = {
   nove: 'Nové',
   prebieha: 'Prebieha',
   vyriesene: 'Vyriešené',
+}
+
+export interface VozidloTankovanie {
+  id: string
+  vozidlo_id: string
+  datum: string
+  litrov: number
+  cena_za_liter: number | null
+  celkova_cena: number
+  km_na_tachometri: number | null
+  plna_naplna: boolean
+  tankova_karta_id: string | null
+  poznamka: string | null
+  created_by: string | null
+  created_at: string
+  profile?: { full_name: string }
+  tankova_karta?: { cislo_karty: string; typ: string }
+}
+
+export interface TankovaKarta {
+  id: string
+  cislo_karty: string
+  typ: string
+  vozidlo_id: string | null
+  vodic_id: string | null
+  stav: 'aktivna' | 'blokovana' | 'zrusena'
+  limit_mesacny: number | null
+  platnost_do: string | null
+  poznamka: string | null
+  created_at: string
+  vozidlo?: { spz: string; znacka: string }
+  vodic?: { full_name: string }
+}
+
+export const TYP_KARTY_LABELS: Record<string, string> = {
+  shell: 'Shell',
+  omv: 'OMV',
+  slovnaft: 'Slovnaft',
+  ina: 'Iná',
+}
+
+export const STAV_KARTY_LABELS: Record<string, string> = {
+  aktivna: 'Aktívna',
+  blokovana: 'Blokovaná',
+  zrusena: 'Zrušená',
 }
