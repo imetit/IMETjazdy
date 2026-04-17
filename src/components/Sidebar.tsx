@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import {
-  Car, Fuel, FileText, FolderOpen, Settings, Scale, Users,
+  Car, FileText, FolderOpen, Settings, Users,
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
   AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard,
   Clock, Calendar, BarChart3, Plane, Archive, Bell, Monitor,
@@ -119,17 +119,9 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
           <>
             {sectionLabel('Kniha jázd')}
             {canEdit('jazdy') ? (
-              <>
-                <Link href="/admin/jazdy" className={linkClass('/admin/jazdy')}>
-                  <FileText size={19} className={iconClass('/admin/jazdy')} /> Prijaté jazdy
-                </Link>
-                <Link href="/admin/paliva" className={linkClass('/admin/paliva')}>
-                  <Fuel size={19} className={iconClass('/admin/paliva')} /> Ceny palív
-                </Link>
-                <Link href="/admin/sadzby" className={linkClass('/admin/sadzby')}>
-                  <Scale size={19} className={iconClass('/admin/sadzby')} /> Sadzby náhrad
-                </Link>
-              </>
+              <Link href="/admin/jazdy" className={linkClass('/admin/jazdy')}>
+                <FileText size={19} className={iconClass('/admin/jazdy')} /> Prijaté jazdy
+              </Link>
             ) : (
               <>
                 <Link href="/" className={linkClass('/')}>
