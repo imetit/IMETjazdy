@@ -65,3 +65,30 @@ export function calculateCestovneNahrady(
     celkom: Math.round((dieta + kmNahrada) * 100) / 100,
   }
 }
+
+/**
+ * Enhanced diet calculation supporting international trips and hourly breakdown.
+ */
+export function calculateDietyEnhanced(
+  datumOd: string,
+  datumDo: string,
+  casOd: string,
+  casDo: string,
+  krajina?: string,
+  zahranicneSadzby?: { plna_dieta: number; kratena_50: number } | null,
+): { dieta: number; breakdown: string } {
+  const od = new Date(`${datumOd}T${casOd || '00:00'}`)
+  const do_ = new Date(`${datumDo}T${casDo || '23:59'}`)
+  const hodin = Math.max(0, (do_.getTime() - od.getTime()) / (1000 * 60 * 60))
+
+  if (krajina && krajina !== 'SK' && zahranicneSadzby) {
+    if (hodin <= 6) return { dieta: 0, breakdown: `${hodin.toFixed(1)}h zahraničná (${krajina}) — bez nároku (do 6h)` }
+    if (hodin <= 12) return { dieta: zahranicneSadzby.kratena_50, breakdown: `${hodin.toFixed(1)}h zahraničná (${krajina}) — 50% sadzba: ${zahranicneSadzby.kratena_50} EUR` }
+    return { dieta: zahranicneSadzby.plna_dieta, breakdown: `${hodin.toFixed(1)}h zahraničná (${krajina}) — plná sadzba: ${zahranicneSadzby.plna_dieta} EUR` }
+  }
+
+  // Domestic trip
+  if (hodin < 5) return { dieta: 0, breakdown: `${hodin.toFixed(1)}h domáca — bez nároku (do 5h)` }
+  if (hodin <= 12) return { dieta: STRAVNE_SADZBY.od5do12h, breakdown: `${hodin.toFixed(1)}h domáca — ${STRAVNE_SADZBY.od5do12h} EUR (5-12h)` }
+  return { dieta: STRAVNE_SADZBY.nad12h, breakdown: `${hodin.toFixed(1)}h domáca — ${STRAVNE_SADZBY.nad12h} EUR (nad 12h)` }
+}

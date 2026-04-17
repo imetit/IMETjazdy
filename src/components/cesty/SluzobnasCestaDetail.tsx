@@ -2,25 +2,64 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, FileDown } from 'lucide-react'
+import { ArrowLeft, FileDown, CheckCircle, XCircle, FileText } from 'lucide-react'
 import Link from 'next/link'
 import type { SluzobnasCesta, CestovnyPrikaz } from '@/lib/cesty-types'
 import { DOPRAVA_LABELS, STAV_CESTY_LABELS, STAV_CESTY_COLORS, STAV_PRIKAZU_LABELS, STAV_PRIKAZU_COLORS } from '@/lib/cesty-types'
-import { ukoncCestu } from '@/actions/sluzobne-cesty'
+import { ukoncCestu, reviewCestaDoklad, updateVyuctovanieStav } from '@/actions/sluzobne-cesty'
 import { createPrikaz, updatePrikaz } from '@/actions/cestovne-prikazy'
 import { generateCestovnyPrikazPDF } from '@/lib/pdf-cestovny-prikaz'
-import { calculateCestovneNahrady } from '@/lib/diety-utils'
+import { calculateCestovneNahrady, calculateDietyEnhanced } from '@/lib/diety-utils'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import { useRouter } from 'next/navigation'
+
+interface CestaDoklad {
+  id: string
+  sluzobna_cesta_id: string
+  nazov: string
+  file_path: string
+  file_size: number | null
+  typ: string | null
+  suma: number | null
+  created_at: string
+  stav: string
+}
 
 interface Props {
   cesta: SluzobnasCesta
   prikaz: CestovnyPrikaz | null
+  doklady: CestaDoklad[]
 }
 
-export default function SluzobnasCestaDetail({ cesta, prikaz }: Props) {
+const DOKLAD_STAV_LABELS: Record<string, string> = {
+  neskontrolovany: 'Neskontrolovaný',
+  schvaleny: 'Schválený',
+  zamietnuty: 'Zamietnutý',
+}
+
+const DOKLAD_STAV_COLORS: Record<string, string> = {
+  neskontrolovany: 'bg-gray-100 text-gray-700',
+  schvaleny: 'bg-green-100 text-green-800',
+  zamietnuty: 'bg-red-100 text-red-800',
+}
+
+const VYUCTOVANIE_STAV_LABELS: Record<string, string> = {
+  caka_na_doklady: 'Čaká na doklady',
+  vyuctovane: 'Vyúčtované',
+  uzavrete: 'Uzavreté',
+}
+
+const VYUCTOVANIE_STAV_COLORS: Record<string, string> = {
+  caka_na_doklady: 'bg-orange-100 text-orange-800',
+  vyuctovane: 'bg-blue-100 text-blue-800',
+  uzavrete: 'bg-green-100 text-green-800',
+}
+
+export default function SluzobnasCestaDetail({ cesta, prikaz, doklady }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [dokladLoading, setDokladLoading] = useState<string | null>(null)
+  const [vyuctovanieLoading, setVyuctovanieLoading] = useState(false)
   const router = useRouter()
 
   // Auto-výpočet diét podľa SK legislatívy
@@ -52,6 +91,48 @@ export default function SluzobnasCestaDetail({ cesta, prikaz }: Props) {
     if (!prikaz) return
     generateCestovnyPrikazPDF(cesta as any, prikaz)
   }
+
+  async function handleReviewDoklad(dokladId: string, stav: 'schvaleny' | 'zamietnuty') {
+    setDokladLoading(dokladId)
+    await reviewCestaDoklad(dokladId, stav)
+    setDokladLoading(null)
+    router.refresh()
+  }
+
+  async function handleVyuctovanieStav(stav: string) {
+    setVyuctovanieLoading(true)
+    await updateVyuctovanieStav(cesta.id, stav)
+    setVyuctovanieLoading(false)
+    router.refresh()
+  }
+
+  function isImageFile(path: string) {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(path)
+  }
+
+  function formatFileSize(bytes: number | null) {
+    if (!bytes) return '—'
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  // Enhanced diet calculation
+  const dietyEnhanced = calculateDietyEnhanced(
+    cesta.datum_od,
+    cesta.datum_do,
+    (cesta as any).cas_od || '08:00',
+    (cesta as any).cas_do || '17:00',
+    (cesta as any).krajina,
+    (cesta as any).zahranicne_sadzby,
+  )
+
+  // Settlement calculations
+  const schvaleneDoklady = doklady.filter(d => d.stav === 'schvaleny')
+  const sumaSchvalenychDokladov = schvaleneDoklady.reduce((sum, d) => sum + (d.suma || 0), 0)
+  const preddavok = (cesta as any).preddavok_suma || 0
+  const vysledok = dietyEnhanced.dieta + sumaSchvalenychDokladov - preddavok
+  const vyuctovanieStav = (cesta as any).vyuctovanie_stav || 'caka_na_doklady'
 
   return (
     <div className="space-y-6">
@@ -152,6 +233,142 @@ export default function SluzobnasCestaDetail({ cesta, prikaz }: Props) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Doklady section */}
+      {doklady.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4">Doklady ({doklady.length})</h3>
+          <div className="space-y-3">
+            {doklady.map((doklad) => (
+              <div key={doklad.id} className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg">
+                {isImageFile(doklad.file_path) ? (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-50 border">
+                    <img
+                      src={doklad.file_path}
+                      alt={doklad.nazov}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-lg flex-shrink-0 bg-gray-50 border flex items-center justify-center">
+                    <FileText size={20} className="text-gray-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{doklad.nazov}</p>
+                  <p className="text-xs text-gray-500">
+                    {formatFileSize(doklad.file_size)}
+                    {doklad.suma != null && ` · ${formatCurrency(doklad.suma)}`}
+                  </p>
+                </div>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${DOKLAD_STAV_COLORS[doklad.stav] || 'bg-gray-100 text-gray-700'}`}>
+                  {DOKLAD_STAV_LABELS[doklad.stav] || doklad.stav}
+                </span>
+                {doklad.stav === 'neskontrolovany' && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleReviewDoklad(doklad.id, 'schvaleny')}
+                      disabled={dokladLoading === doklad.id}
+                      className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg disabled:opacity-50"
+                      title="Schváliť"
+                    >
+                      <CheckCircle size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleReviewDoklad(doklad.id, 'zamietnuty')}
+                      disabled={dokladLoading === doklad.id}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                      title="Zamietnuť"
+                    >
+                      <XCircle size={18} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Vyúčtovanie section */}
+      {(cesta.stav === 'ukoncena' || cesta.stav === 'schvalena') && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Vyúčtovanie</h3>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${VYUCTOVANIE_STAV_COLORS[vyuctovanieStav] || 'bg-gray-100 text-gray-700'}`}>
+              {VYUCTOVANIE_STAV_LABELS[vyuctovanieStav] || vyuctovanieStav}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {/* Diet breakdown */}
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm">
+              <p className="font-medium text-teal-800 mb-1">Diéty</p>
+              <p className="text-teal-700">{dietyEnhanced.breakdown}</p>
+              <p className="font-semibold text-teal-900 mt-1">{formatCurrency(dietyEnhanced.dieta)}</p>
+            </div>
+
+            {/* Breakdown table */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-gray-100">
+                    <td className="px-4 py-2 text-gray-600">Diéty</td>
+                    <td className="px-4 py-2 text-right font-medium">{formatCurrency(dietyEnhanced.dieta)}</td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="px-4 py-2 text-gray-600">Schválené doklady ({schvaleneDoklady.length})</td>
+                    <td className="px-4 py-2 text-right font-medium">{formatCurrency(sumaSchvalenychDokladov)}</td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="px-4 py-2 text-gray-600">Preddavok</td>
+                    <td className="px-4 py-2 text-right font-medium">- {formatCurrency(preddavok)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="px-4 py-3 font-semibold">Výsledok</td>
+                    <td className={`px-4 py-3 text-right font-bold text-lg ${vysledok > 0 ? 'text-green-700' : vysledok < 0 ? 'text-orange-700' : 'text-gray-700'}`}>
+                      {formatCurrency(Math.abs(vysledok))}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {vysledok > 0 && (
+              <p className="text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                Doplatok zamestnancovi: {formatCurrency(vysledok)}
+              </p>
+            )}
+            {vysledok < 0 && (
+              <p className="text-sm font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-lg px-4 py-2">
+                Preplatenie (zamestnanec vráti): {formatCurrency(Math.abs(vysledok))}
+              </p>
+            )}
+
+            {/* Workflow buttons */}
+            <div className="flex gap-2 pt-2">
+              {vyuctovanieStav === 'caka_na_doklady' && (
+                <button
+                  onClick={() => handleVyuctovanieStav('vyuctovane')}
+                  disabled={vyuctovanieLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {vyuctovanieLoading ? 'Ukladám...' : 'Označiť ako vyúčtované'}
+                </button>
+              )}
+              {vyuctovanieStav === 'vyuctovane' && (
+                <button
+                  onClick={() => handleVyuctovanieStav('uzavrete')}
+                  disabled={vyuctovanieLoading}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  {vyuctovanieLoading ? 'Ukladám...' : 'Uzavrieť vyúčtovanie'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

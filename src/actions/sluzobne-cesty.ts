@@ -278,3 +278,47 @@ export async function ukoncCestu(id: string) {
   revalidatePath('/admin/sluzobne-cesty')
   revalidatePath(`/admin/sluzobne-cesty/${id}`)
 }
+
+export async function reviewCestaDoklad(dokladId: string, stav: 'schvaleny' | 'zamietnuty') {
+  const { requireFinOrAdmin } = await import('@/lib/auth-helpers')
+  const auth = await requireFinOrAdmin()
+  if ('error' in auth) return auth
+
+  const { createSupabaseAdmin } = await import('@/lib/supabase-admin')
+  const admin = createSupabaseAdmin()
+  const { error } = await admin.from('cesta_doklady').update({ stav }).eq('id', dokladId)
+  if (error) return { error: 'Chyba pri aktualizácii dokladu' }
+
+  await logAudit('review_dokladu', 'cesta_doklady', dokladId, { stav })
+
+  revalidatePath('/admin/sluzobne-cesty')
+}
+
+export async function updateVyuctovanieStav(cestaId: string, stav: string) {
+  const { requireFinOrAdmin } = await import('@/lib/auth-helpers')
+  const auth = await requireFinOrAdmin()
+  if ('error' in auth) return auth
+
+  const { createSupabaseAdmin } = await import('@/lib/supabase-admin')
+  const admin = createSupabaseAdmin()
+  const { error } = await admin.from('sluzobne_cesty').update({ vyuctovanie_stav: stav }).eq('id', cestaId)
+  if (error) return { error: 'Chyba pri aktualizácii vyúčtovania' }
+
+  await logAudit('vyuctovanie_cesty', 'sluzobne_cesty', cestaId, { stav })
+
+  revalidatePath('/admin/sluzobne-cesty')
+}
+
+export async function getCestaDoklady(cestaId: string) {
+  const { requireFinOrAdmin } = await import('@/lib/auth-helpers')
+  const auth = await requireFinOrAdmin()
+  if ('error' in auth) return { data: [] }
+
+  const { data } = await auth.supabase
+    .from('cesta_doklady')
+    .select('*')
+    .eq('sluzobna_cesta_id', cestaId)
+    .order('created_at')
+
+  return { data: data || [] }
+}
