@@ -98,6 +98,20 @@ export async function setTachoZaznam(vozidloId: string, mesiac: string, stavKm: 
   revalidatePath(`/fleet/vozidla/${vozidloId}`)
 }
 
+export async function getTachoZaznamy(vozidloId: string) {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error, data: [] }
+
+  const { data, error } = await auth.supabase
+    .from('vozidlo_tacho_zaznamy')
+    .select('*, zapisal:profiles!zapisal_id(full_name)')
+    .eq('vozidlo_id', vozidloId)
+    .order('mesiac', { ascending: false })
+
+  if (error) return { error: 'Chyba pri načítaní záznamov tachometra', data: [] }
+  return { data: data || [] }
+}
+
 export async function getMojeVozidla(userId: string) {
   const auth = await requireFleetOrAdmin()
   if ('error' in auth) {

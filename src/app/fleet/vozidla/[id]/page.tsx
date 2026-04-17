@@ -5,12 +5,13 @@ import { getHlasenia } from '@/actions/fleet-hlasenia'
 import { getDokumenty, uploadDokument, deleteDokument } from '@/actions/fleet-dokumenty'
 import { getZnamky } from '@/actions/fleet-znamky'
 import { getHistoriaDrzitelov, getOdovzdavacieProtokoly } from '@/actions/fleet-historia'
+import { getVodiciVozidla, getTachoZaznamy } from '@/actions/vozidlo-vodici'
 import { redirect } from 'next/navigation'
 import VozidloDetail from '@/components/fleet/VozidloDetail'
 
 export default async function VozidloDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [vozidloResult, vodiciResult, servisyResult, kontrolyResult, kmResult, hlaseniaResult, dokumentyResult, znamkyResult, historiaResult, protokolyResult] = await Promise.all([
+  const [vozidloResult, vodiciResult, servisyResult, kontrolyResult, kmResult, hlaseniaResult, dokumentyResult, znamkyResult, historiaResult, protokolyResult, vodiciVozidlaResult, tachoResult] = await Promise.all([
     getVozidloDetail(id),
     getVodici(),
     getServisy({ vozidloId: id }),
@@ -21,6 +22,8 @@ export default async function VozidloDetailPage({ params }: { params: Promise<{ 
     getZnamky(id),
     getHistoriaDrzitelov(id),
     getOdovzdavacieProtokoly(id),
+    getVodiciVozidla(id),
+    getTachoZaznamy(id),
   ])
 
   if (vozidloResult.error || !vozidloResult.data) redirect('/fleet/vozidla')
@@ -41,6 +44,8 @@ export default async function VozidloDetailPage({ params }: { params: Promise<{ 
       protokoly={(protokolyResult.data as any) || []}
       onUploadDokument={uploadDokument}
       onDeleteDokument={deleteDokument}
+      vodiciData={(vodiciVozidlaResult.data as any) || []}
+      tachoData={(tachoResult.data as any) || []}
     />
   )
 }

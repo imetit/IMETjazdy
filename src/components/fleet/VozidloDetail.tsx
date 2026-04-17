@@ -9,6 +9,8 @@ import type { VozidloDokument, VozidloServis, VozidloKontrola, KmZaznam, Vozidlo
 import ZnamkySection from './ZnamkySection'
 import HistoriaDrzitelov from './HistoriaDrzitelov'
 import OdovzdavaciProtokolSection from './OdovzdavaciProtokol'
+import VodiciSection from './VodiciSection'
+import TachoSection from './TachoSection'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
 import DokumentySection from './DokumentySection'
@@ -37,11 +39,13 @@ interface Props {
   onDeleteDokument: (id: string, filePath: string) => Promise<{ error?: string } | undefined>
   historia: any[]
   protokoly: any[]
+  vodiciData?: any[]
+  tachoData?: any[]
 }
 
-type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly'
+type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly' | 'vodici' | 'tachometer'
 
-export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument, historia, protokoly }: Props) {
+export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument, historia, protokoly, vodiciData, tachoData }: Props) {
   const [tab, setTab] = useState<Tab>('zakladne')
   const [editModal, setEditModal] = useState(false)
   const router = useRouter()
@@ -56,6 +60,8 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
     { id: 'znamky', label: 'Diaľničné známky', count: znamky.length },
     { id: 'historia', label: 'História držiteľov', count: historia.length },
     { id: 'protokoly', label: 'Odovzdávacie protokoly', count: protokoly.length },
+    { id: 'vodici', label: 'Vodiči', count: vodiciData?.length },
+    { id: 'tachometer', label: 'Tachometer', count: tachoData?.length },
   ]
 
   const stavColor = vozidlo.stav === 'aktivne' ? 'bg-green-100 text-green-800' :
@@ -199,6 +205,10 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
             protokoly={protokoly}
           />
         )}
+
+        {tab === 'vodici' && <VodiciSection vozidloId={vozidlo.id} vodiciData={vodiciData || []} vodici={vodici} />}
+
+        {tab === 'tachometer' && <TachoSection vozidloId={vozidlo.id} zaznamy={tachoData || []} />}
 
         {tab === 'hlasenia' && (
           <div className="space-y-3">
