@@ -5,14 +5,6 @@ import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
-export const TYP_SKOLENIA_LABELS: Record<string, string> = {
-  bozp: 'BOZP',
-  opp: 'Ochrana pred požiarmi',
-  vodicak: 'Vodičský preukaz',
-  odborne: 'Odborné školenie',
-  ine: 'Iné',
-}
-
 function calculateStav(platnostDo: string | null): string {
   if (!platnostDo) return 'platne'
   const today = new Date()

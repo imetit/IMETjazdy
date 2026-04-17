@@ -9,7 +9,7 @@ import {
   LayoutDashboard, PlusCircle, LogOut, Wrench, ShieldCheck,
   AlertTriangle, Gauge, CarFront, ShieldAlert, CreditCard,
   Clock, Calendar, BarChart3, Plane, Archive, Bell, Monitor,
-  Menu, X
+  Menu, X, HelpCircle
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -159,6 +159,9 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
                 <Link href="/fleet/hlasenia" className={linkClass('/fleet/hlasenia')}>
                   <AlertTriangle size={19} className={iconClass('/fleet/hlasenia')} /> Hlásenia
                 </Link>
+                <Link href="/fleet/tankove-karty" className={linkClass('/fleet/tankove-karty')}>
+                  <CreditCard size={19} className={iconClass('/fleet/tankove-karty')} /> Tankové karty
+                </Link>
                 <Link href="/fleet/reporty" className={linkClass('/fleet/reporty')}>
                   <BarChart3 size={19} className={iconClass('/fleet/reporty')} /> Reporty
                 </Link>
@@ -272,6 +275,25 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               </Link>
             )}
           </>
+        )}
+
+        {/* ═══ POMOC ═══ */}
+        {sectionLabel('Pomoc')}
+        {canEdit('jazdy') || canEdit('vozovy_park') || canEdit('dochadzka') ? (
+          <>
+            {canEdit('vozovy_park') && (
+              <Link href="/fleet/manual" className={linkClass('/fleet/manual')}>
+                <HelpCircle size={19} className={iconClass('/fleet/manual')} /> Fleet manuál
+              </Link>
+            )}
+            <Link href="/admin/manual" className={linkClass('/admin/manual')}>
+              <HelpCircle size={19} className={iconClass('/admin/manual')} /> Admin manuál
+            </Link>
+          </>
+        ) : (
+          <Link href="/manual" className={linkClass('/manual')}>
+            <HelpCircle size={19} className={iconClass('/manual')} /> Manuál
+          </Link>
         )}
       </nav>
 

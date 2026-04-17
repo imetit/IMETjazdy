@@ -6,12 +6,14 @@ import { getDokumenty, uploadDokument, deleteDokument } from '@/actions/fleet-do
 import { getZnamky } from '@/actions/fleet-znamky'
 import { getHistoriaDrzitelov, getOdovzdavacieProtokoly } from '@/actions/fleet-historia'
 import { getVodiciVozidla, getTachoZaznamy } from '@/actions/vozidlo-vodici'
+import { getTankovanie, getSpotrebaStats } from '@/actions/fleet-tankovanie'
+import { getTankoveKarty } from '@/actions/fleet-tankove-karty'
 import { redirect } from 'next/navigation'
 import VozidloDetail from '@/components/fleet/VozidloDetail'
 
 export default async function VozidloDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [vozidloResult, vodiciResult, servisyResult, kontrolyResult, kmResult, hlaseniaResult, dokumentyResult, znamkyResult, historiaResult, protokolyResult, vodiciVozidlaResult, tachoResult] = await Promise.all([
+  const [vozidloResult, vodiciResult, servisyResult, kontrolyResult, kmResult, hlaseniaResult, dokumentyResult, znamkyResult, historiaResult, protokolyResult, vodiciVozidlaResult, tachoResult, tankovanieResult, spotrebaResult, tankoveKartyResult] = await Promise.all([
     getVozidloDetail(id),
     getVodici(),
     getServisy({ vozidloId: id }),
@@ -24,6 +26,9 @@ export default async function VozidloDetailPage({ params }: { params: Promise<{ 
     getOdovzdavacieProtokoly(id),
     getVodiciVozidla(id),
     getTachoZaznamy(id),
+    getTankovanie(id),
+    getSpotrebaStats(id),
+    getTankoveKarty({ vozidloId: id }),
   ])
 
   if (vozidloResult.error || !vozidloResult.data) redirect('/fleet/vozidla')
@@ -46,6 +51,9 @@ export default async function VozidloDetailPage({ params }: { params: Promise<{ 
       onDeleteDokument={deleteDokument}
       vodiciData={(vodiciVozidlaResult.data as any) || []}
       tachoData={(tachoResult.data as any) || []}
+      tankovanieData={(tankovanieResult.data as any) || []}
+      priemerSpotreba={(spotrebaResult as any)?.priemer ?? null}
+      tankoveKartyData={(tankoveKartyResult.data as any) || []}
     />
   )
 }

@@ -11,6 +11,8 @@ import HistoriaDrzitelov from './HistoriaDrzitelov'
 import OdovzdavaciProtokolSection from './OdovzdavaciProtokol'
 import VodiciSection from './VodiciSection'
 import TachoSection from './TachoSection'
+import TankovanieSection from './TankovanieSection'
+import TankoveKartySection from './TankoveKartySection'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
 import DokumentySection from './DokumentySection'
@@ -41,11 +43,14 @@ interface Props {
   protokoly: any[]
   vodiciData?: any[]
   tachoData?: any[]
+  tankovanieData?: any[]
+  tankoveKartyData?: any[]
+  priemerSpotreba?: number | null
 }
 
-type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly' | 'vodici' | 'tachometer'
+type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly' | 'vodici' | 'tachometer' | 'tankovanie' | 'tankove_karty'
 
-export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument, historia, protokoly, vodiciData, tachoData }: Props) {
+export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument, historia, protokoly, vodiciData, tachoData, tankovanieData, tankoveKartyData, priemerSpotreba }: Props) {
   const [tab, setTab] = useState<Tab>('zakladne')
   const [editModal, setEditModal] = useState(false)
   const router = useRouter()
@@ -62,6 +67,8 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
     { id: 'protokoly', label: 'Odovzdávacie protokoly', count: protokoly.length },
     { id: 'vodici', label: 'Vodiči', count: vodiciData?.length },
     { id: 'tachometer', label: 'Tachometer', count: tachoData?.length },
+    { id: 'tankovanie', label: 'Tankovanie' },
+    { id: 'tankove_karty', label: 'Tankové karty' },
   ]
 
   const stavColor = vozidlo.stav === 'aktivne' ? 'bg-green-100 text-green-800' :
@@ -209,6 +216,10 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
         {tab === 'vodici' && <VodiciSection vozidloId={vozidlo.id} vodiciData={vodiciData || []} vodici={vodici} />}
 
         {tab === 'tachometer' && <TachoSection vozidloId={vozidlo.id} zaznamy={tachoData || []} />}
+
+        {tab === 'tankovanie' && <TankovanieSection vozidloId={vozidlo.id} tankovanie={tankovanieData || []} karty={tankoveKartyData || []} priemerSpotreba={priemerSpotreba ?? null} />}
+
+        {tab === 'tankove_karty' && <TankoveKartySection karty={tankoveKartyData || []} vozidloId={vozidlo.id} vodici={vodici} />}
 
         {tab === 'hlasenia' && (
           <div className="space-y-3">

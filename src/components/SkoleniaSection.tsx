@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Plus, Trash2, GraduationCap, ExternalLink } from 'lucide-react'
-import { TYP_SKOLENIA_LABELS, createSkolenie, deleteSkolenie } from '@/actions/skolenia'
+import { TYP_SKOLENIA_LABELS } from '@/lib/skolenia-types'
+import { createSkolenie, deleteSkolenie } from '@/actions/skolenia'
 import { useRouter } from 'next/navigation'
 
 interface Skolenie {
