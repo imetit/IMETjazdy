@@ -1,6 +1,6 @@
 import { getFleetCostReport, getDriverKmReport } from '@/actions/fleet-reporty'
 import FleetReporty from '@/components/fleet/FleetReporty'
-import HelpTip from '@/components/HelpTip'
+import ModuleHelp from '@/components/ModuleHelp'
 import { createSupabaseServer } from '@/lib/supabase-server'
 
 export default async function FleetReportyPage() {
@@ -15,11 +15,13 @@ export default async function FleetReportyPage() {
 
   return (
     <div>
+      <ModuleHelp title="Fleet Reporty">
+        <p><strong>Čo tu nájdete:</strong> Analytické prehľady o vozovom parku — náklady, km, spotreba.</p>
+        <p><strong>Náklady per vozidlo:</strong> Vyberte vozidlo a rok → zobrazí sa rozdelenie nákladov: servisy, tankovanie, kontroly (STK/EK), poistné udalosti (spoluúčasť). Celkový súčet = TCO vozidla.</p>
+        <p><strong>KM vodičov:</strong> Najazdené kilometre per vodič za obdobie.</p>
+        <p><strong>Export:</strong> Dáta môžete exportovať do CSV.</p>
+      </ModuleHelp>
       <h1 className="text-2xl font-bold mb-6">Fleet reporty</h1>
-      <HelpTip id="fleet-reporty" title="Reporty vozového parku">
-        Prehľad nákladov na vozidlá (servisy, kontroly, cena za km) a štatistiky kilometrov vodičov.
-        Dáta je možné triediť kliknutím na hlavičku stĺpca a exportovať do CSV.
-      </HelpTip>
       {error ? (
         <p className="text-red-500">{error}</p>
       ) : (

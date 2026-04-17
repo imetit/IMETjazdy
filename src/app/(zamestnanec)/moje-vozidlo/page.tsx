@@ -4,6 +4,7 @@ import { getKontroly } from '@/actions/fleet-kontroly'
 import { getZnamky } from '@/actions/fleet-znamky'
 import { getDokumenty } from '@/actions/fleet-dokumenty'
 import MojeVozidlo from '@/components/fleet/MojeVozidlo'
+import ModuleHelp from '@/components/ModuleHelp'
 import { Car } from 'lucide-react'
 
 export default async function MojeVozidloPage() {
@@ -30,6 +31,11 @@ export default async function MojeVozidloPage() {
   if (!vozidlo) {
     return (
       <div>
+        <ModuleHelp title="Moje vozidlo">
+          <p><strong>Čo tu nájdete:</strong> Údaje o vašom priradenom firemnom vozidle — značka, model, ŠPZ, stav, história km.</p>
+          <p><strong>"Nahlásiť problém":</strong> Ak vozidlo má závadu (divný zvuk, kontrolka, poškodenie), kliknite sem — fleet manager bude notifikovaný.</p>
+          <p><strong>"Poistná udalosť":</strong> V prípade nehody alebo škody vyplňte formulár — dátum, miesto, popis, svedkovia, fotografie.</p>
+        </ModuleHelp>
         <h1 className="text-2xl font-bold mb-6">Moje vozidlo</h1>
         <div className="text-center py-12">
           <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4"><Car size={32} className="text-gray-400" /></div>
@@ -52,6 +58,11 @@ export default async function MojeVozidloPage() {
 
   return (
     <div>
+      <ModuleHelp title="Moje vozidlo">
+        <p><strong>Čo tu nájdete:</strong> Údaje o vašom priradenom firemnom vozidle — značka, model, ŠPZ, stav, história km.</p>
+        <p><strong>"Nahlásiť problém":</strong> Ak vozidlo má závadu (divný zvuk, kontrolka, poškodenie), kliknite sem — fleet manager bude notifikovaný.</p>
+        <p><strong>"Poistná udalosť":</strong> V prípade nehody alebo škody vyplňte formulár — dátum, miesto, popis, svedkovia, fotografie.</p>
+      </ModuleHelp>
       <h1 className="text-2xl font-bold mb-6">Moje vozidlo</h1>
       <MojeVozidlo
         vozidlo={vozidlo as any}
