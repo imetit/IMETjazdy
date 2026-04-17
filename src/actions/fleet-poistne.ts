@@ -63,5 +63,43 @@ export async function updatePoistnaUdalostStav(id: string, stav: string) {
 
   const { error } = await auth.supabase.from('poistne_udalosti').update({ stav }).eq('id', id)
   if (error) return { error: 'Chyba pri aktualizácii stavu' }
+
+  // Notify fin managers when insurance event reaches important states
+  if (stav === 'u_poistovne' || stav === 'vyriesena') {
+    const { createNotifikacia } = await import('./notifikacie')
+    const { data: finManagers } = await auth.supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['fin_manager', 'it_admin'])
+      .eq('active', true)
+    for (const fm of finManagers || []) {
+      await createNotifikacia(
+        fm.id,
+        'poistna_udalost_zmena',
+        `Poistná udalosť: ${stav === 'u_poistovne' ? 'odoslaná poisťovni' : 'vyriešená'}`,
+        '',
+        '/fleet/hlasenia'
+      )
+    }
+  }
+
   revalidatePath('/fleet/vozidla')
+  revalidatePath('/fleet/hlasenia')
+}
+
+export async function updatePoistnaUdalostFinance(id: string, data: {
+  cislo_poistky?: string
+  skoda_odhad?: number
+  skoda_skutocna?: number
+  poistovna_plnenie?: number
+  spoluucast?: number
+}) {
+  const { requireFleetOrAdmin } = await import('@/lib/auth-helpers')
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return auth
+
+  const { error } = await auth.supabase.from('poistne_udalosti').update(data).eq('id', id)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+  revalidatePath('/fleet/vozidla')
+  revalidatePath('/fleet/hlasenia')
 }

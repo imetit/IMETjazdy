@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
@@ -49,6 +50,10 @@ export async function createServis(formData: FormData) {
     dodavatel: formData.get('dodavatel') as string || null,
     stav: formData.get('stav') as string || 'planovane',
     km_pri_servise: kmPriServise,
+    nasledny_servis_km: formData.get('nasledny_servis_km') ? parseInt(formData.get('nasledny_servis_km') as string) : null,
+    nasledny_servis_datum: formData.get('nasledny_servis_datum') as string || null,
+    interval_km: formData.get('interval_km') ? parseInt(formData.get('interval_km') as string) : null,
+    interval_mesiace: formData.get('interval_mesiace') ? parseInt(formData.get('interval_mesiace') as string) : null,
   }).select().single()
 
   if (error || !servis) return { error: 'Chyba pri vytváraní servisu' }
@@ -112,4 +117,26 @@ export async function deleteServis(id: string) {
   const { error } = await supabase.from('vozidlo_servisy').delete().eq('id', id)
   if (error) return { error: 'Chyba pri mazaní servisu' }
   revalidatePath('/fleet/servisy')
+}
+
+export async function getUpcomingServices() {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { data: [] }
+
+  const admin = createSupabaseAdmin()
+  const in30days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+  const today = new Date().toISOString().split('T')[0]
+
+  // Services with upcoming date
+  const { data: byDate } = await admin
+    .from('vozidlo_servisy')
+    .select('*, vozidlo:vozidla(spz, znacka, variant, aktualne_km)')
+    .not('nasledny_servis_datum', 'is', null)
+    .lte('nasledny_servis_datum', in30days)
+    .gte('nasledny_servis_datum', today)
+    .eq('stav', 'dokoncene')
+    .order('nasledny_servis_datum')
+    .limit(10)
+
+  return { data: byDate || [] }
 }

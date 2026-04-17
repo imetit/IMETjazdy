@@ -1,11 +1,14 @@
 import { getFleetCostReport, getDriverKmReport } from '@/actions/fleet-reporty'
 import FleetReporty from '@/components/fleet/FleetReporty'
 import HelpTip from '@/components/HelpTip'
+import { createSupabaseServer } from '@/lib/supabase-server'
 
 export default async function FleetReportyPage() {
-  const [costResult, driverResult] = await Promise.all([
+  const supabase = await createSupabaseServer()
+  const [costResult, driverResult, vozidlaResult] = await Promise.all([
     getFleetCostReport(),
     getDriverKmReport(),
+    supabase.from('vozidla').select('id, spz, znacka, variant').neq('stav', 'vyradene').order('spz'),
   ])
 
   const error = costResult.error || driverResult.error
@@ -23,6 +26,7 @@ export default async function FleetReportyPage() {
         <FleetReporty
           costData={costResult.data ?? []}
           driverData={driverResult.data ?? []}
+          vozidla={vozidlaResult.data ?? []}
         />
       )}
     </div>

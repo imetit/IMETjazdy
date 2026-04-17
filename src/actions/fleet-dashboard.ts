@@ -94,6 +94,17 @@ export async function getFleetDashboardData(): Promise<{ data?: FleetDashboardDa
     }))
     .filter(item => item.vozidlo)
 
+  // Upcoming services (next 30 days)
+  const { data: bliziaceSaServisy } = await supabase
+    .from('vozidlo_servisy')
+    .select('id, typ, nasledny_servis_datum, nasledny_servis_km, vozidlo:vozidla(spz, znacka, variant, aktualne_km)')
+    .not('nasledny_servis_datum', 'is', null)
+    .lte('nasledny_servis_datum', in30)
+    .gte('nasledny_servis_datum', today)
+    .eq('stav', 'dokoncene')
+    .order('nasledny_servis_datum')
+    .limit(10)
+
   return {
     data: {
       celkomVozidiel: vozidla?.length ?? 0,
@@ -102,6 +113,7 @@ export async function getFleetDashboardData(): Promise<{ data?: FleetDashboardDa
       vyradene,
       vozidlaVServise: vozidlaVServise as any,
       bliziaceSaKontroly: (bliziaceSa as any) ?? [],
+      bliziaceSaServisy: (bliziaceSaServisy as any) ?? [],
       poistenie: poistenie as any,
       noveHlasenia: noveHlasenia ?? 0,
       mesacneNaklady,

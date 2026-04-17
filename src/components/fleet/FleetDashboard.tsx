@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Car, Wrench, AlertTriangle, TrendingUp, Shield, ChevronDown, ChevronUp } from 'lucide-react'
+import { Car, Wrench, AlertTriangle, TrendingUp, Shield, ChevronDown, ChevronUp, Calendar } from 'lucide-react'
 import type { FleetDashboardData } from '@/lib/fleet-types'
 import { TYP_KONTROLY_LABELS, TYP_SERVISU_LABELS } from '@/lib/fleet-types'
 import { formatCurrency, formatDate } from '@/lib/fleet-utils'
@@ -183,6 +183,37 @@ export default function FleetDashboard({ data }: { data: FleetDashboardData }) {
           )}
         </div>
       </div>
+
+      {/* Blížiace sa servisy */}
+      {data.bliziaceSaServisy && data.bliziaceSaServisy.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Calendar size={20} /> Blížiace sa servisy (30 dní)
+          </h3>
+          <div className="space-y-2">
+            {data.bliziaceSaServisy.map(s => {
+              const daysLeft = Math.ceil((new Date(s.nasledny_servis_datum).getTime() - Date.now()) / 86400000)
+              const colorClass = daysLeft < 7 ? 'text-red-600 bg-red-50' : 'text-orange-600 bg-orange-50'
+              return (
+                <Link key={s.id} href="/fleet/servisy" className="flex items-center justify-between py-2 border-b border-gray-100 hover:bg-gray-50 rounded px-2 -mx-2">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {s.vozidlo.znacka} {s.vozidlo.variant} <span className="text-gray-500">({s.vozidlo.spz})</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {TYP_SERVISU_LABELS[s.typ as keyof typeof TYP_SERVISU_LABELS] || s.typ} · {formatDate(s.nasledny_servis_datum)}
+                      {s.nasledny_servis_km && <> · {s.nasledny_servis_km.toLocaleString('sk-SK')} km</>}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+                    {daysLeft === 0 ? 'Dnes' : daysLeft === 1 ? 'Zajtra' : `${daysLeft} dní`}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Naklady */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
