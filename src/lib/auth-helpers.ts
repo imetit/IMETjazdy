@@ -84,6 +84,11 @@ export async function requireOwnerOrAdmin(ownerId: string): Promise<AuthResult &
 /**
  * Overí, že prihlásený user je nadriadený daného zamestnanca,
  * alebo je zastupujúci nadriadeného (profiles.zastupuje_id), alebo it_admin.
+ *
+ * Používa admin klient pre lookup nadriadeny_id — RLS na profiles dovoľuje
+ * len self-read pre zamestnancov, takže manager (rola=zamestnanec) by inak
+ * nemohol overiť svoju nadriadenosť. Verifikácia oprávnení sa stále robí
+ * v aplikačnej vrstve (porovnanie s result.user.id).
  */
 export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResult & { error?: never } | { error: string }> {
   const result = await requireAuth()
@@ -92,7 +97,10 @@ export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResu
   // it_admin môže všetko
   if (result.profile.role === 'it_admin') return result
 
-  const { data: zamestnanec } = await result.supabase
+  const { createSupabaseAdmin } = await import('./supabase-admin')
+  const admin = createSupabaseAdmin()
+
+  const { data: zamestnanec } = await admin
     .from('profiles')
     .select('nadriadeny_id')
     .eq('id', zamestnanecId)
@@ -106,7 +114,7 @@ export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResu
   if (zamestnanec.nadriadeny_id === result.user.id) return result
 
   // Zastupujúci: primárny nadriadený má zastupuje_id = ja
-  const { data: primary } = await result.supabase
+  const { data: primary } = await admin
     .from('profiles')
     .select('zastupuje_id')
     .eq('id', zamestnanec.nadriadeny_id)
@@ -123,10 +131,15 @@ export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResu
  * (ak je nastavený). Inak vráti priameho nadriadeného. Môže vrátiť null ak nemá nikoho.
  */
 export async function resolveCurrentApprover(
-  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  _supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
   zamestnanecId: string,
 ): Promise<string | null> {
-  const { data: emp } = await supabase
+  // Používame admin klient — RLS by inak blokovala čítanie nadriadeného
+  // (zamestnanec nemôže čítať dovolenky/profil iného zamestnanca cez user-supabase klient).
+  const { createSupabaseAdmin } = await import('./supabase-admin')
+  const admin = createSupabaseAdmin()
+
+  const { data: emp } = await admin
     .from('profiles')
     .select('nadriadeny_id')
     .eq('id', zamestnanecId)
@@ -137,7 +150,7 @@ export async function resolveCurrentApprover(
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: onLeave } = await supabase
+  const { data: onLeave } = await admin
     .from('dovolenky')
     .select('id')
     .eq('user_id', primary)
@@ -147,7 +160,7 @@ export async function resolveCurrentApprover(
     .limit(1)
 
   if (onLeave && onLeave.length > 0) {
-    const { data: primaryProfile } = await supabase
+    const { data: primaryProfile } = await admin
       .from('profiles')
       .select('zastupuje_id')
       .eq('id', primary)

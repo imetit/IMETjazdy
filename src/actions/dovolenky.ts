@@ -214,7 +214,11 @@ export async function schvalDovolenku(id: string) {
   }
 
   if (inserts.length > 0) {
-    await supabase.from('dochadzka').insert(inserts)
+    // Admin klient — RLS na dochádzku povoľuje INSERT len admin/tablet rolám,
+    // takže manager (zamestnanec) by inak nemohol vytvárať záznamy.
+    const { createSupabaseAdmin } = await import('@/lib/supabase-admin')
+    const admin = createSupabaseAdmin()
+    await admin.from('dochadzka').insert(inserts)
   }
 
   // Notifikácia zamestnancovi

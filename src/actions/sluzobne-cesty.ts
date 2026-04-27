@@ -158,15 +158,20 @@ export async function schvalCestu(id: string) {
 
   if (error) return { error: 'Chyba pri schvaľovaní' }
 
+  // Admin klient — RLS na profiles/jazdy/dochádzku povoľuje INSERT len admin rolám,
+  // takže manager (zamestnanec) by inak nemohol auto-flow vytvárať.
+  const { createSupabaseAdmin } = await import('@/lib/supabase-admin')
+  const admin = createSupabaseAdmin()
+
   // Auto-vytvorenie jazdy zo schválenej služobnej cesty
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('profiles')
     .select('vozidlo_id')
     .eq('id', cestaData.user_id)
     .single()
 
   if (profile?.vozidlo_id) {
-    await supabase.from('jazdy').insert({
+    await admin.from('jazdy').insert({
       user_id: cestaData.user_id,
       mesiac: cestaData.datum_od.substring(0, 7), // YYYY-MM
       km: cestaData.predpokladany_km || 0,
@@ -182,6 +187,7 @@ export async function schvalCestu(id: string) {
   // Vytvoriť záznamy v dochádzke pre schválenú cestu
   const od = new Date(cestaData.datum_od)
   const do_ = new Date(cestaData.datum_do)
+  const dochadzkaInserts: Array<Record<string, unknown>> = []
   const current = new Date(od)
   while (current <= do_) {
     if (isPracovnyDen(current)) {
@@ -191,26 +197,15 @@ export async function schvalCestu(id: string) {
       const vecerCas = new Date(current)
       vecerCas.setHours(16, 30, 0, 0)
 
-      await supabase.from('dochadzka').insert([
-        {
-          user_id: cestaData.user_id,
-          datum,
-          smer: 'prichod',
-          dovod: 'sluzobna_cesta',
-          cas: ranoCas.toISOString(),
-          zdroj: 'system',
-        },
-        {
-          user_id: cestaData.user_id,
-          datum,
-          smer: 'odchod',
-          dovod: 'sluzobna_cesta',
-          cas: vecerCas.toISOString(),
-          zdroj: 'system',
-        },
-      ])
+      dochadzkaInserts.push(
+        { user_id: cestaData.user_id, datum, smer: 'prichod', dovod: 'sluzobna_cesta', cas: ranoCas.toISOString(), zdroj: 'system' },
+        { user_id: cestaData.user_id, datum, smer: 'odchod', dovod: 'sluzobna_cesta', cas: vecerCas.toISOString(), zdroj: 'system' },
+      )
     }
     current.setDate(current.getDate() + 1)
+  }
+  if (dochadzkaInserts.length > 0) {
+    await admin.from('dochadzka').insert(dochadzkaInserts)
   }
 
   // Notifikácia zamestnancovi

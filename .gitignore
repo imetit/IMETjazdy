@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/e2e-screenshots
+/jazdy-*.png
 
 # next.js
 /.next/
