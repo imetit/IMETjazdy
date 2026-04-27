@@ -68,31 +68,57 @@ export default function AdminJazdyTable({ jazdy }: { jazdy: JazdaRow[] }) {
   const checkboxColumn: Column<JazdaRow> = {
     key: '_select',
     label: '',
+    className: 'w-12',
+    headerClassName: 'w-12',
+    headerRender: () => (
+      <div className="flex items-center justify-start h-[18px]">
+        {eligibleIds.length === 0 ? (
+          <span className="block w-[18px] h-[18px]" />
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleAll()
+            }}
+            className="flex items-center justify-center p-0 m-0 border-0 bg-transparent leading-none text-gray-500 hover:text-primary transition-colors cursor-pointer"
+            title={allEligibleSelected ? 'Zrušiť výber' : 'Vybrať všetky odoslané'}
+          >
+            {allEligibleSelected
+              ? <CheckSquare size={18} className="text-primary block" />
+              : <Square size={18} className="block" />}
+          </button>
+        )}
+      </div>
+    ),
     render: (j) => {
       const eligible = j.stav === 'odoslana'
-      if (!eligible) return <span className="w-5 h-5 block" />
       const checked = selectedIds.includes(j.id)
       return (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleSelect(j.id)
-          }}
-          className="text-gray-500 hover:text-primary transition-colors"
-        >
-          {checked ? <CheckSquare size={18} className="text-primary" /> : <Square size={18} />}
-        </button>
+        <div className="flex items-center justify-start h-[18px]">
+          {!eligible ? (
+            <span className="block w-[18px] h-[18px]" />
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleSelect(j.id)
+              }}
+              className="flex items-center justify-center p-0 m-0 border-0 bg-transparent leading-none text-gray-500 hover:text-primary transition-colors cursor-pointer"
+            >
+              {checked
+                ? <CheckSquare size={18} className="text-primary block" />
+                : <Square size={18} className="block" />}
+            </button>
+          )}
+        </div>
       )
     },
   }
 
-  const headerCheckboxColumn: Column<JazdaRow> = {
-    ...checkboxColumn,
-    label: eligibleIds.length > 0 ? '✓' : '',
-  }
-
   const columns: Column<JazdaRow>[] = [
-    headerCheckboxColumn,
+    checkboxColumn,
     {
       key: 'cislo_dokladu',
       label: 'Č. dokladu',
@@ -163,23 +189,7 @@ export default function AdminJazdyTable({ jazdy }: { jazdy: JazdaRow[] }) {
   ]
 
   return (
-    <div className="relative">
-      {/* Select all header for checkbox column */}
-      {eligibleIds.length > 0 && (
-        <div className="absolute top-[52px] left-[16px] z-10">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              toggleAll()
-            }}
-            className="text-gray-500 hover:text-primary transition-colors"
-            title={allEligibleSelected ? 'Zrušiť výber' : 'Vybrať všetky odoslané'}
-          >
-            {allEligibleSelected ? <CheckSquare size={18} className="text-primary" /> : <Square size={18} />}
-          </button>
-        </div>
-      )}
-
+    <div>
       <DataTable
         data={jazdy}
         columns={columns}

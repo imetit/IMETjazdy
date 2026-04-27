@@ -9,7 +9,9 @@ export interface Column<T> {
   label: string
   sortable?: boolean
   render?: (item: T) => React.ReactNode
+  headerRender?: () => React.ReactNode
   className?: string
+  headerClassName?: string
 }
 
 export interface FilterDef {
@@ -185,20 +187,22 @@ export default function DataTable<T extends Record<string, any>>({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700' : ''} ${col.className || ''}`}
-                  onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                  className={`text-left px-4 py-3 align-middle text-xs font-semibold text-gray-500 uppercase tracking-wider ${col.sortable && !col.headerRender ? 'cursor-pointer select-none hover:text-gray-700' : ''} ${col.headerClassName || col.className || ''}`}
+                  onClick={col.sortable && !col.headerRender ? () => handleSort(col.key) : undefined}
                 >
-                  <span className="inline-flex items-center gap-1">
-                    {col.label}
-                    {col.sortable && sortKey === col.key && (
-                      sortDir === 'asc'
-                        ? <ChevronUp size={14} className="text-primary" />
-                        : <ChevronDown size={14} className="text-primary" />
-                    )}
-                    {col.sortable && sortKey !== col.key && (
-                      <ChevronUp size={14} className="text-gray-300" />
-                    )}
-                  </span>
+                  {col.headerRender ? col.headerRender() : (
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {col.sortable && sortKey === col.key && (
+                        sortDir === 'asc'
+                          ? <ChevronUp size={14} className="text-primary" />
+                          : <ChevronDown size={14} className="text-primary" />
+                      )}
+                      {col.sortable && sortKey !== col.key && (
+                        <ChevronUp size={14} className="text-gray-300" />
+                      )}
+                    </span>
+                  )}
                 </th>
               ))}
             </tr>
@@ -218,7 +222,7 @@ export default function DataTable<T extends Record<string, any>>({
                 onClick={onRowClick ? () => onRowClick(item) : undefined}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={`px-4 py-3 text-sm text-gray-600 ${col.className || ''}`}>
+                  <td key={col.key} className={`px-4 py-3 align-middle text-sm text-gray-600 ${col.className || ''}`}>
                     {col.render ? col.render(item) : (item[col.key] ?? '')}
                   </td>
                 ))}
