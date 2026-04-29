@@ -47,6 +47,9 @@ export interface Profile {
   tyzdnovy_fond_hodiny?: number
   pracovne_dni_tyzdne?: number
   datum_nastupu?: string | null
+  pristupne_firmy?: string[] | null
+  auto_pip_enabled?: boolean
+  fond_per_den?: Record<string, number> | null
 }
 
 export type ModulId = 'jazdy' | 'vozovy_park' | 'zamestnanecka_karta' | 'dochadzka' | 'dovolenky' | 'sluzobne_cesty' | 'archiv' | 'admin_zamestnanci' | 'admin_nastavenia'

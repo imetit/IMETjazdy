@@ -2,10 +2,12 @@
 'use client'
 
 import { useState } from 'react'
+import { AlertCircle, FileDown, MessageCircleWarning } from 'lucide-react'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
 import { DOVOD_LABELS } from '@/lib/dochadzka-types'
 import { calculateDenneOdpracovane, formatMinutyNaHodiny, isPracovnyDen, getMesacnyFond } from '@/lib/dochadzka-utils'
 import { formatDate } from '@/lib/fleet-utils'
+import KorekciaZiadostForm from './KorekciaZiadostForm'
 
 interface Props {
   zaznamy: DochadzkaZaznam[]
@@ -16,6 +18,8 @@ interface Props {
 
 export default function MojaDochadzka({ zaznamy, fondHodiny, mesiac, onMesiacChange }: Props) {
   const [rok, mes] = mesiac.split('-').map(Number)
+  const [ziadostOpen, setZiadostOpen] = useState<{ datum: string; zaznamId?: string } | null>(null)
+  const auto_doplnene_count = zaznamy.filter(z => z.auto_doplnene).length
 
   // Group by day
   const dny = new Map<string, DochadzkaZaznam[]>()
@@ -55,15 +59,40 @@ export default function MojaDochadzka({ zaznamy, fondHodiny, mesiac, onMesiacCha
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-2xl font-bold">Moja dochádzka</h2>
-        <input
-          type="month"
-          value={mesiac}
-          onChange={e => onMesiacChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="month"
+            value={mesiac}
+            onChange={e => onMesiacChange(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          />
+          <button
+            onClick={() => setZiadostOpen({ datum: new Date().toISOString().split('T')[0] })}
+            className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-100"
+          >
+            <MessageCircleWarning size={14} /> Nahlásiť chybu
+          </button>
+          <a
+            href={`/api/reporty/dochadzka/zamestnanec.pdf?mesiac=${mesiac}`}
+            target="_blank"
+            className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+          >
+            <FileDown size={14} /> PDF výkaz
+          </a>
+        </div>
       </div>
+
+      {auto_doplnene_count > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-start gap-2 text-sm">
+          <AlertCircle size={16} className="text-yellow-600 shrink-0 mt-0.5" />
+          <div>
+            <strong>Auto-doplnených záznamov: {auto_doplnene_count}.</strong> Systém automaticky pripísal odchod (zabudli ste sa odpípnuť).
+            Skontrolujte časy. Ak je čas iný, kliknite <button onClick={() => setZiadostOpen({ datum: new Date().toISOString().split('T')[0] })} className="underline font-semibold">Nahlásiť chybu</button> a mzdárka to opraví.
+          </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -131,6 +160,15 @@ export default function MojaDochadzka({ zaznamy, fondHodiny, mesiac, onMesiacCha
           </tbody>
         </table>
       </div>
+
+      {ziadostOpen && (
+        <KorekciaZiadostForm
+          defaultDatum={ziadostOpen.datum}
+          povodny_zaznam_id={ziadostOpen.zaznamId}
+          onClose={() => setZiadostOpen(null)}
+          onSaved={() => { setZiadostOpen(null); onMesiacChange(mesiac) }}
+        />
+      )}
     </div>
   )
 }

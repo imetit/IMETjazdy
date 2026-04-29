@@ -5,7 +5,7 @@ export type DovodDochadzky =
   | 'sluzobne' | 'sluzobna_cesta' | 'prechod'
   | 'fajcenie' | 'sukromne' | 'dovolenka'
 
-export type ZdrojDochadzky = 'pin' | 'rfid' | 'manual' | 'system'
+export type ZdrojDochadzky = 'pin' | 'rfid' | 'manual' | 'system' | 'auto'
 
 export interface DochadzkaZaznam {
   id: string
@@ -17,6 +17,91 @@ export interface DochadzkaZaznam {
   zdroj: ZdrojDochadzky
   poznamka: string | null
   created_at: string
+  auto_doplnene?: boolean
+  korekcia_dovod?: string | null
+  povodny_cas?: string | null
+  upravil_id?: string | null
+  upravene_at?: string | null
+}
+
+export type StavUzavierky = 'otvoreny' | 'na_kontrolu' | 'uzavrety'
+
+export interface DochadzkaUzavierka {
+  id: string
+  firma_id: string
+  mesiac: string
+  stav: StavUzavierky
+  na_kontrolu_at: string | null
+  na_kontrolu_by: string | null
+  uzavrety_at: string | null
+  uzavrety_by: string | null
+  prelomenie_dovod: string | null
+  prelomil_id: string | null
+  prelomil_at: string | null
+}
+
+export interface SchvaleneHodiny {
+  id: string
+  user_id: string
+  mesiac: string
+  schvaleny_at: string
+  schvaleny_by: string
+  poznamka: string | null
+}
+
+export type StavZiadosti = 'caka_na_schvalenie' | 'schvalena' | 'zamietnuta'
+
+export interface KorekciaZiadost {
+  id: string
+  user_id: string
+  datum: string
+  povodny_zaznam_id: string | null
+  navrh_smer: SmerDochadzky | null
+  navrh_dovod: string | null
+  navrh_cas: string | null
+  poznamka_zamestnanec: string
+  stav: StavZiadosti
+  vybavila_id: string | null
+  vybavila_at: string | null
+  poznamka_mzdarka: string | null
+  created_at: string
+}
+
+export type AnomalyTyp = 'chyba_odchod' | 'auto_doplnene' | 'neuplny_mesiac'
+  | 'podozrivy_cas' | 'dlhy_blok' | 'duplicitny' | 'kolizia_dovolenka' | 'praca_vo_sviatok'
+
+export interface AnomalyType {
+  typ: AnomalyTyp
+  severita: 'low' | 'medium' | 'high'
+  datum: string
+  popis: string
+  zaznam_id?: string
+}
+
+export interface PriplatkySumar {
+  nocna_hod: number
+  sobota_hod: number
+  nedela_hod: number
+  sviatok_hod: number
+  nadcas_hod: number
+}
+
+export interface MesacnySumar {
+  user_id: string
+  full_name: string
+  firma_id: string | null
+  pozicia: string | null
+  fond_min: number
+  odpracovane_min: number
+  rozdiel_min: number
+  dovolenka_dni: number
+  pn_dni: number
+  ocr_dni: number
+  sviatky_dni: number
+  nadcas_hod: number
+  auto_doplnene_count: number
+  schvalene: boolean
+  ma_anomalie: boolean
 }
 
 export interface IdentifiedUser {

@@ -201,6 +201,12 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
                 <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka')}>
                   <Clock size={19} className={iconClass('/admin/dochadzka')} /> Prehľad dochádzky
                 </Link>
+                <Link href="/admin/dochadzka/uzavierka" className={linkClass('/admin/dochadzka/uzavierka')}>
+                  <FileText size={19} className={iconClass('/admin/dochadzka/uzavierka')} /> Mesačná uzávierka
+                </Link>
+                <Link href="/admin/dochadzka/ziadosti" className={linkClass('/admin/dochadzka/ziadosti')}>
+                  <AlertTriangle size={19} className={iconClass('/admin/dochadzka/ziadosti')} /> Žiadosti o korekciu
+                </Link>
                 <Link href="/admin/dovolenky" className={linkClass('/admin/dovolenky')}>
                   <Calendar size={19} className={iconClass('/admin/dovolenky')} /> Schvaľovanie dovoleniek
                 </Link>

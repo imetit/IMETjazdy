@@ -1,46 +1,49 @@
-// src/app/admin/dochadzka/page.tsx
-'use client'
-
-import { useState, useEffect } from 'react'
-import AdminDochadzkaTable from '@/components/dochadzka/AdminDochadzkaTable'
-import { getDochadzkaZamestnancov, getDnesVPraci } from '@/actions/admin-dochadzka'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { getAccessibleFirmaIds } from '@/lib/firma-scope'
+import { getSession } from '@/lib/get-session'
+import AdminDochadzkaClient from '@/components/dochadzka/AdminDochadzkaClient'
 import ModuleHelp from '@/components/ModuleHelp'
-import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
+import { redirect } from 'next/navigation'
 
-export default function AdminDochadzkaPage() {
-  const now = new Date()
-  const [mesiac, setMesiac] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
-  const [profiles, setProfiles] = useState<any[]>([])
-  const [zaznamy, setZaznamy] = useState<DochadzkaZaznam[]>([])
-  const [vPraci, setVPraci] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+interface PageProps {
+  searchParams: Promise<{ mesiac?: string }>
+}
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      const [result, vpResult] = await Promise.all([
-        getDochadzkaZamestnancov(mesiac),
-        getDnesVPraci(),
-      ])
-      setProfiles(result.profiles || [])
-      setZaznamy(result.zaznamy || [])
-      setVPraci(vpResult.data || [])
-      setLoading(false)
-    }
-    load()
-  }, [mesiac])
+export default async function AdminDochadzkaPage({ searchParams }: PageProps) {
+  const params = await searchParams
+  const { profile } = await getSession()
+  if (!profile) redirect('/login')
 
-  if (loading) return <div className="text-gray-500 p-8">Načítavam...</div>
+  const mesiac = params.mesiac || new Date().toISOString().slice(0, 7)
+  const accessibleFirmaIds = await getAccessibleFirmaIds(profile.id)
+
+  const admin = createSupabaseAdmin()
+  let firmyQuery = admin.from('firmy').select('id, nazov, kod').eq('aktivna', true).order('poradie')
+  if (accessibleFirmaIds !== null) {
+    firmyQuery = firmyQuery.in('id', accessibleFirmaIds)
+  }
+
+  const [firmyRes, uzavierkyRes] = await Promise.all([
+    firmyQuery,
+    admin.from('dochadzka_uzavierka').select('firma_id, mesiac, stav').eq('mesiac', mesiac),
+  ])
 
   return (
     <div>
-      <ModuleHelp title="Prehľad dochádzky">
-        <p><strong>Čo tu nájdete:</strong> Dochádzka všetkých zamestnancov — príchody, odchody, odpracované hodiny.</p>
-        <p><strong>Filter:</strong> Vyberte mesiac a zamestnanca pre zobrazenie detailu.</p>
-        <p><strong>Kliknutie na zamestnanca:</strong> Otvorí mesačný výkaz s dennými záznamami.</p>
-        <p><strong>Farebné indikátory:</strong> Zelená = splnený fond, Oranžová = chýbajú záznamy, Červená = absencia.</p>
+      <ModuleHelp title="Prehľad dochádzky pre mzdy">
+        <p><strong>Čo tu nájdete:</strong> Dochádzka všetkých zamestnancov vašich firiem za vybraný mesiac.</p>
+        <p><strong>KPI widgety:</strong> Klik na &quot;Auto-doplnené&quot; alebo &quot;Anomálie&quot; vyfiltruje len tie záznamy.</p>
+        <p><strong>Filtre:</strong> Mesiac, firmy (multi-select), status (kompletní / neúplní / s anomáliami / schválení).</p>
+        <p><strong>Klik na riadok:</strong> Otvorí detail zamestnanca s mesačným výkazom — tam môžete editovať záznamy s povinným dôvodom korektúry.</p>
+        <p><strong>Bulk schválenie:</strong> Označte zamestnancov a kliknite &quot;Schváliť vybraných&quot;, alebo schválte celú firmu jedným klikom v stavovom banneri.</p>
+        <p><strong>Stavy uzávierky:</strong> Otvorený → Na kontrolu → Uzavretý. Po uzavretí žiadne ďalšie úpravy (okrem IT admina).</p>
       </ModuleHelp>
-      <AdminDochadzkaTable profiles={profiles} zaznamy={zaznamy} vPraci={vPraci} mesiac={mesiac} onMesiacChange={setMesiac} />
+
+      <AdminDochadzkaClient
+        firmy={firmyRes.data || []}
+        initialMesiac={mesiac}
+        uzavierky={uzavierkyRes.data || []}
+      />
     </div>
   )
 }
