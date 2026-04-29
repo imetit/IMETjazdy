@@ -16,16 +16,21 @@ export const getSession = cache(async () => {
 
   if (!profile) return { profile: null, firma: null, moduly: [], notifCount: 0 }
 
-  // Firma (pre module clamp)
-  let firma: Firma | null = null
-  if (profile.firma_id) {
-    const { data } = await supabase
-      .from('firmy')
-      .select('*')
-      .eq('id', profile.firma_id)
-      .single()
-    firma = (data as Firma) || null
-  }
+  // Paralelne: firma + moduly + notifCount (žiadny z nich nedependuje na ostatných)
+  const [firmaResult, modulyResult, notifCountResult] = await Promise.all([
+    profile.firma_id
+      ? supabase.from('firmy').select('*').eq('id', profile.firma_id).single()
+      : Promise.resolve({ data: null }),
+    profile.role === 'it_admin' || profile.role === 'fin_manager'
+      ? Promise.resolve({ data: null }) // role-based, nepotrebujeme query
+      : supabase.from('user_moduly').select('modul, pristup').eq('user_id', user.id),
+    supabase.from('notifikacie')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('precitane', false),
+  ])
+
+  const firma: Firma | null = (firmaResult.data as Firma) || null
 
   // Moduly (role-based baseline)
   let moduly: { modul: string; pristup: string }[] = []
@@ -36,28 +41,19 @@ export const getSession = cache(async () => {
     moduly = ['jazdy','vozovy_park','zamestnanecka_karta','dochadzka','dovolenky','sluzobne_cesty','archiv']
       .map(m => ({ modul: m, pristup: 'admin' }))
   } else {
-    const { data } = await supabase.from('user_moduly').select('modul, pristup').eq('user_id', user.id)
-    moduly = data || []
+    moduly = modulyResult.data || []
   }
 
   // Clamp podľa firmy — dcérska firma s obmedzeným scopom
-  // (it_admin NEclamp-ujeme, musí môcť všetko spravovať naprieč firmami)
   if (firma && profile.role !== 'it_admin') {
     const firmaModuly = firma.moduly_default || []
     moduly = moduly.filter(m => firmaModuly.includes(m.modul))
   }
 
-  // Notification count
-  const { count } = await supabase
-    .from('notifikacie')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('precitane', false)
-
   return {
     profile: profile as Profile,
     firma,
     moduly,
-    notifCount: count || 0,
+    notifCount: notifCountResult.count || 0,
   }
 })
