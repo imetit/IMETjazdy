@@ -591,4 +591,156 @@ Po nasadení O365 SMTP (separátna úloha) sa zapnú emaily pre kritické akcie 
 
 ---
 
-**Status: Návrh — čaká na schválenie užívateľom.**
+**Status: Schválené užívateľom 2026-04-29 — pripravené na implementáciu.**
+
+---
+
+## 13. Ultra-rozšírenia (rozhodol som pridať pre top-tier kvalitu)
+
+User dal autoritu "urob to najlepsie ako vieš" — pridávam tieto rozšírenia ktoré z toho spravia premium nástroj porovnateľný s drahými riešeniami (ATTIS, Aktion).
+
+### 13.1 Štruktúrované žiadosti o korekciu (namiesto voľný text "Nahlásiť chybu")
+
+Nová tabuľka `dochadzka_korekcia_ziadosti`:
+```sql
+CREATE TABLE dochadzka_korekcia_ziadosti (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id),
+  datum DATE NOT NULL,
+  povodny_zaznam_id UUID REFERENCES dochadzka(id),
+  navrh_smer VARCHAR(10),
+  navrh_dovod VARCHAR(30),
+  navrh_cas TIMESTAMPTZ,
+  poznamka_zamestnanec TEXT NOT NULL,
+  stav VARCHAR(20) DEFAULT 'caka_na_schvalenie'
+    CHECK (stav IN ('caka_na_schvalenie', 'schvalena', 'zamietnuta')),
+  vybavila_id UUID REFERENCES profiles(id),
+  vybavila_at TIMESTAMPTZ,
+  poznamka_mzdarka TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+Zamestnanec si vyplní: dátum, čo je zle, čo má byť. Mzdárka klikne "Schváliť" — automaticky aplikuje korektúru.
+
+### 13.2 Verzionovanie záznamov (plná história zmien)
+
+Nová tabuľka `dochadzka_history`:
+```sql
+CREATE TABLE dochadzka_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dochadzka_id UUID NOT NULL REFERENCES dochadzka(id) ON DELETE CASCADE,
+  zmena_typ VARCHAR(20) CHECK (zmena_typ IN ('insert', 'update', 'delete')),
+  povodne_data JSONB,
+  nove_data JSONB,
+  zmenil_id UUID REFERENCES profiles(id),
+  zmenil_at TIMESTAMPTZ DEFAULT now(),
+  dovod TEXT
+);
+```
+
+Pred každou úpravou trigger uloží snapshot. Audit "Kto všetko menil tento záznam?" → kompletná timeline.
+
+### 13.3 Smart fond per deň týždňa (rozšírený fond)
+
+`pracovny_fond_hodiny` ostáva pre default. Pridáme:
+```sql
+ALTER TABLE profiles ADD COLUMN fond_per_den JSONB;
+-- napr. { "po": 8.5, "ut": 8.5, "st": 8.5, "stv": 8.5, "pi": 6 }
+-- ak NULL → použiť pracovny_fond_hodiny pre všetky dni
+```
+
+Cron auto-pipnutie a výpočet fondu rešpektuje fond_per_den ak je nastavený.
+
+### 13.4 Real-time updates pre mzdárku (Supabase Realtime)
+
+Mzdárka vidí v reálnom čase keď niekto pípne (bez refresh):
+- WebSocket channel `dochadzka:firma:{firma_id}`
+- KPI widget "V práci dnes" sa updatne live
+- Toast notification "Ján Novák práve pípol príchod"
+
+Implementácia: `useRealtimeChannel` hook v `AdminDochadzkaTable`.
+
+### 13.5 Štatistiky firmy — manažérsky pohľad
+
+`/admin/dochadzka/statistiky` — agregované metriky:
+- Priemerný počet odpracovaných hodín / mesiac
+- Trend (graph) — odpracované, dovolenka, PN za posledných 12 mesiacov
+- Top 10 nadčasy
+- Najviac PN / OČR za rok
+- % schválených mesiacov
+- Anomálie trendline
+
+Pre vedenie firmy / fin_managera.
+
+### 13.6 Print-friendly výtlačky
+
+Všetky reporty majú CSS `@media print` — A4 portrait, hlavička s logom firmy, zápätie s dátumom + číslom strany. Mzdárka tlačí priamo z prehliadača bez nutnosti PDF download.
+
+### 13.7 Bulk import historickej dochádzky
+
+`/admin/dochadzka/import` — drag&drop XLSX/CSV s historickými dochádzkami:
+- Mapovanie stĺpcov (osoba, dátum, príchod, odchod)
+- Preview pred uložením
+- Detekcia duplikátov
+- Audit log: import session
+
+Užitočné pre prechod zo starého systému.
+
+### 13.8 PIN reset workflow
+
+Mzdárka v admin paneli môže resetovať PIN zamestnanca:
+- Klik "Reset PIN" → vygeneruje nový 4-miestny PIN
+- Notifikácia zamestnancovi (in-app + email po nasadení)
+- Audit log
+
+### 13.9 Predictive warnings pre mesiac
+
+Pri otvorenej uzávierke (≥ 5 dní pred koncom mesiaca) systém vypočíta:
+- "Tomáš má aktuálne -8h od fondu. Bez akcie skončí mesiac s -45h."
+- "Mária má 14h nadčasov + 3 anomálie. Skontrolujte do uzávierky."
+- "5 zamestnancov má auto-doplnené záznamy ktoré ešte nikto neskontroloval."
+
+Karta "Predikcia mesiaca" v `/admin/dochadzka`.
+
+### 13.10 Pripomienkové centrum
+
+Mzdárka má TODO list:
+- "Schváliť hodiny: 23 zamestnancov"
+- "Vybaviť žiadosti o korekciu: 4"
+- "Skontrolovať auto-doplnené: 12"
+- "Spustiť uzávierku 2026-03 (zameškaná)"
+
+Vidno priamo na `/admin/dochadzka` ako collapsible panel.
+
+---
+
+## 14. Aktualizované rozhodnutia (5 otvorených bodov)
+
+| Otázka | Rozhodnutie |
+|---|---|
+| Mesačná uzávierka 3-stavová | ✅ Ostáva |
+| Multi-firma scope cez `pristupne_firmy[]` | ✅ Implementovať |
+| Per-zamestnanec `auto_pip_enabled` flag | ✅ Áno (default `true`) |
+| Príplatky v reportoch (nočná/víkend/sviatok/nadčas) | ✅ Áno, v1 |
+| Štruktúrovaná žiadosť o korekciu | ✅ Áno (lepšie ako voľný text) |
+
+---
+
+## 15. Aktualizovaný timeline po pridaní rozšírení
+
+| Fáza | Obsah | Čas |
+|---|---|---|
+| **1. Migrácia + types** | DB zmeny (5 nových tabuliek), TS types | 1 deň |
+| **2. Cron + auto-pipnutie** | API endpoint, cron, notifikácie, fond_per_den logika | 1 deň |
+| **3. Mzdárkin prehľad** | Filtre, KPI, tabuľka, Realtime channel, TODO panel | 1.5 dňa |
+| **4. Detail zamestnanca + editor** | Editor modal, korekcie, history audit | 1 deň |
+| **5. Žiadosti o korekciu** | Zamestnanecký formulár + mzdárkina inbox | 0.5 dňa |
+| **6. Uzávierka** | Stavový stroj, server actions check, predictive warnings | 1 deň |
+| **7. Anomálie + príplatky** | Detekcia, výpočet, UI | 1 deň |
+| **8. Reporty + XLSX + print** | 9 reportov, exporty, print CSS | 1.5 dňa |
+| **9. Štatistiky firmy** | Agregáty, grafy | 0.5 dňa |
+| **10. Bulk import + PIN reset** | XLSX import, PIN reset workflow | 0.5 dňa |
+| **11. Zamestnanecký dashboard** | Rozšírenie, žiadosť o korekciu UI | 0.5 dňa |
+| **12. Tests + bug fixes** | E2E test pokrývajúci 100% workflow | 1.5 dňa |
+| **CELKOM** | | **~12 pracovných dní** |
