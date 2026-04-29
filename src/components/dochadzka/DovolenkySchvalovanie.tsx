@@ -1,7 +1,7 @@
 // src/components/dochadzka/DovolenkySchvalovanie.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Check, X } from 'lucide-react'
 import type { Dovolenka } from '@/lib/dovolenka-types'
 import { TYP_DOVOLENKY_LABELS, STAV_DOVOLENKY_LABELS, STAV_DOVOLENKY_COLORS } from '@/lib/dovolenka-types'
@@ -16,29 +16,50 @@ interface Props {
   dovolenky: Dovolenka[]
 }
 
-export default function DovolenkySchvalovanie({ dovolenky }: Props) {
+export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
+  const [dovolenky, setDovolenky] = useState<Dovolenka[]>(initial)
   const [zamietnutieId, setZamietnutieId] = useState<string | null>(null)
   const [dovod, setDovod] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [pending, startTransition] = useTransition()
+  const loading = pending
   const router = useRouter()
 
   async function handleSchval(id: string) {
-    setLoading(true)
-    const result = await schvalDovolenku(id)
-    if (result && 'error' in result && result.error) alert(result.error)
-    setLoading(false)
-    router.refresh()
+    // Optimistic UI — okamžite update lokálneho state-u
+    const prev = dovolenky
+    setDovolenky(d => d.map(x => x.id === id ? { ...x, stav: 'schvalena', schvalene_at: new Date().toISOString() } : x))
+
+    startTransition(async () => {
+      const result = await schvalDovolenku(id)
+      if (result && 'error' in result && result.error) {
+        setDovolenky(prev) // revert
+        alert(result.error)
+      } else {
+        router.refresh() // refresh to load auto-attendance + counts
+      }
+    })
   }
 
   async function handleZamietni() {
     if (!zamietnutieId || !dovod.trim()) return
-    setLoading(true)
-    const result = await zamietniDovolenku(zamietnutieId, dovod)
-    if (result && 'error' in result && result.error) alert(result.error)
+    const id = zamietnutieId
+    const reason = dovod
+    const prev = dovolenky
+
+    // Optimistic UI
+    setDovolenky(d => d.map(x => x.id === id ? { ...x, stav: 'zamietnuta', dovod_zamietnutia: reason } : x))
     setZamietnutieId(null)
     setDovod('')
-    setLoading(false)
-    router.refresh()
+
+    startTransition(async () => {
+      const result = await zamietniDovolenku(id, reason)
+      if (result && 'error' in result && result.error) {
+        setDovolenky(prev)
+        alert(result.error)
+      } else {
+        router.refresh()
+      }
+    })
   }
 
   const columns: Column<Dovolenka>[] = [

@@ -1,7 +1,7 @@
 // src/components/cesty/SluzobnesCestyTable.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
 import type { SluzobnasCesta } from '@/lib/cesty-types'
@@ -16,24 +16,37 @@ interface Props {
   cesty: SluzobnasCesta[]
 }
 
-export default function SluzobnesCestyTable({ cesty }: Props) {
-  const [loading, setLoading] = useState(false)
+export default function SluzobnesCestyTable({ cesty: initial }: Props) {
+  const [cesty, setCesty] = useState<SluzobnasCesta[]>(initial)
+  const [loading, startTransition] = useTransition()
   const router = useRouter()
 
   async function handleSchval(id: string) {
-    setLoading(true)
-    const result = await schvalCestu(id)
-    if (result && 'error' in result && result.error) alert(result.error)
-    setLoading(false)
-    router.refresh()
+    const prev = cesty
+    setCesty(c => c.map(x => x.id === id ? { ...x, stav: 'schvalena' } : x))
+    startTransition(async () => {
+      const result = await schvalCestu(id)
+      if (result && 'error' in result && result.error) {
+        setCesty(prev)
+        alert(result.error)
+      } else {
+        router.refresh()
+      }
+    })
   }
 
   async function handleZamietni(id: string) {
-    setLoading(true)
-    const result = await zamietniCestu(id)
-    if (result && 'error' in result && result.error) alert(result.error)
-    setLoading(false)
-    router.refresh()
+    const prev = cesty
+    setCesty(c => c.map(x => x.id === id ? { ...x, stav: 'zamietnuta' } : x))
+    startTransition(async () => {
+      const result = await zamietniCestu(id)
+      if (result && 'error' in result && result.error) {
+        setCesty(prev)
+        alert(result.error)
+      } else {
+        router.refresh()
+      }
+    })
   }
 
   const columns: Column<SluzobnasCesta>[] = [
