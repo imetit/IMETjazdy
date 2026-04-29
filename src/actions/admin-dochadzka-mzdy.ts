@@ -3,7 +3,7 @@
 import { requireAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getAccessibleFirmaIds } from '@/lib/firma-scope'
-import { calculateMesacnyStav } from '@/lib/dochadzka-utils'
+import { calculateMesacnyStav, isSviatok } from '@/lib/dochadzka-utils'
 import { calculateFond } from '@/lib/dochadzka-fond'
 import { detectAnomalies } from '@/lib/dochadzka-anomalies'
 import { calculatePriplatky } from '@/lib/dochadzka-priplatky'
@@ -107,7 +107,6 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
       const dt = new Date(rok, m - 1, d)
       const isPracDen = dt.getDay() !== 0 && dt.getDay() !== 6
       if (!isPracDen) continue
-      const { isSviatok } = await import('@/lib/dochadzka-utils')
       if (isSviatok(dt)) sviatky_dni++
     }
 
