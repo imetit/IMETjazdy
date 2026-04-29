@@ -204,6 +204,36 @@ export async function updateZamestnanecTypUvazku(profileId: string, typ: string)
   revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
+export async function updateZamestnanecPristupneFirmy(profileId: string, firmaIds: string[]) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
+    pristupne_firmy: firmaIds.length > 0 ? firmaIds : null,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+
+  await logAudit('zmena_pristupne_firmy', 'profiles', profileId, { firmaIds })
+
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+}
+
+export async function updateZamestnanecAutoPip(profileId: string, enabled: boolean) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return auth
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.from('profiles').update({
+    auto_pip_enabled: enabled,
+  }).eq('id', profileId)
+  if (error) return { error: 'Chyba pri aktualizácii' }
+
+  await logAudit('zmena_auto_pip', 'profiles', profileId, { enabled })
+
+  revalidatePath(`/admin/zamestnanci/${profileId}`)
+}
+
 export async function updateZamestnanecZastupuje(profileId: string, zastupujeId: string | null) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth

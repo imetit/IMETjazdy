@@ -1,5 +1,6 @@
 'use client'
 import { Users, Clock, AlertTriangle, TrendingUp } from 'lucide-react'
+import RealtimeVPraciIndicator from './RealtimeVPraciIndicator'
 
 interface Props {
   vPraciCount: number
@@ -18,6 +19,9 @@ export default function DochadzkaKPI({ vPraciCount, autoDoplneneCount, anomaliCo
           <span className="text-xs font-medium">V práci práve teraz</span>
         </div>
         <div className="text-2xl font-bold text-green-900 mt-1">{vPraciCount}</div>
+        <div className="mt-1">
+          <RealtimeVPraciIndicator initialCount={vPraciCount} />
+        </div>
       </div>
 
       <button

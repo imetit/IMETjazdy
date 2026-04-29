@@ -213,6 +213,12 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
                 <Link href="/admin/dochadzka/reporty" className={linkClass('/admin/dochadzka/reporty')}>
                   <BarChart3 size={19} className={iconClass('/admin/dochadzka/reporty')} /> Reporty
                 </Link>
+                <Link href="/admin/dochadzka/statistiky" className={linkClass('/admin/dochadzka/statistiky')}>
+                  <BarChart3 size={19} className={iconClass('/admin/dochadzka/statistiky')} /> Štatistiky
+                </Link>
+                <Link href="/admin/dochadzka/import" className={linkClass('/admin/dochadzka/import')}>
+                  <FileText size={19} className={iconClass('/admin/dochadzka/import')} /> Bulk import
+                </Link>
                 <a href="/dochadzka?smer=prichod&demo=1" target="_blank" className={linkClass('/dochadzka')}>
                   <Monitor size={19} className={iconClass('/dochadzka')} /> Tablet preview
                 </a>

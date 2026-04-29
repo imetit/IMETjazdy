@@ -22,6 +22,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Print styles pre reporty / mesačné výkazy */
+@media print {
+  @page { size: A4; margin: 1.5cm; }
+  body { background: white !important; font-size: 11pt; }
+  .no-print, aside, nav, button:not(.print-keep), header { display: none !important; }
+  .print-only { display: block !important; }
+  table { page-break-inside: auto; border-collapse: collapse; width: 100%; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  th, td { border: 1px solid #cbd5e1; padding: 4px 8px; }
+  thead th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h1, h2, h3 { page-break-after: avoid; }
+  .bg-yellow-50, .bg-orange-50, .bg-red-50, .bg-green-50, .bg-blue-50 { background: #fafafa !important; }
+}
+.print-only { display: none; }
+
 #__next {
   min-height: 100vh;
 }

@@ -289,6 +289,19 @@ export default function ZamestnanecSettingsSection({
             >
               {saving === 'pin' ? '...' : 'Uložiť'}
             </button>
+            <button
+              onClick={async () => {
+                if (!confirm('Vygenerovať nový náhodný PIN? Zamestnanec dostane in-app notifikáciu.')) return
+                const { resetPin } = await import('@/actions/pin-reset')
+                const r = await resetPin(userId)
+                if (r.error) { alert(r.error); return }
+                if (r.pin) { setPin(r.pin); alert(`Nový PIN: ${r.pin}\n\nZamestnanec bol notifikovaný v aplikácii.`) }
+              }}
+              className="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+              title="Vygenerovať náhodný PIN"
+            >
+              🎲 Reset
+            </button>
           </div>
         </div>
 

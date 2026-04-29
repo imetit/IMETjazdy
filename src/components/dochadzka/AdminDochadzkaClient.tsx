@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Check, AlertTriangle, Lock, Unlock, ChevronRight } from 'lucide-react'
 import DochadzkaFiltre, { type FilterValues } from './DochadzkaFiltre'
 import DochadzkaKPI from './DochadzkaKPI'
+import MzdarkaTodoPanel from './MzdarkaTodoPanel'
 import DataTable from '@/components/ui/DataTable'
 import type { Column } from '@/components/ui/DataTable'
 import type { MesacnySumar } from '@/lib/dochadzka-types'
@@ -164,6 +165,8 @@ export default function AdminDochadzkaClient({ firmy, initialMesiac, uzavierky }
           Mesačná uzávierka <ChevronRight size={14} />
         </Link>
       </div>
+
+      <MzdarkaTodoPanel mesiac={filter.mesiac} />
 
       <DochadzkaFiltre
         values={filter}
