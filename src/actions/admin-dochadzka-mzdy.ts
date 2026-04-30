@@ -3,14 +3,17 @@
 import { requireAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getAccessibleFirmaIds } from '@/lib/firma-scope'
-import { calculateMesacnyStav, isSviatok } from '@/lib/dochadzka-utils'
+import { calculateMesacnyStav, isSviatok, isPracovnyDen } from '@/lib/dochadzka-utils'
 import { calculateFond } from '@/lib/dochadzka-fond'
 import { detectAnomalies } from '@/lib/dochadzka-anomalies'
 import { calculatePriplatky } from '@/lib/dochadzka-priplatky'
 import type { MesacnySumar, DochadzkaZaznam } from '@/lib/dochadzka-types'
 
+interface ZaznamRow extends DochadzkaZaznam { auto_doplnene?: boolean }
+
 /**
- * Vráti mesačné súhrny pre všetkých zamestnancov ku ktorým má mzdárka prístup.
+ * Vráti mesačné súhrny pre všetkých zamestnancov.
+ * Optimalizované — všetky dáta z 1 batch query, anomálie a nadčasy in-memory.
  */
 export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Promise<{ data?: MesacnySumar[]; error?: string }> {
   const auth = await requireAdmin()
@@ -19,19 +22,16 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
   const accessible = await getAccessibleFirmaIds(auth.user.id)
   const admin = createSupabaseAdmin()
 
-  // Apply firma filter
   let query = admin
     .from('profiles')
     .select('id, full_name, firma_id, pozicia, pracovny_fond_hodiny, fond_per_den, active')
     .eq('active', true)
     .neq('role', 'tablet')
 
-  // accessible === null → it_admin → vidí všetky
   if (accessible !== null) {
     if (accessible.length === 0) return { data: [] }
     query = query.in('firma_id', accessible)
   }
-  // Filter používateľa ak vybral konkrétne firmy
   if (firmaIds && firmaIds.length > 0) {
     query = query.in('firma_id', firmaIds)
   }
@@ -39,14 +39,15 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
   const { data: profiles, error } = await query
   if (error) return { error: error.message }
 
-  // Nacitaj záznamy + dovolenky + schválenia paralelne
   const userIds = (profiles || []).map(p => p.id)
   if (userIds.length === 0) return { data: [] }
 
+  // Single batch — všetky dáta naraz
   const [zaznamyRes, dovolenkyRes, schvalenieRes] = await Promise.all([
-    admin.from('dochadzka').select('user_id, datum, smer, dovod, cas, auto_doplnene')
+    admin.from('dochadzka').select('id, user_id, datum, smer, dovod, cas, auto_doplnene')
       .in('user_id', userIds)
-      .gte('datum', `${mesiac}-01`).lte('datum', `${mesiac}-31`),
+      .gte('datum', `${mesiac}-01`).lte('datum', `${mesiac}-31`)
+      .order('cas', { ascending: true }),
     admin.from('dovolenky').select('user_id, datum_od, datum_do, typ, pol_dna')
       .in('user_id', userIds).eq('stav', 'schvalena')
       .or(`datum_od.lte.${mesiac}-31,datum_do.gte.${mesiac}-01`),
@@ -54,37 +55,44 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
       .in('user_id', userIds).eq('mesiac', mesiac),
   ])
 
-  const zaznamyByUser = new Map<string, DochadzkaZaznam[]>()
+  const zaznamyByUser = new Map<string, ZaznamRow[]>()
   for (const z of zaznamyRes.data || []) {
     const arr = zaznamyByUser.get(z.user_id) || []
-    arr.push(z as DochadzkaZaznam)
+    arr.push(z as ZaznamRow)
     zaznamyByUser.set(z.user_id, arr)
   }
 
-  const dovolenkyByUser = new Map<string, typeof dovolenkyRes.data>()
+  const dovolenkyByUser = new Map<string, Array<{ user_id: string; datum_od: string; datum_do: string; typ: string; pol_dna: boolean }>>()
   for (const d of dovolenkyRes.data || []) {
     const arr = dovolenkyByUser.get(d.user_id) || []
-    arr.push(d)
-    dovolenkyByUser.set(d.user_id, arr as never)
+    arr.push(d as never)
+    dovolenkyByUser.set(d.user_id, arr)
   }
 
   const schvalene = new Set((schvalenieRes.data || []).map(s => s.user_id))
 
   const [rok, m] = mesiac.split('-').map(Number)
+
+  // Sviatky pracovné dni — vypočítaj raz pre celý mesiac (rovnaké pre všetkých)
+  let sviatky_dni_global = 0
+  const daysInMonth = new Date(rok, m, 0).getDate()
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(rok, m - 1, d)
+    if (dt.getDay() === 0 || dt.getDay() === 6) continue
+    if (isSviatok(dt)) sviatky_dni_global++
+  }
+
   const sumary: MesacnySumar[] = []
 
   for (const p of profiles || []) {
     const zaznamy = zaznamyByUser.get(p.id) || []
     const dovolenky = dovolenkyByUser.get(p.id) || []
 
-    // Mesačný stav (odpracované, fond)
     const stav = calculateMesacnyStav(zaznamy, rok, m - 1, p.pracovny_fond_hodiny || 8.5)
 
-    // Spočítaj dovolenky/PN/OČR/sviatky DNI v tomto mesiaci
     let dovolenka_dni = 0, pn_dni = 0, ocr_dni = 0
     for (const d of dovolenky) {
-      const od = new Date(d.datum_od)
-      const do_ = new Date(d.datum_do)
+      const od = new Date(d.datum_od); const do_ = new Date(d.datum_do)
       const cur = new Date(od)
       while (cur <= do_) {
         if (cur.getFullYear() === rok && cur.getMonth() === m - 1) {
@@ -100,24 +108,54 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
       }
     }
 
-    // Sviatky pracovné dni v mesiaci
-    let sviatky_dni = 0
-    const daysInMonth = new Date(rok, m, 0).getDate()
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dt = new Date(rok, m - 1, d)
-      const isPracDen = dt.getDay() !== 0 && dt.getDay() !== 6
-      if (!isPracDen) continue
-      if (isSviatok(dt)) sviatky_dni++
-    }
-
     const auto_doplnene_count = zaznamy.filter(z => z.auto_doplnene).length
 
-    // Anomálie len rýchlo — má/nemá
-    const anomalie = await detectAnomalies(p.id, mesiac)
-    const ma_anomalie = anomalie.length > 0
+    // ───── In-memory anomálie a nadčasy (BEZ extra DB calls) ─────
+    let ma_anomalie = false
+    let nadcas_min = 0
 
-    // Príplatky (nadčas)
-    const priplatky = await calculatePriplatky(p.id, mesiac)
+    // Group zaznamy podľa datumu pre rýchle iterovanie
+    const byDatum = new Map<string, ZaznamRow[]>()
+    for (const z of zaznamy) {
+      const arr = byDatum.get(z.datum) || []
+      arr.push(z); byDatum.set(z.datum, arr)
+    }
+
+    // Skontroluj každý pracovný deň
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dt = new Date(rok, m - 1, d)
+      const datum = dt.toISOString().split('T')[0]
+      const recs = byDatum.get(datum) || []
+
+      if (!isPracovnyDen(dt)) continue
+
+      // Anomálie kontrola — zjednodušene
+      if (recs.length === 0) {
+        // chýba celý deň — ak nemá dovolenku/PN
+        const hasAbsence = dovolenky.some(dv => datum >= dv.datum_od && datum <= dv.datum_do)
+        if (!hasAbsence) ma_anomalie = true
+        continue
+      }
+      if (recs.some(r => r.auto_doplnene)) ma_anomalie = true
+      const last = recs[recs.length - 1]
+      if (last.smer === 'prichod') ma_anomalie = true
+
+      // Nadčasy in-memory: páruj príchod-praca + odchod, sčítaj minúty, porovnaj s fond
+      let pracaMin = 0
+      let lastPrichod: Date | null = null
+      for (const r of recs) {
+        if (r.smer === 'prichod' && r.dovod === 'praca') lastPrichod = new Date(r.cas)
+        else if (r.smer === 'odchod' && lastPrichod) {
+          pracaMin += (new Date(r.cas).getTime() - lastPrichod.getTime()) / 60000
+          lastPrichod = null
+        }
+      }
+      const fondMin = calculateFond({
+        pracovny_fond_hodiny: p.pracovny_fond_hodiny ?? 8.5,
+        fond_per_den: p.fond_per_den ?? null,
+      }, dt) * 60
+      if (pracaMin > fondMin) nadcas_min += (pracaMin - fondMin)
+    }
 
     sumary.push({
       user_id: p.id,
@@ -130,8 +168,8 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
       dovolenka_dni,
       pn_dni,
       ocr_dni,
-      sviatky_dni,
-      nadcas_hod: priplatky.nadcas_hod,
+      sviatky_dni: sviatky_dni_global,
+      nadcas_hod: Math.round(nadcas_min / 60 * 100) / 100,
       auto_doplnene_count,
       schvalene: schvalene.has(p.id),
       ma_anomalie,
@@ -142,14 +180,14 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
 }
 
 /**
- * Detail jedného zamestnanca pre mesiac.
+ * Detail jedného zamestnanca — full anomálie a príplatky cez existing helpery.
  */
 export async function getZamestnanecDetail(userId: string, mesiac: string) {
   const auth = await requireAdmin()
   if ('error' in auth) return { error: auth.error }
 
   const admin = createSupabaseAdmin()
-  const [profileRes, zaznamyRes, ziadostiRes, schvalenieRes] = await Promise.all([
+  const [profileRes, zaznamyRes, ziadostiRes, schvalenieRes, anomalie, priplatky] = await Promise.all([
     admin.from('profiles').select('*, firma:firma_id(kod, nazov)').eq('id', userId).single(),
     admin.from('dochadzka').select('*')
       .eq('user_id', userId)
@@ -161,10 +199,9 @@ export async function getZamestnanecDetail(userId: string, mesiac: string) {
       .order('created_at', { ascending: false }),
     admin.from('dochadzka_schvalene_hodiny').select('*')
       .eq('user_id', userId).eq('mesiac', mesiac).maybeSingle(),
+    detectAnomalies(userId, mesiac),
+    calculatePriplatky(userId, mesiac),
   ])
-
-  const anomalie = await detectAnomalies(userId, mesiac)
-  const priplatky = await calculatePriplatky(userId, mesiac)
 
   return {
     profile: profileRes.data,
@@ -176,7 +213,7 @@ export async function getZamestnanecDetail(userId: string, mesiac: string) {
   }
 }
 
-/** Aktívni zamestnanci v práci práve teraz (príchod bez odchodu dnes). */
+/** Aktívni zamestnanci v práci — single batch query. */
 export async function getVPraciDnes() {
   const auth = await requireAdmin()
   if ('error' in auth) return { data: [] }
@@ -193,13 +230,25 @@ export async function getVPraciDnes() {
   const { data: profiles } = await query
   if (!profiles) return { data: [] }
 
+  const userIds = profiles.map(p => p.id)
+  if (userIds.length === 0) return { data: [] }
+
+  // Single batch query namiesto for loop
+  const { data: todayRecs } = await admin.from('dochadzka')
+    .select('user_id, smer, cas')
+    .in('user_id', userIds)
+    .eq('datum', today)
+    .order('cas', { ascending: true })
+
+  const lastByUser = new Map<string, { smer: string; cas: string }>()
+  for (const r of todayRecs || []) {
+    lastByUser.set(r.user_id, r) // posledný (sortované ASC, takže prepisuje)
+  }
+
   const result: Array<{ id: string; full_name: string; prichod_cas: string }> = []
   for (const p of profiles) {
-    const { data: recs } = await admin.from('dochadzka')
-      .select('smer, dovod, cas').eq('user_id', p.id).eq('datum', today).order('cas', { ascending: true })
-    if (!recs || recs.length === 0) continue
-    const last = recs[recs.length - 1]
-    if (last.smer === 'prichod') {
+    const last = lastByUser.get(p.id)
+    if (last && last.smer === 'prichod') {
       result.push({ id: p.id, full_name: p.full_name, prichod_cas: last.cas })
     }
   }
