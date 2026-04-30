@@ -3,6 +3,7 @@ import { getAccessibleFirmaIds } from '@/lib/firma-scope'
 import { getSession } from '@/lib/get-session'
 import AdminDochadzkaClient from '@/components/dochadzka/AdminDochadzkaClient'
 import ModuleHelp from '@/components/ModuleHelp'
+import { getMesacneSumary, getVPraciDnes } from '@/actions/admin-dochadzka-mzdy'
 import { redirect } from 'next/navigation'
 
 interface PageProps {
@@ -23,9 +24,12 @@ export default async function AdminDochadzkaPage({ searchParams }: PageProps) {
     firmyQuery = firmyQuery.in('id', accessibleFirmaIds)
   }
 
-  const [firmyRes, uzavierkyRes] = await Promise.all([
+  // Paralel SSR fetch — všetky dáta naraz aby user videl všetko po prvom renderi
+  const [firmyRes, uzavierkyRes, sumaryRes, vPraciRes] = await Promise.all([
     firmyQuery,
     admin.from('dochadzka_uzavierka').select('firma_id, mesiac, stav').eq('mesiac', mesiac),
+    getMesacneSumary(mesiac),
+    getVPraciDnes(),
   ])
 
   return (
@@ -43,6 +47,8 @@ export default async function AdminDochadzkaPage({ searchParams }: PageProps) {
         firmy={firmyRes.data || []}
         initialMesiac={mesiac}
         uzavierky={uzavierkyRes.data || []}
+        initialSumary={sumaryRes.data || []}
+        initialVPraci={vPraciRes.data || []}
       />
     </div>
   )

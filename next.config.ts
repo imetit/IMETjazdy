@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '25mb',
     },
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
+  // Vercel images
+  images: {
+    formats: ['image/avif', 'image/webp'],
   },
 };
 

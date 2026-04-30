@@ -9,17 +9,17 @@ export default async function AdminArchivPage({ searchParams }: { searchParams: 
   const params = await searchParams
   const kategoriaId = params.kategoria || undefined
 
-  const [dokumentyResult, kategorieResult] = await Promise.all([
+  // Paralelne — bez duplikátnych queries; counts sa robí súčasne s filtrovaným fetch
+  const [dokumentyResult, kategorieResult, allDocsResult] = await Promise.all([
     getAllDokumenty(kategoriaId ? { kategoria_id: kategoriaId } : undefined),
     getKategorie(),
+    kategoriaId ? getAllDokumenty() : Promise.resolve(null),
   ])
 
   const dokumenty = (dokumentyResult.data as DokumentArchiv[]) || []
   const kategorie = (kategorieResult.data as ArchivKategoria[]) || []
+  const allDocs = (allDocsResult?.data ?? dokumentyResult.data) as DokumentArchiv[] || []
 
-  // Count documents per category (from all documents, not filtered)
-  const allDocsResult = kategoriaId ? await getAllDokumenty() : dokumentyResult
-  const allDocs = (allDocsResult.data as DokumentArchiv[]) || []
   const counts: Record<string, number> = {}
   for (const doc of allDocs) {
     if (doc.kategoria_id) {

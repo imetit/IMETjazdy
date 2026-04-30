@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Check, AlertTriangle, Lock, Unlock, ChevronRight } from 'lucide-react'
@@ -18,9 +18,11 @@ interface Props {
   firmy: Array<{ id: string; nazov: string; kod: string }>
   initialMesiac: string
   uzavierky: Array<{ firma_id: string; mesiac: string; stav: string }>
+  initialSumary: MesacnySumar[]
+  initialVPraci: Array<{ id: string; full_name: string; prichod_cas: string }>
 }
 
-export default function AdminDochadzkaClient({ firmy, initialMesiac, uzavierky }: Props) {
+export default function AdminDochadzkaClient({ firmy, initialMesiac, uzavierky, initialSumary, initialVPraci }: Props) {
   const router = useRouter()
   const [filter, setFilter] = useState<FilterValues>({
     mesiac: initialMesiac,
@@ -29,12 +31,15 @@ export default function AdminDochadzkaClient({ firmy, initialMesiac, uzavierky }
     search: '',
   })
 
-  const [sumary, setSumary] = useState<MesacnySumar[]>([])
-  const [vPraci, setVPraci] = useState<Array<{ id: string; full_name: string; prichod_cas: string }>>([])
-  const [loading, setLoading] = useState(true)
+  const [sumary, setSumary] = useState<MesacnySumar[]>(initialSumary)
+  const [vPraci, setVPraci] = useState<Array<{ id: string; full_name: string; prichod_cas: string }>>(initialVPraci)
+  const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const isInitial = useRef(true)
 
   useEffect(() => {
+    // Skip first render — initial data prišli z SSR
+    if (isInitial.current) { isInitial.current = false; return }
     let cancelled = false
     setLoading(true)
     Promise.all([
