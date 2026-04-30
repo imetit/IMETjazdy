@@ -1,36 +1,21 @@
+import { Suspense } from 'react'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getAccessibleFirmaIds } from '@/lib/firma-scope'
 import { getSession } from '@/lib/get-session'
 import AdminDochadzkaClient from '@/components/dochadzka/AdminDochadzkaClient'
 import ModuleHelp from '@/components/ModuleHelp'
 import { getMesacneSumary, getVPraciDnes } from '@/actions/admin-dochadzka-mzdy'
+import { SkeletonPage } from '@/components/Skeleton'
 import { redirect } from 'next/navigation'
 
 interface PageProps {
   searchParams: Promise<{ mesiac?: string }>
 }
 
+// Streaming SSR — okamžitý render layoutu, dáta sa prilepia keď prídu
 export default async function AdminDochadzkaPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const { profile } = await getSession()
-  if (!profile) redirect('/login')
-
   const mesiac = params.mesiac || new Date().toISOString().slice(0, 7)
-  const accessibleFirmaIds = await getAccessibleFirmaIds(profile.id)
-
-  const admin = createSupabaseAdmin()
-  let firmyQuery = admin.from('firmy').select('id, nazov, kod').eq('aktivna', true).order('poradie')
-  if (accessibleFirmaIds !== null) {
-    firmyQuery = firmyQuery.in('id', accessibleFirmaIds)
-  }
-
-  // Paralel SSR fetch — všetky dáta naraz aby user videl všetko po prvom renderi
-  const [firmyRes, uzavierkyRes, sumaryRes, vPraciRes] = await Promise.all([
-    firmyQuery,
-    admin.from('dochadzka_uzavierka').select('firma_id, mesiac, stav').eq('mesiac', mesiac),
-    getMesacneSumary(mesiac),
-    getVPraciDnes(),
-  ])
 
   return (
     <div>
@@ -43,13 +28,39 @@ export default async function AdminDochadzkaPage({ searchParams }: PageProps) {
         <p><strong>Stavy uzávierky:</strong> Otvorený → Na kontrolu → Uzavretý. Po uzavretí žiadne ďalšie úpravy (okrem IT admina).</p>
       </ModuleHelp>
 
-      <AdminDochadzkaClient
-        firmy={firmyRes.data || []}
-        initialMesiac={mesiac}
-        uzavierky={uzavierkyRes.data || []}
-        initialSumary={sumaryRes.data || []}
-        initialVPraci={vPraciRes.data || []}
-      />
+      <Suspense fallback={<SkeletonPage />}>
+        <DochadzkaContent mesiac={mesiac} />
+      </Suspense>
     </div>
+  )
+}
+
+async function DochadzkaContent({ mesiac }: { mesiac: string }) {
+  const { profile } = await getSession()
+  if (!profile) redirect('/login')
+
+  const accessibleFirmaIds = await getAccessibleFirmaIds(profile.id)
+  const admin = createSupabaseAdmin()
+
+  let firmyQuery = admin.from('firmy').select('id, nazov, kod').eq('aktivna', true).order('poradie')
+  if (accessibleFirmaIds !== null) {
+    firmyQuery = firmyQuery.in('id', accessibleFirmaIds)
+  }
+
+  const [firmyRes, uzavierkyRes, sumaryRes, vPraciRes] = await Promise.all([
+    firmyQuery,
+    admin.from('dochadzka_uzavierka').select('firma_id, mesiac, stav').eq('mesiac', mesiac),
+    getMesacneSumary(mesiac),
+    getVPraciDnes(),
+  ])
+
+  return (
+    <AdminDochadzkaClient
+      firmy={firmyRes.data || []}
+      initialMesiac={mesiac}
+      uzavierky={uzavierkyRes.data || []}
+      initialSumary={sumaryRes.data || []}
+      initialVPraci={vPraciRes.data || []}
+    />
   )
 }

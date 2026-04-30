@@ -17,10 +17,9 @@ export const getSession = cache(async () => {
   if (!profile) return { profile: null, firma: null, moduly: [], notifCount: 0 }
 
   // Paralelne: firma + moduly + notifCount (žiadny z nich nedependuje na ostatných)
-  const [firmaResult, modulyResult, notifCountResult] = await Promise.all([
-    profile.firma_id
-      ? supabase.from('firmy').select('*').eq('id', profile.firma_id).single()
-      : Promise.resolve({ data: null }),
+  const { getFirmaById } = await import('./cached-data')
+  const [firma, modulyResult, notifCountResult] = await Promise.all([
+    profile.firma_id ? getFirmaById(profile.firma_id) : Promise.resolve(null),
     profile.role === 'it_admin' || profile.role === 'fin_manager'
       ? Promise.resolve({ data: null }) // role-based, nepotrebujeme query
       : supabase.from('user_moduly').select('modul, pristup').eq('user_id', user.id),
@@ -29,8 +28,6 @@ export const getSession = cache(async () => {
       .eq('user_id', user.id)
       .eq('precitane', false),
   ])
-
-  const firma: Firma | null = (firmaResult.data as Firma) || null
 
   // Moduly (role-based baseline)
   let moduly: { modul: string; pristup: string }[] = []
