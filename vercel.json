@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/auto-pip",
       "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/keep-warm",
+      "schedule": "*/10 5-18 * * 1-5"
     }
   ]
 }
