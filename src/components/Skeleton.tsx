@@ -30,6 +30,19 @@ export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
   )
 }
 
+export function SkeletonSidebar() {
+  return (
+    <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 p-4 flex-col gap-2 animate-pulse">
+      <div className="h-12 bg-gray-200 rounded mb-4" />
+      <div className="h-4 bg-gray-200 rounded w-32" />
+      <div className="h-4 bg-gray-200 rounded w-28" />
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="h-9 bg-gray-100 rounded" />
+      ))}
+    </aside>
+  )
+}
+
 export function SkeletonPage() {
   return (
     <div className="space-y-6 animate-pulse">
