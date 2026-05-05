@@ -1,7 +1,8 @@
 // src/components/dochadzka/DovolenkySchvalovanie.tsx
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
+import useSWR, { mutate as globalMutate } from 'swr'
 import { Check, X } from 'lucide-react'
 import type { Dovolenka } from '@/lib/dovolenka-types'
 import { TYP_DOVOLENKY_LABELS, STAV_DOVOLENKY_LABELS, STAV_DOVOLENKY_COLORS } from '@/lib/dovolenka-types'
@@ -17,7 +18,9 @@ interface Props {
 }
 
 export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
-  const [dovolenky, setDovolenky] = useState<Dovolenka[]>(initial)
+  const { data: swrData } = useSWR<{ data?: Dovolenka[] }>('/api/admin/dovolenky', { fallbackData: { data: initial } })
+  const [dovolenky, setDovolenky] = useState<Dovolenka[]>(swrData?.data || initial)
+  useEffect(() => { if (swrData?.data) setDovolenky(swrData.data) }, [swrData])
   const [zamietnutieId, setZamietnutieId] = useState<string | null>(null)
   const [dovod, setDovod] = useState('')
   const [pending, startTransition] = useTransition()
@@ -35,6 +38,7 @@ export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
         setDovolenky(prev) // revert
         alert(result.error)
       } else {
+        globalMutate('/api/admin/dovolenky')
         router.refresh() // refresh to load auto-attendance + counts
       }
     })
@@ -57,6 +61,7 @@ export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
         setDovolenky(prev)
         alert(result.error)
       } else {
+        globalMutate('/api/admin/dovolenky')
         router.refresh()
       }
     })

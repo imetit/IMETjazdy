@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import useSWR, { mutate as globalMutate } from 'swr'
 import { Plus, UserCheck, UserX, Search } from 'lucide-react'
 import Link from 'next/link'
 import Modal from './Modal'
@@ -22,12 +23,20 @@ import { TYP_UVAZKU_LABELS } from '@/lib/types'
 type Firma = { id: string; kod: string; nazov: string }
 
 export default function ZamestnanciTable({
-  zamestnanci, vozidla, firmy,
+  zamestnanci: initialZamestnanci, vozidla: initialVozidla, firmy: initialFirmy,
 }: {
   zamestnanci: (Profile & { vozidlo?: Vozidlo | null })[]
   vozidla: Vozidlo[]
   firmy: Firma[]
 }) {
+  const { data } = useSWR<{ zamestnanci: (Profile & { vozidlo?: Vozidlo | null })[]; vozidla: Vozidlo[]; firmy: Firma[] }>(
+    '/api/admin/zamestnanci',
+    { fallbackData: { zamestnanci: initialZamestnanci, vozidla: initialVozidla, firmy: initialFirmy } },
+  )
+  const zamestnanci = data?.zamestnanci || initialZamestnanci
+  const vozidla = data?.vozidla || initialVozidla
+  const firmy = data?.firmy || initialFirmy
+
   const [showAdd, setShowAdd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +44,8 @@ export default function ZamestnanciTable({
   const [firmaFilter, setFirmaFilter] = useState<string>('')
   const [onlyActive, setOnlyActive] = useState(true)
   const router = useRouter()
+
+  function refreshAll() { globalMutate('/api/admin/zamestnanci'); refreshAll() }
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase()
@@ -51,7 +62,7 @@ export default function ZamestnanciTable({
     setLoading(true); setError(null)
     const result = await createZamestnanec(formData)
     if (result && 'error' in result && result.error) { setError(result.error); setLoading(false) }
-    else { setShowAdd(false); setLoading(false); router.refresh() }
+    else { setShowAdd(false); setLoading(false); refreshAll() }
   }
 
   const firmaLabel = (id?: string | null) => {
@@ -124,7 +135,7 @@ export default function ZamestnanciTable({
                       if (!v || v === (z.email || '').toLowerCase()) { e.target.value = z.email || ''; return }
                       const res = await updateZamestnanecEmail(z.id, v)
                       if (res && 'error' in res) { alert(res.error); e.target.value = z.email || ''; return }
-                      router.refresh()
+                      refreshAll()
                     }}
                     title="Klikni pre úpravu emailu (uloží sa pri opustení poľa)"
                     className="block w-56 text-xs text-gray-500 bg-transparent border border-transparent hover:border-gray-200 focus:border-primary focus:bg-white focus:text-gray-800 focus:outline-none rounded px-1 py-0.5 mt-0.5"
@@ -133,7 +144,7 @@ export default function ZamestnanciTable({
                 <td className="px-3 py-2">
                   <select
                     defaultValue={z.firma_id || ''}
-                    onChange={async (e) => { await updateZamestnanecFirma(z.id, e.target.value || null); router.refresh() }}
+                    onChange={async (e) => { await updateZamestnanecFirma(z.id, e.target.value || null); refreshAll() }}
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                     title={firmaLabel(z.firma_id)}
                   >
@@ -145,7 +156,7 @@ export default function ZamestnanciTable({
                   <input
                     type="text"
                     defaultValue={z.pozicia || ''}
-                    onBlur={async (e) => { if ((e.target.value || '') !== (z.pozicia || '')) { await updateUserPozicia(z.id, e.target.value); router.refresh() } }}
+                    onBlur={async (e) => { if ((e.target.value || '') !== (z.pozicia || '')) { await updateUserPozicia(z.id, e.target.value); refreshAll() } }}
                     className="w-48 px-2 py-1 border border-gray-300 rounded text-sm"
                     placeholder="napr. Čašník / Udržbár…"
                   />
@@ -153,7 +164,7 @@ export default function ZamestnanciTable({
                 <td className="px-3 py-2">
                   <select
                     defaultValue={z.typ_uvazku || 'tpp'}
-                    onChange={async (e) => { await updateZamestnanecTypUvazku(z.id, e.target.value); router.refresh() }}
+                    onChange={async (e) => { await updateZamestnanecTypUvazku(z.id, e.target.value); refreshAll() }}
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                   >
                     {(Object.keys(TYP_UVAZKU_LABELS) as TypUvazku[]).map(k => (
@@ -180,7 +191,7 @@ export default function ZamestnanciTable({
                     type="number"
                     step="0.5"
                     defaultValue={z.tyzdnovy_fond_hodiny || (z.pracovny_fond_hodiny ? z.pracovny_fond_hodiny * (z.pracovne_dni_tyzdne || 5) : 42.5)}
-                    onBlur={async (e) => { await updateZamestnanecFond(z.id, parseFloat(e.target.value), z.pracovne_dni_tyzdne || 5); router.refresh() }}
+                    onBlur={async (e) => { await updateZamestnanecFond(z.id, parseFloat(e.target.value), z.pracovne_dni_tyzdne || 5); refreshAll() }}
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                     title="Týždňový fond"
                   />
@@ -189,7 +200,7 @@ export default function ZamestnanciTable({
                   <input
                     type="text"
                     defaultValue={z.pin || ''}
-                    onBlur={async (e) => { await updateZamestnanecPin(z.id, e.target.value); router.refresh() }}
+                    onBlur={async (e) => { await updateZamestnanecPin(z.id, e.target.value); refreshAll() }}
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                     placeholder="PIN"
                   />
@@ -197,7 +208,7 @@ export default function ZamestnanciTable({
                 <td className="px-3 py-2">
                   <select
                     defaultValue={z.nadriadeny_id || ''}
-                    onChange={async (e) => { await updateZamestnanecNadriadeny(z.id, e.target.value || null); router.refresh() }}
+                    onChange={async (e) => { await updateZamestnanecNadriadeny(z.id, e.target.value || null); refreshAll() }}
                     className="px-2 py-1 border border-gray-300 rounded text-sm max-w-40"
                   >
                     <option value="">—</option>
@@ -212,7 +223,7 @@ export default function ZamestnanciTable({
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button onClick={async () => { await toggleZamestnanecActive(z.id, !z.active); router.refresh() }} className="text-gray-400 hover:text-primary p-1" title={z.active ? 'Deaktivovať' : 'Aktivovať'}>
+                  <button onClick={async () => { await toggleZamestnanecActive(z.id, !z.active); refreshAll() }} className="text-gray-400 hover:text-primary p-1" title={z.active ? 'Deaktivovať' : 'Aktivovať'}>
                     {z.active ? <UserX size={16} /> : <UserCheck size={16} />}
                   </button>
                 </td>

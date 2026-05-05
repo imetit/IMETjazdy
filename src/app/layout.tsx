@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ToastProvider } from "@/components/ui/Toast";
+import SWRProvider from "@/components/SWRProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0d9488" />
       </head>
-      <body><ToastProvider>{children}</ToastProvider></body>
+      <body><SWRProvider><ToastProvider>{children}</ToastProvider></SWRProvider></body>
     </html>
   );
 }

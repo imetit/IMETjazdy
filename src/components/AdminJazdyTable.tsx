@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import useSWR, { mutate as globalMutate } from 'swr'
 import { CheckSquare, Square, Loader2, X } from 'lucide-react'
 import DataTable from '@/components/ui/DataTable'
 import type { Column, FilterDef } from '@/components/ui/DataTable'
@@ -11,8 +12,10 @@ import { batchProcessJazdy, batchRejectJazdy } from '@/actions/jazdy-batch'
 
 type JazdaRow = Jazda & { profile: { full_name: string } }
 
-export default function AdminJazdyTable({ jazdy }: { jazdy: JazdaRow[] }) {
+export default function AdminJazdyTable({ jazdy: initialJazdy }: { jazdy: JazdaRow[] }) {
   const router = useRouter()
+  const { data } = useSWR<{ data: JazdaRow[] }>('/api/admin/jazdy', { fallbackData: { data: initialJazdy } })
+  const jazdy = data?.data || initialJazdy
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -41,6 +44,7 @@ export default function AdminJazdyTable({ jazdy }: { jazdy: JazdaRow[] }) {
     try {
       await batchProcessJazdy(selectedIds)
       setSelectedIds([])
+      globalMutate('/api/admin/jazdy')
       router.refresh()
     } catch {
       alert('Chyba pri hromadnom spracovaní')
@@ -57,6 +61,7 @@ export default function AdminJazdyTable({ jazdy }: { jazdy: JazdaRow[] }) {
       setSelectedIds([])
       setShowRejectModal(false)
       setRejectReason('')
+      globalMutate('/api/admin/jazdy')
       router.refresh()
     } catch {
       alert('Chyba pri hromadnom vrátení')
