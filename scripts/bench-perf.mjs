@@ -44,9 +44,10 @@ async function bench(path, cookieHeader) {
     headers: cookieHeader ? { Cookie: cookieHeader } : {},
     redirect: 'manual',
   })
-  // Read body fully for accurate end-of-transfer; for TTFB use start to first response received
+  const headersMs = Date.now() - start  // user vidí skeleton tu (Streaming SSR)
   await res.arrayBuffer()
-  return { ms: Date.now() - start, code: res.status, hasRoleCache: res.headers.get('set-cookie')?.includes('imet_role_cache') || false }
+  const fullMs = Date.now() - start  // celý content sa vyriešil
+  return { headersMs, fullMs, code: res.status }
 }
 
 async function run() {
@@ -77,20 +78,19 @@ async function run() {
   // Cookie pre fast path = pôvodné supabase + role cache
   const fastCookieHeader = firstSet ? `${cookieHeader}; ${firstSet}` : cookieHeader
 
+  console.log('  Path                         | FAST first-byte (skeleton viditeľný) | FAST full content')
+  console.log('  ' + '-'.repeat(95))
   for (const path of PATHS) {
-    const ttfbsSlow = []
+    const headersFast = []
+    const fullFast = []
     for (let i = 0; i < RUNS; i++) {
-      const r = await bench(path, cookieHeader) // bez role cache → slow path
-      ttfbsSlow.push(r.ms)
-    }
-    const ttfbsFast = []
-    for (let i = 0; i < RUNS; i++) {
-      const r = await bench(path, fastCookieHeader) // s role cache → fast path
-      ttfbsFast.push(r.ms)
+      const r = await bench(path, fastCookieHeader)
+      headersFast.push(r.headersMs)
+      fullFast.push(r.fullMs)
     }
     const min = (a) => Math.min(...a)
     const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)]
-    console.log(`  ${path.padEnd(28)} | SLOW min/med ${min(ttfbsSlow)}/${med(ttfbsSlow)}ms | FAST min/med ${min(ttfbsFast)}/${med(ttfbsFast)}ms`)
+    console.log(`  ${path.padEnd(28)} | min/med ${String(min(headersFast)).padStart(3)}/${String(med(headersFast)).padStart(3)}ms                | min/med ${min(fullFast)}/${med(fullFast)}ms`)
   }
 }
 
