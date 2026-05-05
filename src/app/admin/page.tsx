@@ -1,58 +1,36 @@
-import { createSupabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { FileText, Car, Calendar, Plane, Archive, Users, AlertTriangle, Clock, CheckCircle, FileWarning, GraduationCap } from 'lucide-react'
 import ModuleHelp from '@/components/ModuleHelp'
 import { getExpiringDocuments } from '@/actions/archiv'
 import { getExpiraceSkoleni } from '@/actions/skolenia'
+import { getAdminDashboardData } from '@/lib/cached-pages'
 
 export default async function AdminDashboard() {
-  const supabase = await createSupabaseServer()
   const now = new Date()
   const mesiac = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  // Parallel data loading
-  const [
-    { count: jazdyCelkom },
-    { count: jazdyOdoslane },
-    { count: jazdyMesiac },
-    { count: dovolenkyNaSchvalenie },
-    { count: cestyNove },
-    { count: aktivniZamestnanci },
-    { count: hlaseniaNove },
-    { data: posledneJazdy },
-    { data: posledneAudit },
-    { data: bliziaceSaKontroly },
-    expiringDocsResult,
-    skoleniaExpResult,
-  ] = await Promise.all([
-    supabase.from('jazdy').select('*', { count: 'exact', head: true }),
-    supabase.from('jazdy').select('*', { count: 'exact', head: true }).eq('stav', 'odoslana'),
-    supabase.from('jazdy').select('*', { count: 'exact', head: true }).eq('mesiac', mesiac),
-    supabase.from('dovolenky').select('*', { count: 'exact', head: true }).eq('stav', 'caka_na_schvalenie'),
-    supabase.from('sluzobne_cesty').select('*', { count: 'exact', head: true }).eq('stav', 'nova'),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('active', true).neq('role', 'tablet'),
-    supabase.from('vozidlo_hlasenia').select('*', { count: 'exact', head: true }).eq('stav', 'nove'),
-    supabase.from('jazdy').select('id, mesiac, km, stav, created_at, profile:profiles(full_name)').order('created_at', { ascending: false }).limit(5),
-    supabase.from('audit_log').select('*, profile:profiles!user_id(full_name)').order('created_at', { ascending: false }).limit(8),
-    supabase.from('vozidlo_kontroly').select('typ, platnost_do, vozidlo:vozidla(spz, znacka)')
-      .lte('platnost_do', new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0])
-      .gte('platnost_do', now.toISOString().split('T')[0])
-      .order('platnost_do')
-      .limit(5),
+  const [dash, expiringDocsResult, skoleniaExpResult] = await Promise.all([
+    getAdminDashboardData(mesiac),
     getExpiringDocuments(),
     getExpiraceSkoleni(),
   ])
 
+  const {
+    jazdyCelkom, jazdyOdoslane, jazdyMesiac,
+    dovolenkyNaSchvalenie, cestyNove,
+    aktivniZamestnanci, hlaseniaNove,
+    posledneJazdy, posledneAudit, bliziaceSaKontroly,
+  } = dash
   const expiringDocs = expiringDocsResult?.data || []
   const expiraceSkoleni = skoleniaExpResult.data || []
 
   const cards = [
-    { label: 'Jazdy tento mesiac', value: jazdyCelkom ?? 0, sub: `${jazdyOdoslane ?? 0} čaká na spracovanie`, icon: FileText, color: 'text-blue-600 bg-blue-50', href: '/admin/jazdy' },
-    { label: 'Dovolenky na schválenie', value: dovolenkyNaSchvalenie ?? 0, icon: Calendar, color: 'text-orange-600 bg-orange-50', href: '/admin/dovolenky' },
-    { label: 'Nové služobné cesty', value: cestyNove ?? 0, icon: Plane, color: 'text-purple-600 bg-purple-50', href: '/admin/sluzobne-cesty' },
-    { label: 'Hlásenia o problémoch', value: hlaseniaNove ?? 0, icon: AlertTriangle, color: 'text-red-600 bg-red-50', href: '/fleet/hlasenia' },
-    { label: 'Aktívni zamestnanci', value: aktivniZamestnanci ?? 0, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/admin/zamestnanci' },
-    { label: 'Jazdy (mesiac)', value: jazdyMesiac ?? 0, sub: mesiac, icon: Car, color: 'text-green-600 bg-green-50', href: '/admin/jazdy' },
+    { label: 'Jazdy tento mesiac', value: jazdyCelkom, sub: `${jazdyOdoslane} čaká na spracovanie`, icon: FileText, color: 'text-blue-600 bg-blue-50', href: '/admin/jazdy' },
+    { label: 'Dovolenky na schválenie', value: dovolenkyNaSchvalenie, icon: Calendar, color: 'text-orange-600 bg-orange-50', href: '/admin/dovolenky' },
+    { label: 'Nové služobné cesty', value: cestyNove, icon: Plane, color: 'text-purple-600 bg-purple-50', href: '/admin/sluzobne-cesty' },
+    { label: 'Hlásenia o problémoch', value: hlaseniaNove, icon: AlertTriangle, color: 'text-red-600 bg-red-50', href: '/fleet/hlasenia' },
+    { label: 'Aktívni zamestnanci', value: aktivniZamestnanci, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/admin/zamestnanci' },
+    { label: 'Jazdy (mesiac)', value: jazdyMesiac, sub: mesiac, icon: Car, color: 'text-green-600 bg-green-50', href: '/admin/jazdy' },
   ]
 
   const auditLabels: Record<string, string> = {

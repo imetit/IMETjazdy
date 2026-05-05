@@ -2,7 +2,7 @@
 
 import { requireAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { logAudit } from './audit'
 
 export async function spustitKontrolu(firmaId: string, mesiac: string) {
@@ -36,7 +36,7 @@ export async function spustitKontrolu(firmaId: string, mesiac: string) {
   }
 
   revalidatePath('/admin/dochadzka')
-  revalidatePath('/admin/dochadzka/uzavierka')
+  revalidatePath('/admin/dochadzka/uzavierka'); updateTag('dochadzka')
 }
 
 export async function uzavrietMesiac(firmaId: string, mesiac: string) {
@@ -56,7 +56,7 @@ export async function uzavrietMesiac(firmaId: string, mesiac: string) {
   await logAudit('uzavierka_uzavrety', 'dochadzka_uzavierka', firmaId, { mesiac })
 
   revalidatePath('/admin/dochadzka')
-  revalidatePath('/admin/dochadzka/uzavierka')
+  revalidatePath('/admin/dochadzka/uzavierka'); updateTag('dochadzka')
 }
 
 export async function prelomitUzavierku(firmaId: string, mesiac: string, dovod: string) {
@@ -77,7 +77,7 @@ export async function prelomitUzavierku(firmaId: string, mesiac: string, dovod: 
   await logAudit('uzavierka_prelomenie', 'dochadzka_uzavierka', firmaId, { mesiac, dovod })
 
   revalidatePath('/admin/dochadzka')
-  revalidatePath('/admin/dochadzka/uzavierka')
+  revalidatePath('/admin/dochadzka/uzavierka'); updateTag('dochadzka')
 }
 
 export async function schvalitHodinyZamestnanca(userId: string, mesiac: string, poznamka?: string) {

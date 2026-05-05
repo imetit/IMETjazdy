@@ -2,7 +2,7 @@
 
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { requireNadriadeny, resolveCurrentApprover } from '@/lib/auth-helpers'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { isPracovnyDen } from '@/lib/dochadzka-utils'
 import { logAudit } from './audit'
 
@@ -238,6 +238,9 @@ export async function schvalDovolenku(id: string) {
 
   revalidatePath('/admin/dovolenky')
   revalidatePath('/dovolenka')
+  updateTag('dovolenky')
+  updateTag('dashboard')
+  updateTag('dochadzka')
 }
 
 export async function zamietniDovolenku(id: string, dovod: string) {
@@ -280,4 +283,7 @@ export async function zamietniDovolenku(id: string, dovod: string) {
 
   revalidatePath('/admin/dovolenky')
   revalidatePath('/dovolenka')
+  updateTag('dovolenky')
+  updateTag('dashboard')
+  updateTag('dochadzka')
 }

@@ -2,7 +2,9 @@
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth-helpers'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
+
+function revalidateZamestnanci() { updateTag('zamestnanci'); updateTag('dashboard') }
 import { logAudit } from './audit'
 
 export async function createZamestnanec(formData: FormData) {
@@ -37,7 +39,7 @@ export async function createZamestnanec(formData: FormData) {
 
   await logAudit('vytvorenie_zamestnanca', 'profiles', authData.user.id, { email, full_name, role })
 
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
   return { success: true }
 }
 
@@ -53,7 +55,7 @@ export async function deleteZamestnanec(profileId: string) {
 
   await logAudit('zmazanie_zamestnanca', 'profiles', profileId, { email: profile?.email, full_name: profile?.full_name })
 
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
   return { success: true }
 }
 
@@ -64,7 +66,7 @@ export async function updateZamestnanecVozidlo(profileId: string, vozidloId: str
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.from('profiles').update({ vozidlo_id: vozidloId }).eq('id', profileId)
   if (error) return { error: 'Chyba pri priraďovaní vozidla' }
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
 }
 
 export async function toggleZamestnanecActive(profileId: string, active: boolean) {
@@ -99,7 +101,7 @@ export async function toggleZamestnanecActive(profileId: string, active: boolean
 
   await logAudit(active ? 'aktivacia_zamestnanca' : 'deaktivacia_zamestnanca', 'profiles', profileId)
 
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
 }
 
 export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyId: string | null) {
@@ -155,7 +157,7 @@ export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyI
 
   await logAudit('zmena_nadriadeneho', 'profiles', profileId, { novy_nadriadeny_id: nadriadenyId })
 
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
   revalidatePath(`/admin/zamestnanci/${profileId}`)
 }
 
@@ -185,7 +187,7 @@ export async function updateZamestnanecRole(profileId: string, role: string) {
   await logAudit('zmena_roly', 'profiles', profileId, { nova_rola: role })
 
   revalidatePath(`/admin/zamestnanci/${profileId}`)
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
 }
 
 export async function updateZamestnanecTypUvazku(profileId: string, typ: string) {
@@ -285,7 +287,7 @@ export async function updateZamestnanecFirma(profileId: string, firmaId: string 
   await logAudit('zmena_firmy', 'profiles', profileId, { firma_id: firmaId })
 
   revalidatePath(`/admin/zamestnanci/${profileId}`)
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
 }
 
 export async function updateZamestnanecDatumNastupu(profileId: string, datum: string | null) {
@@ -361,7 +363,7 @@ export async function updateZamestnanecEmail(profileId: string, email: string) {
 
   await logAudit('zmena_emailu', 'profiles', profileId, { stary: oldEmail, novy: normalized })
 
-  revalidatePath('/admin/zamestnanci')
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
   revalidatePath(`/admin/zamestnanci/${profileId}`)
   return { success: true }
 }

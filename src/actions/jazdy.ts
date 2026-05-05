@@ -3,7 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { requireAuth, requireAdmin, requireOwnerOrAdmin } from '@/lib/auth-helpers'
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 
 export async function createJazda(formData: FormData) {
   const supabase = await createSupabaseServer()
@@ -89,6 +89,8 @@ export async function updateJazdaAdmin(jazdaId: string, data: {
   if (error) return { error: 'Chyba pri aktualizácii jazdy' }
   revalidatePath(`/admin/jazdy/${jazdaId}`)
   revalidatePath('/admin/jazdy')
+  updateTag('jazdy')
+  updateTag('dashboard')
 }
 
 export async function deleteJazda(jazdaId: string) {
@@ -110,5 +112,7 @@ export async function deleteJazda(jazdaId: string) {
   await supabase.from('jazdy').delete().eq('id', jazdaId)
   revalidatePath('/moje-jazdy')
   revalidatePath('/admin/jazdy')
+  updateTag('jazdy')
+  updateTag('dashboard')
   revalidatePath('/')
 }

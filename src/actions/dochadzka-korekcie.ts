@@ -2,7 +2,7 @@
 
 import { requireAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { logAudit } from './audit'
 import { isUzavretyMesiac } from '@/lib/dochadzka-uzavierka'
 
@@ -64,7 +64,7 @@ export async function pridatZaznam(data: ZaznamData) {
     .eq('user_id', data.user_id).eq('mesiac', data.datum.slice(0, 7))
 
   revalidatePath(`/admin/dochadzka/${data.user_id}`)
-  revalidatePath('/dochadzka-prehled')
+  revalidatePath('/dochadzka-prehled'); updateTag('dochadzka')
 }
 
 export async function upravitZaznam(
@@ -116,7 +116,7 @@ export async function upravitZaznam(
     .eq('user_id', original.user_id).eq('mesiac', original.datum.slice(0, 7))
 
   revalidatePath(`/admin/dochadzka/${original.user_id}`)
-  revalidatePath('/dochadzka-prehled')
+  revalidatePath('/dochadzka-prehled'); updateTag('dochadzka')
 }
 
 export async function zmazatZaznam(zaznamId: string, dovod: string) {

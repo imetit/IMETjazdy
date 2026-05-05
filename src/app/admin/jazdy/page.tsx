@@ -1,12 +1,11 @@
-import { createSupabaseServer } from '@/lib/supabase-server'
 import AdminJazdyTable from '@/components/AdminJazdyTable'
 import HelpTip from '@/components/HelpTip'
 import ModuleHelp from '@/components/ModuleHelp'
+import { getAdminJazdy } from '@/lib/cached-pages'
 import type { Jazda } from '@/lib/types'
 
 export default async function AdminJazdyPage() {
-  const supabase = await createSupabaseServer()
-  const { data: jazdy } = await supabase.from('jazdy').select('*, profile:profiles(full_name)').order('created_at', { ascending: false })
+  const jazdy = await getAdminJazdy()
 
   return (
     <div>
@@ -31,7 +30,7 @@ export default async function AdminJazdyPage() {
       >
         Tu sa zobrazujú jazdy od všetkých zamestnancov. Použite vyhľadávanie a filtre na rýchle nájdenie záznamov.
       </HelpTip>
-      <AdminJazdyTable jazdy={(jazdy || []) as (Jazda & { profile: { full_name: string } })[]} />
+      <AdminJazdyTable jazdy={jazdy as (Jazda & { profile: { full_name: string } })[]} />
     </div>
   )
 }

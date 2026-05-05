@@ -2,7 +2,7 @@
 
 import { requireAuth, requireAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { logAudit } from './audit'
 
 export async function vytvoritZiadost(data: {
@@ -100,7 +100,7 @@ export async function schvalitZiadost(ziadostId: string, poznamka_mzdarka?: stri
 
   await logAudit('ziadost_schvalena', 'dochadzka_korekcia_ziadosti', ziadostId, {})
 
-  revalidatePath('/admin/dochadzka/ziadosti')
+  revalidatePath('/admin/dochadzka/ziadosti'); updateTag('dochadzka')
   revalidatePath(`/admin/dochadzka/${z.user_id}`)
 }
 
@@ -131,5 +131,5 @@ export async function zamietnutZiadost(ziadostId: string, dovod: string) {
 
   await logAudit('ziadost_zamietnuta', 'dochadzka_korekcia_ziadosti', ziadostId, { dovod })
 
-  revalidatePath('/admin/dochadzka/ziadosti')
+  revalidatePath('/admin/dochadzka/ziadosti'); updateTag('dochadzka')
 }
