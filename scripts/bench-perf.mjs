@@ -7,6 +7,7 @@ const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const APP = 'https://imetjazdy-work.vercel.app'
 
 const PATHS = ['/login', '/admin', '/admin/jazdy', '/admin/dochadzka', '/admin/dovolenky', '/admin/zamestnanci', '/admin/archiv', '/api/health']
+const API_PATHS = ['/api/admin/jazdy', '/api/admin/zamestnanci', '/api/admin/dovolenky', '/api/admin/archiv', '/api/admin/dashboard', '/api/admin/dochadzka/sumary']
 const RUNS = 5
 
 async function login() {
@@ -78,20 +79,37 @@ async function run() {
   // Cookie pre fast path = pôvodné supabase + role cache
   const fastCookieHeader = firstSet ? `${cookieHeader}; ${firstSet}` : cookieHeader
 
-  console.log('  Path                         | FAST first-byte (skeleton viditeľný) | FAST full content')
-  console.log('  ' + '-'.repeat(95))
+  console.log('=== STRÁNKY (full HTML, SSR) ===')
+  console.log('  Path                         | first-byte (skeleton)| full content')
+  console.log('  ' + '-'.repeat(85))
   for (const path of PATHS) {
-    const headersFast = []
-    const fullFast = []
+    const headers = []
+    const full = []
     for (let i = 0; i < RUNS; i++) {
       const r = await bench(path, fastCookieHeader)
-      headersFast.push(r.headersMs)
-      fullFast.push(r.fullMs)
+      headers.push(r.headersMs); full.push(r.fullMs)
     }
     const min = (a) => Math.min(...a)
     const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)]
-    console.log(`  ${path.padEnd(28)} | min/med ${String(min(headersFast)).padStart(3)}/${String(med(headersFast)).padStart(3)}ms                | min/med ${min(fullFast)}/${med(fullFast)}ms`)
+    console.log(`  ${path.padEnd(28)} | min/med ${String(min(headers)).padStart(3)}/${String(med(headers)).padStart(3)}ms       | min/med ${min(full)}/${med(full)}ms`)
   }
+
+  console.log('')
+  console.log('=== API ENDPOINTY (čo SWR fetchne na pozadí — pre user instant z cache) ===')
+  console.log('  Endpoint                     | TTFB JSON (warm)')
+  console.log('  ' + '-'.repeat(60))
+  for (const path of API_PATHS) {
+    const full = []
+    for (let i = 0; i < RUNS; i++) {
+      const r = await bench(path, fastCookieHeader)
+      full.push(r.fullMs)
+    }
+    const min = (a) => Math.min(...a)
+    const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)]
+    console.log(`  ${path.padEnd(28)} | min/med ${min(full)}/${med(full)}ms`)
+  }
+  console.log('')
+  console.log('* SWR cache hit = ~5ms in-memory v prehliadači. User-perceived: INSTANT.')
 }
 
 run().catch(e => { console.error(e); process.exit(1) })
