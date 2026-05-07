@@ -167,8 +167,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
             {sectionLabel('Vozový park')}
             {canEdit('vozovy_park') ? (
               <>
-                <Link href="/fleet" className={linkClass('/fleet')}>
-                  <Gauge size={19} className={iconClass('/fleet')} /> Dashboard
+                <Link href="/fleet" className={linkClass('/fleet', { exact: true })}>
+                  <Gauge size={19} className={iconClass('/fleet', { exact: true })} /> Dashboard
                 </Link>
                 <Link href="/fleet/vozidla" className={linkClass('/fleet/vozidla')}>
                   <CarFront size={19} className={iconClass('/fleet/vozidla')} /> Vozidlá
@@ -221,8 +221,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
             {sectionLabel('Dochádzka')}
             {canEdit('dochadzka') ? (
               <>
-                <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka')}>
-                  <Clock size={19} className={iconClass('/admin/dochadzka')} /> Prehľad dochádzky
+                <Link href="/admin/dochadzka" className={linkClass('/admin/dochadzka', { exact: true })}>
+                  <Clock size={19} className={iconClass('/admin/dochadzka', { exact: true })} /> Prehľad dochádzky
                 </Link>
                 <Link href="/admin/dochadzka/uzavierka" className={linkClass('/admin/dochadzka/uzavierka')}>
                   <FileText size={19} className={iconClass('/admin/dochadzka/uzavierka')} /> Mesačná uzávierka
