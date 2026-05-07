@@ -13,6 +13,7 @@ import VodiciSection from './VodiciSection'
 import TachoSection from './TachoSection'
 import TankovanieSection from './TankovanieSection'
 import TankoveKartySection from './TankoveKartySection'
+import FakturyForEntityClient from '@/components/faktury/FakturyForEntityClient'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import StatusIndicator from './StatusIndicator'
 import DokumentySection from './DokumentySection'
@@ -48,7 +49,7 @@ interface Props {
   priemerSpotreba?: number | null
 }
 
-type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly' | 'vodici' | 'tachometer' | 'tankovanie' | 'tankove_karty'
+type Tab = 'zakladne' | 'dokumenty' | 'servisy' | 'kontroly' | 'km' | 'hlasenia' | 'znamky' | 'historia' | 'protokoly' | 'vodici' | 'tachometer' | 'tankovanie' | 'tankove_karty' | 'faktury'
 
 export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kontroly, kmHistoria, hlasenia, znamky, onUploadDokument, onDeleteDokument, historia, protokoly, vodiciData, tachoData, tankovanieData, tankoveKartyData, priemerSpotreba }: Props) {
   const [tab, setTab] = useState<Tab>('zakladne')
@@ -69,6 +70,7 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
     { id: 'tachometer', label: 'Tachometer', count: tachoData?.length },
     { id: 'tankovanie', label: 'Tankovanie' },
     { id: 'tankove_karty', label: 'Tankové karty' },
+    { id: 'faktury', label: 'Faktúry' },
   ]
 
   const stavColor = vozidlo.stav === 'aktivne' ? 'bg-green-100 text-green-800' :
@@ -220,6 +222,8 @@ export default function VozidloDetail({ vozidlo, vodici, dokumenty, servisy, kon
         {tab === 'tankovanie' && <TankovanieSection vozidloId={vozidlo.id} tankovanie={tankovanieData || []} karty={tankoveKartyData || []} priemerSpotreba={priemerSpotreba ?? null} />}
 
         {tab === 'tankove_karty' && <TankoveKartySection karty={tankoveKartyData || []} vozidloId={vozidlo.id} vodici={vodici} />}
+
+        {tab === 'faktury' && <FakturyForEntityClient entity="vozidlo_id" entityId={vozidlo.id} />}
 
         {tab === 'hlasenia' && (
           <div className="space-y-3">

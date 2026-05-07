@@ -17,6 +17,7 @@ import SkoleniaSection from '@/components/SkoleniaSection'
 import AdminZamestnanecActions from '@/components/AdminZamestnanecActions'
 import { updateZamestnanecRole } from '@/actions/zamestnanci'
 import ModuleHelp from '@/components/ModuleHelp'
+import FakturyForEntityPanel from '@/components/faktury/FakturyForEntityPanel'
 import type { Profile, Vozidlo } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -148,6 +149,8 @@ export default async function AdminZamestnanecDetailPage({ params }: { params: P
           hasOffboardingItems={offboardingItems.length > 0}
         />
       </div>
+
+      <FakturyForEntityPanel entity="zamestnanec_id" entityId={id} title="Faktúry preplátenia (kurzy/náklady)" />
     </div>
   )
 }

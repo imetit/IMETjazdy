@@ -471,7 +471,12 @@ export async function createCreditNote(povodnaFakturaId: string, formData: FormD
 }
 
 // ─── READ ───────────────────────────────────────────────────────────
-export async function getFakturyList(filter?: { stav?: FakturaStav | 'all'; firma_id?: string; mesiac?: string; overdue?: boolean }) {
+export async function getFakturyList(filter?: {
+  stav?: FakturaStav | 'all'; firma_id?: string; mesiac?: string; overdue?: boolean
+  vozidlo_id?: string; servis_id?: string; cesta_id?: string; zamestnanec_id?: string
+  tankova_karta_id?: string; skolenie_id?: string; poistna_udalost_id?: string
+  dodavatel_id?: string
+}) {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error, data: [] }
   const admin = createSupabaseAdmin()
@@ -482,6 +487,14 @@ export async function getFakturyList(filter?: { stav?: FakturaStav | 'all'; firm
 
   if (filter?.stav && filter.stav !== 'all') q = q.eq('stav', filter.stav)
   if (filter?.firma_id) q = q.eq('firma_id', filter.firma_id)
+  if (filter?.vozidlo_id) q = q.eq('vozidlo_id', filter.vozidlo_id)
+  if (filter?.servis_id) q = q.eq('servis_id', filter.servis_id)
+  if (filter?.cesta_id) q = q.eq('cesta_id', filter.cesta_id)
+  if (filter?.zamestnanec_id) q = q.eq('zamestnanec_id', filter.zamestnanec_id)
+  if (filter?.tankova_karta_id) q = q.eq('tankova_karta_id', filter.tankova_karta_id)
+  if (filter?.skolenie_id) q = q.eq('skolenie_id', filter.skolenie_id)
+  if (filter?.poistna_udalost_id) q = q.eq('poistna_udalost_id', filter.poistna_udalost_id)
+  if (filter?.dodavatel_id) q = q.eq('dodavatel_id', filter.dodavatel_id)
   if (filter?.overdue) {
     const today = new Date().toISOString().split('T')[0]
     q = q.lt('datum_splatnosti', today).in('stav', ['schvalena', 'na_uhradu'])

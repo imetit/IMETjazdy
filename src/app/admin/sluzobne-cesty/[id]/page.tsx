@@ -2,6 +2,7 @@
 import { getCestaDetail, getCestaDoklady } from '@/actions/sluzobne-cesty'
 import SluzobnasCestaDetail from '@/components/cesty/SluzobnasCestaDetail'
 import ModuleHelp from '@/components/ModuleHelp'
+import FakturyForEntityPanel from '@/components/faktury/FakturyForEntityPanel'
 import { redirect } from 'next/navigation'
 import type { SluzobnasCesta, CestovnyPrikaz } from '@/lib/cesty-types'
 
@@ -27,6 +28,9 @@ export default async function AdminCestaDetailPage({ params }: { params: Promise
         prikaz={(result.prikaz as CestovnyPrikaz) || null}
         doklady={dokladyResult.data}
       />
+      <div className="mt-6">
+        <FakturyForEntityPanel entity="cesta_id" entityId={id} title="Faktúry naviazané na cestu" />
+      </div>
     </div>
   )
 }

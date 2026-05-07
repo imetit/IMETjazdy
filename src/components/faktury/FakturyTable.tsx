@@ -75,6 +75,10 @@ export default function FakturyTable({ initialData, defaultStav = 'all', default
             <input type="checkbox" checked={overdue} onChange={e => setOverdue(e.target.checked)} />
             Iba po splatnosti
           </label>
+          <a href={`/api/admin/faktury/export?stav=${stavFilter}${overdue ? '&overdue=1' : ''}`}
+            className="ml-auto inline-flex items-center gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
+            Export XLSX
+          </a>
         </div>
 
         <div className="overflow-x-auto">
