@@ -1,10 +1,20 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getSession } from '@/lib/get-session'
+import { SkeletonPage } from '@/components/Skeleton'
 import FakturaUploadForm from '@/components/faktury/FakturaUploadForm'
 
 export default async function FakturaUploadPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams
+  return (
+    <Suspense fallback={<SkeletonPage />}>
+      <UploadContent sp={sp} />
+    </Suspense>
+  )
+}
+
+async function UploadContent({ sp }: { sp: Record<string, string | undefined> }) {
   const { profile } = await getSession()
   if (!profile) redirect('/login')
 

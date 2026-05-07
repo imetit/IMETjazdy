@@ -1,10 +1,29 @@
+import { Suspense } from 'react'
 import ModuleHelp from '@/components/ModuleHelp'
+import { SkeletonPage } from '@/components/Skeleton'
 import { getCashflowForecast, getFakturyList } from '@/actions/faktury'
 import CashflowChart from '@/components/faktury/CashflowChart'
 import type { Faktura } from '@/lib/faktury-types'
 import { formatSuma } from '@/lib/faktury-types'
 
-export default async function FakturyReportyPage() {
+export default function FakturyReportyPage() {
+  return (
+    <div className="space-y-6">
+      <ModuleHelp title="Reporty faktúr">
+        <p><strong>Cashflow forecast:</strong> Sumy podľa dátumu splatnosti pre nasledujúce mesiace (iba schválené a na úhradu).</p>
+        <p><strong>Po splatnosti:</strong> Faktúry ktoré sú schválené alebo na úhradu, ale dátum splatnosti už uplynul.</p>
+      </ModuleHelp>
+
+      <h2 className="text-2xl font-bold">Reporty faktúr</h2>
+
+      <Suspense fallback={<SkeletonPage />}>
+        <ReportyContent />
+      </Suspense>
+    </div>
+  )
+}
+
+async function ReportyContent() {
   const today = new Date()
   const od = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
   const doDate = new Date(today.getFullYear(), today.getMonth() + 5, 1)
@@ -22,14 +41,7 @@ export default async function FakturyReportyPage() {
   const totalForecast = cashflow.reduce((s, c) => s + c.suma, 0)
 
   return (
-    <div className="space-y-6">
-      <ModuleHelp title="Reporty faktúr">
-        <p><strong>Cashflow forecast:</strong> Sumy podľa dátumu splatnosti pre nasledujúce mesiace (iba schválené a na úhradu).</p>
-        <p><strong>Po splatnosti:</strong> Faktúry ktoré sú schválené alebo na úhradu, ale dátum splatnosti už uplynul.</p>
-      </ModuleHelp>
-
-      <h2 className="text-2xl font-bold">Reporty faktúr</h2>
-
+    <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card label="Cashflow nasledujúcich 6 mesiacov" value={`${totalForecast.toFixed(2)} €`} color="bg-blue-50 text-blue-700" />
         <Card label="Po splatnosti" value={`${totalOverdue.toFixed(2)} €`} color="bg-red-50 text-red-700" sub={`${overdue.length} faktúr`} />
@@ -71,7 +83,7 @@ export default async function FakturyReportyPage() {
           </table>
         </div>
       )}
-    </div>
+    </>
   )
 }
 

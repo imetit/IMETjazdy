@@ -1,11 +1,11 @@
+import { Suspense } from 'react'
 import FakturyTable from '@/components/faktury/FakturyTable'
 import ModuleHelp from '@/components/ModuleHelp'
+import { SkeletonPage } from '@/components/Skeleton'
 import { getFakturyList } from '@/actions/faktury'
 
-export default async function AdminFakturyPage() {
-  const result = await getFakturyList()
-  const data = 'data' in result ? result.data : []
-
+// Streaming SSR — UI shell sa zobrazí okamžite, data prilepene cez Suspense
+export default function AdminFakturyPage() {
   return (
     <div>
       <ModuleHelp title="Faktúry — schvaľovanie a úhrada">
@@ -15,7 +15,15 @@ export default async function AdminFakturyPage() {
         <p><strong>Re-approval:</strong> Po schválení edit suma/dodávateľa = automatický návrat na schválenie.</p>
         <p><strong>Dobropis:</strong> Pri uhradenej s chybou — vytvor dobropis (negatívna suma, viaže sa na pôvodnú).</p>
       </ModuleHelp>
-      <FakturyTable initialData={data as never} />
+      <Suspense fallback={<SkeletonPage />}>
+        <FakturyContent />
+      </Suspense>
     </div>
   )
+}
+
+async function FakturyContent() {
+  const result = await getFakturyList()
+  const data = 'data' in result ? result.data : []
+  return <FakturyTable initialData={data as never} />
 }
