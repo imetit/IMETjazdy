@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import {
   Car, FileText, FolderOpen, Settings, Users,
@@ -23,6 +23,7 @@ interface Props {
 
 export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const isItAdmin = profile.role === 'it_admin'
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -56,8 +57,30 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
     return moduly.some(m => m.modul === modul && (m.pristup === 'edit' || m.pristup === 'admin'))
   }
 
-  const linkClass = (href: string) => {
-    const isActive = pathname === href || (href !== '/' && (pathname.startsWith(href + '/') || pathname.startsWith(href + '?')))
+  // Detekcia "active" pre href:
+  // - Default: exact pathname match alebo child path (pre /admin/jazdy aj /admin/jazdy/123)
+  // - S query stringom: matchne pathname AND porovná konkrétne query params z href
+  // - Exact-only mode: iba presné pathname (pre "Všetky faktúry" ktoré má kolíziu so sub-pages)
+  const isLinkActive = (href: string, opts: { exact?: boolean } = {}) => {
+    const [hrefPath, hrefQuery] = href.split('?')
+    if (hrefQuery) {
+      // Link má query string → musí matchnúť aj pathname AJ všetky query params z href
+      if (pathname !== hrefPath) return false
+      const linkParams = new URLSearchParams(hrefQuery)
+      for (const [k, v] of linkParams) {
+        if (searchParams.get(k) !== v) return false
+      }
+      return true
+    }
+    if (opts.exact) {
+      // Exact pathname only + žiadne signature query (stav/overdue)
+      return pathname === hrefPath && !searchParams.get('stav') && !searchParams.get('overdue')
+    }
+    return pathname === hrefPath || (hrefPath !== '/' && pathname.startsWith(hrefPath + '/'))
+  }
+
+  const linkClass = (href: string, opts: { exact?: boolean } = {}) => {
+    const isActive = isLinkActive(href, opts)
     return `group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
       isActive
         ? 'bg-white/15 text-white shadow-lg shadow-white/5 backdrop-blur-sm'
@@ -65,8 +88,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
     }`
   }
 
-  const iconClass = (href: string) => {
-    const isActive = pathname === href || (href !== '/' && (pathname.startsWith(href + '/') || pathname.startsWith(href + '?')))
+  const iconClass = (href: string, opts: { exact?: boolean } = {}) => {
+    const isActive = isLinkActive(href, opts)
     return `transition-all duration-200 ${isActive ? 'text-teal-300' : 'text-slate-500 group-hover:text-slate-300'}`
   }
 
@@ -258,14 +281,14 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
         {hasAccess('archiv') && (
           <>
             {sectionLabel('Faktúry')}
-            <Link href="/admin/faktury" className={linkClass('/admin/faktury')}>
-              <FileText size={19} className={iconClass('/admin/faktury')} /> Všetky faktúry
+            <Link href="/admin/faktury" className={linkClass('/admin/faktury', { exact: true })}>
+              <FileText size={19} className={iconClass('/admin/faktury', { exact: true })} /> Všetky faktúry
             </Link>
-            <Link href="/admin/faktury?stav=caka_na_schvalenie" className={linkClass('/admin/faktury')}>
-              <Clock size={19} className={iconClass('/admin/faktury')} /> Čakajú na schválenie
+            <Link href="/admin/faktury?stav=caka_na_schvalenie" className={linkClass('/admin/faktury?stav=caka_na_schvalenie')}>
+              <Clock size={19} className={iconClass('/admin/faktury?stav=caka_na_schvalenie')} /> Čakajú na schválenie
             </Link>
-            <Link href="/admin/faktury?overdue=1" className={linkClass('/admin/faktury')}>
-              <AlertTriangle size={19} className={iconClass('/admin/faktury')} /> Po splatnosti
+            <Link href="/admin/faktury?overdue=1" className={linkClass('/admin/faktury?overdue=1')}>
+              <AlertTriangle size={19} className={iconClass('/admin/faktury?overdue=1')} /> Po splatnosti
             </Link>
             <Link href="/admin/faktury/nahrat" className={linkClass('/admin/faktury/nahrat')}>
               <PlusCircle size={19} className={iconClass('/admin/faktury/nahrat')} /> Nahrať faktúru
