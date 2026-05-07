@@ -254,6 +254,28 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
           </>
         )}
 
+        {/* ═══ FAKTÚRY ═══ */}
+        {hasAccess('archiv') && (
+          <>
+            {sectionLabel('Faktúry')}
+            <Link href="/admin/faktury" className={linkClass('/admin/faktury')}>
+              <FileText size={19} className={iconClass('/admin/faktury')} /> Všetky faktúry
+            </Link>
+            <Link href="/admin/faktury?stav=caka_na_schvalenie" className={linkClass('/admin/faktury')}>
+              <Clock size={19} className={iconClass('/admin/faktury')} /> Čakajú na schválenie
+            </Link>
+            <Link href="/admin/faktury?overdue=1" className={linkClass('/admin/faktury')}>
+              <AlertTriangle size={19} className={iconClass('/admin/faktury')} /> Po splatnosti
+            </Link>
+            <Link href="/admin/faktury/nahrat" className={linkClass('/admin/faktury/nahrat')}>
+              <PlusCircle size={19} className={iconClass('/admin/faktury/nahrat')} /> Nahrať faktúru
+            </Link>
+            <Link href="/admin/faktury/dodavatelia" className={linkClass('/admin/faktury/dodavatelia')}>
+              <Users size={19} className={iconClass('/admin/faktury/dodavatelia')} /> Dodávatelia
+            </Link>
+          </>
+        )}
+
         {/* ═══ ARCHÍV DOKUMENTOV ═══ */}
         {hasAccess('archiv') && (
           <>
