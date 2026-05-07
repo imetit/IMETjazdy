@@ -10,15 +10,16 @@ function refresh() { updateTag('dodavatelia') }
 export async function getDodavatelia(search?: string) {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error, data: [] }
-  const admin = createSupabaseAdmin()
-
-  let q = admin.from('dodavatelia').select('*').eq('aktivny', true).order('nazov')
-  if (search && search.trim()) {
-    q = q.or(`nazov.ilike.%${search}%,ico.ilike.%${search}%,dic.ilike.%${search}%`)
-  }
-  const { data, error } = await q.limit(100)
-  if (error) return { error: error.message, data: [] }
-  return { data: data || [] }
+  const { getCachedDodavatelia } = await import('@/lib/cached-pages')
+  const all = await getCachedDodavatelia()
+  if (!search || !search.trim()) return { data: all }
+  const s = search.toLowerCase()
+  const filtered = all.filter(d =>
+    d.nazov?.toLowerCase().includes(s) ||
+    d.ico?.toLowerCase().includes(s) ||
+    d.dic?.toLowerCase().includes(s)
+  )
+  return { data: filtered }
 }
 
 export async function createDodavatel(formData: FormData) {

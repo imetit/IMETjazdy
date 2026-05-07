@@ -167,6 +167,31 @@ export const getCachedVPraciDnes = unstable_cache(
   { revalidate: 30, tags: ['dochadzka'] },
 )
 
+// ── /admin/faktury — cached list ─────────────────────────────────────────
+// Vracia VŠETKY faktúry. Action getFakturyList ich potom filtruje per accessible firma scope.
+export const getCachedFaktury = unstable_cache(
+  async () => {
+    const admin = createSupabaseAdmin()
+    const { data } = await admin.from('faktury')
+      .select('*, dodavatel:dodavatelia(nazov), firma:firmy(kod,nazov), nahral:profiles!nahral_id(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(500)
+    return data || []
+  },
+  ['admin-faktury-all'],
+  { revalidate: 30, tags: ['faktury'] },
+)
+
+export const getCachedDodavatelia = unstable_cache(
+  async () => {
+    const admin = createSupabaseAdmin()
+    const { data } = await admin.from('dodavatelia').select('*').eq('aktivny', true).order('nazov').limit(500)
+    return data || []
+  },
+  ['admin-dodavatelia-all'],
+  { revalidate: 60, tags: ['dodavatelia'] },
+)
+
 // ── /admin/dovolenky — cache for non-IT-admin (per schvalovatel) ─────────
 export const getCachedDovolenkyNaSchvalenieAll = unstable_cache(
   async () => {

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { requireFinOrAdmin, requireAuth } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { resolveSchvalovatel, getEcbKurz, getDefaultFirmaForUser, computeDphFromAny } from '@/lib/faktury-helpers'
+import { getCachedFaktury } from '@/lib/cached-pages'
 import { logAudit } from './audit'
 import type { FakturaStav, FakturyWorkflowConfig, Mena, Faktura } from '@/lib/faktury-types'
 import { SECURITY_FIELDS } from '@/lib/faktury-types'
@@ -479,37 +480,31 @@ export async function getFakturyList(filter?: {
 }) {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error, data: [] }
-  const admin = createSupabaseAdmin()
 
-  let q = admin.from('faktury')
-    .select('*, dodavatel:dodavatelia(nazov), firma:firmy(kod,nazov), nahral:profiles!nahral_id(full_name)')
-    .order('created_at', { ascending: false })
+  // Cached read — všetky faktúry naraz, filter na klientovi
+  const all = await getCachedFaktury() as Array<Faktura & { firma_id: string }>
+  const today = new Date().toISOString().split('T')[0]
 
-  if (filter?.stav && filter.stav !== 'all') q = q.eq('stav', filter.stav)
-  if (filter?.firma_id) q = q.eq('firma_id', filter.firma_id)
-  if (filter?.vozidlo_id) q = q.eq('vozidlo_id', filter.vozidlo_id)
-  if (filter?.servis_id) q = q.eq('servis_id', filter.servis_id)
-  if (filter?.cesta_id) q = q.eq('cesta_id', filter.cesta_id)
-  if (filter?.zamestnanec_id) q = q.eq('zamestnanec_id', filter.zamestnanec_id)
-  if (filter?.tankova_karta_id) q = q.eq('tankova_karta_id', filter.tankova_karta_id)
-  if (filter?.skolenie_id) q = q.eq('skolenie_id', filter.skolenie_id)
-  if (filter?.poistna_udalost_id) q = q.eq('poistna_udalost_id', filter.poistna_udalost_id)
-  if (filter?.dodavatel_id) q = q.eq('dodavatel_id', filter.dodavatel_id)
-  if (filter?.overdue) {
-    const today = new Date().toISOString().split('T')[0]
-    q = q.lt('datum_splatnosti', today).in('stav', ['schvalena', 'na_uhradu'])
+  // Aplikuj filtre
+  let filtered = all
+  if (filter?.stav && filter.stav !== 'all') filtered = filtered.filter(f => f.stav === filter.stav)
+  if (filter?.firma_id) filtered = filtered.filter(f => f.firma_id === filter.firma_id)
+  if (filter?.vozidlo_id) filtered = filtered.filter(f => f.vozidlo_id === filter.vozidlo_id)
+  if (filter?.servis_id) filtered = filtered.filter(f => f.servis_id === filter.servis_id)
+  if (filter?.cesta_id) filtered = filtered.filter(f => f.cesta_id === filter.cesta_id)
+  if (filter?.zamestnanec_id) filtered = filtered.filter(f => f.zamestnanec_id === filter.zamestnanec_id)
+  if (filter?.tankova_karta_id) filtered = filtered.filter(f => f.tankova_karta_id === filter.tankova_karta_id)
+  if (filter?.skolenie_id) filtered = filtered.filter(f => f.skolenie_id === filter.skolenie_id)
+  if (filter?.poistna_udalost_id) filtered = filtered.filter(f => f.poistna_udalost_id === filter.poistna_udalost_id)
+  if (filter?.dodavatel_id) filtered = filtered.filter(f => f.dodavatel_id === filter.dodavatel_id)
+  if (filter?.overdue) filtered = filtered.filter(f => f.datum_splatnosti < today && ['schvalena', 'na_uhradu'].includes(f.stav))
+  if (filter?.mesiac) filtered = filtered.filter(f => f.datum_splatnosti.startsWith(filter.mesiac!))
+
+  // Firma scope
+  if (auth.profile.role !== 'it_admin') {
+    const accessibleFirmaIds = [auth.profile.firma_id, ...((auth.profile.pristupne_firmy as string[] | null) || [])].filter(Boolean) as string[]
+    filtered = filtered.filter(f => accessibleFirmaIds.includes(f.firma_id))
   }
-  if (filter?.mesiac) {
-    q = q.gte('datum_splatnosti', `${filter.mesiac}-01`).lte('datum_splatnosti', `${filter.mesiac}-31`)
-  }
-
-  const { data, error } = await q.limit(500)
-  if (error) return { error: error.message, data: [] }
-
-  // Apply firma scope
-  const accessibleFirmaIds = auth.profile.role === 'it_admin' ? null
-    : [auth.profile.firma_id, ...((auth.profile.pristupne_firmy as string[] | null) || [])].filter(Boolean) as string[]
-  const filtered = accessibleFirmaIds === null ? data : (data || []).filter(f => accessibleFirmaIds.includes(f.firma_id))
 
   return { data: filtered }
 }
