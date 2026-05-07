@@ -270,6 +270,9 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
             <Link href="/admin/faktury/nahrat" className={linkClass('/admin/faktury/nahrat')}>
               <PlusCircle size={19} className={iconClass('/admin/faktury/nahrat')} /> Nahrať faktúru
             </Link>
+            <Link href="/admin/faktury/reporty" className={linkClass('/admin/faktury/reporty')}>
+              <BarChart3 size={19} className={iconClass('/admin/faktury/reporty')} /> Cashflow + reporty
+            </Link>
             <Link href="/admin/faktury/dodavatelia" className={linkClass('/admin/faktury/dodavatelia')}>
               <Users size={19} className={iconClass('/admin/faktury/dodavatelia')} /> Dodávatelia
             </Link>
