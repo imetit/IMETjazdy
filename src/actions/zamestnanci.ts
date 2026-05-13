@@ -2,6 +2,11 @@
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin, requireScopedAdmin } from '@/lib/auth-helpers'
+import {
+  ZamestnanecCreateSchema,
+  ZamestnanecPasswordResetSchema,
+  parseFormData,
+} from '@/lib/validation/schemas'
 import { revalidatePath, updateTag } from 'next/cache'
 
 function revalidateZamestnanci() { updateTag('zamestnanci'); updateTag('dashboard') }
@@ -14,11 +19,14 @@ export async function createZamestnanec(formData: FormData) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
-  const email = formData.get('email') as string
-  const full_name = formData.get('full_name') as string
-  const vozidlo_id = formData.get('vozidlo_id') as string || null
-  const password = formData.get('password') as string
-  const role = formData.get('role') as string || 'zamestnanec'
+  const parsed = parseFormData(ZamestnanecCreateSchema, formData)
+  if (!parsed.ok) return { error: parsed.error }
+  const { email, full_name, password, role, vozidlo_id } = parsed.data
+
+  // Privilege escalation guard: non-it_admin nesmie vytvoriť it_admin účet
+  if (role === 'it_admin' && auth.profile.role !== 'it_admin') {
+    return { error: 'Iba it_admin môže vytvoriť it_admin účet' }
+  }
 
   const adminClient = createSupabaseAdmin()
 
@@ -409,10 +417,11 @@ export async function updateZamestnanecEmail(profileId: string, email: string) {
 }
 
 export async function resetZamestnanecPassword(profileId: string, newPassword: string) {
+  const parsed = ZamestnanecPasswordResetSchema.safeParse({ profileId, newPassword })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Neplatné vstupy' }
+
   const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
-
-  if (newPassword.length < 8) return { error: 'Heslo musí mať minimálne 8 znakov' }
 
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.auth.admin.updateUserById(profileId, { password: newPassword })

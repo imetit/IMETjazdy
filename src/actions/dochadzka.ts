@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import type { IdentifiedUser, DovodDochadzky, SmerDochadzky, ZdrojDochadzky, DochadzkaZaznam } from '@/lib/dochadzka-types'
 import { calculateMesacnyStav } from '@/lib/dochadzka-utils'
 
@@ -35,6 +36,16 @@ export async function identifyByRfid(kodKarty: string): Promise<{ data?: Identif
 }
 
 export async function identifyByPin(pin: string): Promise<{ data?: IdentifiedUser; error?: string }> {
+  // Anti brute-force: rate-limit per IP (5 pokusov / 5 min)
+  const ip = await getClientIp()
+  const rl = await checkRateLimit('identifyPin', `pin:${ip}`)
+  if (!rl.ok) {
+    return { error: `Príliš veľa pokusov o identifikáciu. Skús o ${rl.retryAfter}s.` }
+  }
+
+  // Validácia formátu — momentálne 4-cifrový PIN (Phase 3 migruje na 6-cifr bcrypt).
+  if (!/^\d{4,6}$/.test(pin)) return { error: 'PIN musí byť 4-6 číslic' }
+
   const supabase = await createSupabaseServer()
 
   const { data: profile } = await supabase
