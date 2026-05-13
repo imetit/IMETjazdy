@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAdmin } from '@/lib/auth-helpers'
+import { requireScopedAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { revalidatePath, updateTag } from 'next/cache'
 import { logAudit } from './audit'
@@ -28,7 +28,7 @@ async function checkUzavierka(userId: string, datum: string): Promise<{ blocked:
 }
 
 export async function pridatZaznam(data: ZaznamData) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(data.user_id)
   if ('error' in auth) return auth
   if (!data.korekcia_dovod?.trim()) return { error: 'Dôvod korektúry je povinný' }
 
@@ -74,10 +74,10 @@ export async function upravitZaznam(
   novyDovod: string,
   dovod_korekcie: string,
 ) {
-  const auth = await requireAdmin()
-  if ('error' in auth) return auth
   if (!dovod_korekcie?.trim()) return { error: 'Dôvod korektúry je povinný' }
 
+  // Najprv načítame záznam (cez admin klient lebo user-client by RLS blokovala)
+  // a overíme target user scope.
   const admin = createSupabaseAdmin()
   const { data: original } = await admin
     .from('dochadzka')
@@ -86,6 +86,9 @@ export async function upravitZaznam(
     .single<{ user_id: string; datum: string; cas: string }>()
 
   if (!original) return { error: 'Záznam nenájdený' }
+
+  const auth = await requireScopedAdmin(original.user_id)
+  if ('error' in auth) return auth
 
   const block = await checkUzavierka(original.user_id, original.datum)
   if (block.blocked) return { error: block.reason }
@@ -120,8 +123,6 @@ export async function upravitZaznam(
 }
 
 export async function zmazatZaznam(zaznamId: string, dovod: string) {
-  const auth = await requireAdmin()
-  if ('error' in auth) return auth
   if (!dovod?.trim()) return { error: 'Dôvod je povinný' }
 
   const admin = createSupabaseAdmin()
@@ -132,6 +133,9 @@ export async function zmazatZaznam(zaznamId: string, dovod: string) {
     .single<{ user_id: string; datum: string }>()
 
   if (!original) return { error: 'Záznam nenájdený' }
+
+  const auth = await requireScopedAdmin(original.user_id)
+  if ('error' in auth) return auth
 
   const block = await checkUzavierka(original.user_id, original.datum)
   if (block.blocked) return { error: block.reason }

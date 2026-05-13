@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAdmin } from '@/lib/auth-helpers'
+import { requireAdmin, requireScopedAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
 
@@ -59,7 +59,7 @@ export async function getDnesVPraci() {
 }
 
 export async function getDochadzkaDetail(userId: string, mesiac: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(userId)
   if ('error' in auth) return { error: auth.error, zaznamy: [] as DochadzkaZaznam[], profile: null }
   const supabase = auth.supabase
 
@@ -85,12 +85,15 @@ export async function getDochadzkaDetail(userId: string, mesiac: string) {
 }
 
 export async function addManualDochadzka(formData: FormData) {
-  const auth = await requireAdmin()
+  const userId = formData.get('user_id') as string
+  if (!userId) return { error: 'user_id chýba' }
+
+  const auth = await requireScopedAdmin(userId)
   if ('error' in auth) return { error: auth.error }
   const supabase = auth.supabase
 
   const { error } = await supabase.from('dochadzka').insert({
-    user_id: formData.get('user_id') as string,
+    user_id: userId,
     datum: formData.get('datum') as string,
     smer: formData.get('smer') as string,
     dovod: formData.get('dovod') as string,
@@ -99,12 +102,11 @@ export async function addManualDochadzka(formData: FormData) {
   })
 
   if (error) return { error: 'Chyba pri pridávaní záznamu' }
-  const userId = formData.get('user_id') as string
   revalidatePath(`/admin/dochadzka/${userId}`)
 }
 
 export async function deleteDochadzkaZaznam(id: string, userId: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(userId)
   if ('error' in auth) return { error: auth.error }
   const supabase = auth.supabase
 

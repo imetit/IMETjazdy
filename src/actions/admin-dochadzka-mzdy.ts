@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAdmin } from '@/lib/auth-helpers'
+import { requireAdmin, requireScopedAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { getAccessibleFirmaIds } from '@/lib/firma-scope'
 import { detectAnomalies } from '@/lib/dochadzka-anomalies'
@@ -38,7 +38,7 @@ export async function getMesacneSumary(mesiac: string, firmaIds?: string[]): Pro
  * Detail jedného zamestnanca — full anomálie a príplatky. Per user, nie cachuje sa.
  */
 export async function getZamestnanecDetail(userId: string, mesiac: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(userId)
   if ('error' in auth) return { error: auth.error }
 
   const admin = createSupabaseAdmin()
