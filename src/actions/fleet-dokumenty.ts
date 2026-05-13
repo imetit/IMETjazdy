@@ -1,8 +1,9 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { validateUpload } from '@/lib/upload-validator'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
-import { v4 as uuidv4 } from 'uuid'
 
 export async function getDokumenty(vozidloId: string) {
   const supabase = await createSupabaseServer()
@@ -17,13 +18,23 @@ export async function getDokumenty(vozidloId: string) {
 }
 
 export async function uploadDokument(formData: FormData) {
+  // Authz check chýbal úplne — pridávame, aby nikto bez fleet/admin role
+  // nemohol uploadovať dokument k vozidlu.
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
   const vozidloId = formData.get('vozidlo_id') as string
-  const file = formData.get('file') as File
-  if (!file || file.size === 0) return { error: 'Žiadny súbor' }
+  if (!vozidloId) return { error: 'vozidlo_id chýba' }
 
-  const filePath = `${vozidloId}/dokumenty/${uuidv4()}-${file.name}`
-  const { error: uploadError } = await supabase.storage.from('fleet-documents').upload(filePath, file)
+  const file = formData.get('file') as File
+  const v = validateUpload(file, { category: 'document', maxSizeMb: 25 })
+  if (!v.ok) return { error: v.error }
+
+  const filePath = `${vozidloId}/dokumenty/${v.safePath}`
+  const { error: uploadError } = await supabase.storage.from('fleet-documents').upload(filePath, file, {
+    contentType: file.type,
+  })
   if (uploadError) return { error: 'Chyba pri nahrávaní súboru' }
 
   const { error } = await supabase.from('vozidlo_dokumenty').insert({

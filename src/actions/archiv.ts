@@ -2,6 +2,7 @@
 'use server'
 
 import { requireAdmin } from '@/lib/auth-helpers'
+import { validateUpload } from '@/lib/upload-validator'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
@@ -46,16 +47,16 @@ export async function uploadDokumentArchiv(formData: FormData) {
   if ('error' in auth) return auth
 
   const file = formData.get('file') as File
-  if (!file || file.size === 0) return { error: 'Žiadny súbor' }
-  if (file.size > 25 * 1024 * 1024) return { error: 'Súbor je príliš veľký. Maximum 25MB.' }
+  const v = validateUpload(file, { category: 'any', maxSizeMb: 25 })
+  if (!v.ok) return { error: v.error }
 
   // Upload file to storage
   const now = new Date()
-  const path = `archiv/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${Date.now()}_${file.name}`
+  const path = `archiv/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${v.safePath}`
 
   const { error: uploadError } = await auth.supabase.storage
     .from('archiv')
-    .upload(path, file)
+    .upload(path, file, { contentType: file.type })
 
   if (uploadError) return { error: 'Chyba pri nahrávaní súboru' }
 
@@ -140,16 +141,16 @@ export async function uploadNewVersion(povodnyId: string, formData: FormData) {
   if (origErr || !original) return { error: 'Pôvodný dokument nenájdený' }
 
   const file = formData.get('file') as File
-  if (!file || file.size === 0) return { error: 'Žiadny súbor' }
-  if (file.size > 25 * 1024 * 1024) return { error: 'Súbor je príliš veľký. Maximum 25MB.' }
+  const v = validateUpload(file, { category: 'any', maxSizeMb: 25 })
+  if (!v.ok) return { error: v.error }
 
   // Upload new file
   const now = new Date()
-  const path = `archiv/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${Date.now()}_${file.name}`
+  const path = `archiv/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${v.safePath}`
 
   const { error: uploadError } = await auth.supabase.storage
     .from('archiv')
-    .upload(path, file)
+    .upload(path, file, { contentType: file.type })
 
   if (uploadError) return { error: 'Chyba pri nahrávaní súboru' }
 

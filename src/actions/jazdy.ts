@@ -2,6 +2,7 @@
 
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { requireAuth, requireAdmin, requireOwnerOrAdmin } from '@/lib/auth-helpers'
+import { validateUpload } from '@/lib/upload-validator'
 import { redirect } from 'next/navigation'
 import { revalidatePath, updateTag } from 'next/cache'
 
@@ -48,12 +49,20 @@ export async function createJazda(formData: FormData) {
   const files = formData.getAll('files') as File[]
   for (const file of files) {
     if (file.size === 0) continue
-    const filePath = `${jazda.id}/${file.name}`
-    const { error: uploadError } = await supabase.storage.from('blocky').upload(filePath, file)
+    const v = validateUpload(file, { category: 'document', maxSizeMb: 25 })
+    if (!v.ok) {
+      // Tichý skip neplatných príloh — jazdu už máme uloženú; chybu si všimne
+      // user v UI keď príloha chýba (alternatíva: zlúčiť do return error).
+      continue
+    }
+    const filePath = `${jazda.id}/${v.safePath}`
+    const { error: uploadError } = await supabase.storage.from('blocky').upload(filePath, file, {
+      contentType: file.type,
+    })
     if (!uploadError) {
       await supabase.from('jazdy_prilohy').insert({
         jazda_id: jazda.id,
-        file_name: file.name,
+        file_name: file.name,  // pôvodný názov si necháme len ako metadáta na zobrazenie
         file_path: filePath,
         file_size: file.size,
       })

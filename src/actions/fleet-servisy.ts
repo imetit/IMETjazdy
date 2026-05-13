@@ -3,8 +3,8 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireFleetOrAdmin } from '@/lib/auth-helpers'
+import { validateUpload } from '@/lib/upload-validator'
 import { revalidatePath } from 'next/cache'
-import { v4 as uuidv4 } from 'uuid'
 
 export async function getServisy(filters?: { vozidloId?: string; typ?: string; stav?: string }) {
   const supabase = await createSupabaseServer()
@@ -61,10 +61,12 @@ export async function createServis(formData: FormData) {
   const files = formData.getAll('files') as File[]
   for (const file of files) {
     if (file.size === 0) continue
-    const filePath = `${vozidloId}/servisy/${servis.id}/${uuidv4()}-${file.name}`
+    const v = validateUpload(file, { category: 'document', maxSizeMb: 25 })
+    if (!v.ok) continue
+    const filePath = `${vozidloId}/servisy/${servis.id}/${v.safePath}`
     const { error: uploadError } = await supabase.storage
       .from('fleet-documents')
-      .upload(filePath, file)
+      .upload(filePath, file, { contentType: file.type })
 
     if (!uploadError) {
       await supabase.from('servis_prilohy').insert({

@@ -2,6 +2,7 @@
 
 import { requireAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { validateUpload } from '@/lib/upload-validator'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
@@ -47,11 +48,12 @@ export async function createSkolenie(formData: FormData) {
   let certifikatUrl: string | null = null
   const file = formData.get('certifikat') as File | null
   if (file && file.size > 0) {
-    const ext = file.name.split('.').pop()
-    const fileName = `${profileId}/${Date.now()}.${ext}`
+    const v = validateUpload(file, { category: 'document', maxSizeMb: 10 })
+    if (!v.ok) return { error: v.error }
+    const fileName = `${profileId}/${v.safePath}`
     const { error: uploadError } = await supabase.storage
       .from('skolenia-certifikaty')
-      .upload(fileName, file)
+      .upload(fileName, file, { contentType: file.type })
 
     if (!uploadError) {
       const { data: urlData } = supabase.storage
