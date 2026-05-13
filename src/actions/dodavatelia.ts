@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from 'next/cache'
 import { requireFinOrAdmin } from '@/lib/auth-helpers'
+import { getAccessibleFirmaIds, buildFirmaScopeKey } from '@/lib/firma-scope'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { logAudit } from './audit'
 
@@ -11,7 +12,9 @@ export async function getDodavatelia(search?: string) {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error, data: [] }
   const { getCachedDodavatelia } = await import('@/lib/cached-pages')
-  const all = await getCachedDodavatelia()
+  const accessible = await getAccessibleFirmaIds(auth.user.id)
+  const firmaIdsKey = buildFirmaScopeKey(accessible)
+  const all = await getCachedDodavatelia(firmaIdsKey)
   if (!search || !search.trim()) return { data: all }
   const s = search.toLowerCase()
   const filtered = all.filter(d =>

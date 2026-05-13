@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireFinOrAdmin, requireAuth } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { getAccessibleFirmaIds } from '@/lib/firma-scope'
+import { getAccessibleFirmaIds, buildFirmaScopeKey } from '@/lib/firma-scope'
 import { resolveSchvalovatel, getEcbKurz, getDefaultFirmaForUser, computeDphFromAny } from '@/lib/faktury-helpers'
 import { getCachedFaktury } from '@/lib/cached-pages'
 import { logAudit } from './audit'
@@ -519,8 +519,10 @@ export async function getFakturyList(filter?: {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error, data: [] }
 
-  // Cached read — všetky faktúry naraz, filter na klientovi
-  const all = await getCachedFaktury() as Array<Faktura & { firma_id: string }>
+  // Cached read — per-firma scope key, takže cache je oddelená medzi firmami
+  const accessible = await getAccessibleFirmaIds(auth.user.id)
+  const firmaIdsKey = buildFirmaScopeKey(accessible)
+  const all = await getCachedFaktury(firmaIdsKey) as Array<Faktura & { firma_id: string }>
   const today = new Date().toISOString().split('T')[0]
 
   // Aplikuj filtre
@@ -538,11 +540,10 @@ export async function getFakturyList(filter?: {
   if (filter?.overdue) filtered = filtered.filter(f => f.datum_splatnosti < today && ['schvalena', 'na_uhradu'].includes(f.stav))
   if (filter?.mesiac) filtered = filtered.filter(f => f.datum_splatnosti.startsWith(filter.mesiac!))
 
-  // Firma scope
-  if (auth.profile.role !== 'it_admin') {
-    const accessibleFirmaIds = [auth.profile.firma_id, ...((auth.profile.pristupne_firmy as string[] | null) || [])].filter(Boolean) as string[]
-    filtered = filtered.filter(f => accessibleFirmaIds.includes(f.firma_id))
-  }
+  // Cache je už per-firma — žiadny post-filter potrebný. Necháme defensive
+  // filter pre prípad že by sa volajúci požadoval explicitne `firma_id` filter
+  // nad rámec scope (a it_admin chce konkrétnu firmu).
+  // (Cache obsahuje len faktúry pre `accessible`.)
 
   return { data: filtered }
 }

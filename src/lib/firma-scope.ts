@@ -41,3 +41,26 @@ export function applyFirmaScope<T extends { in: (col: string, vals: string[]) =>
   if (accessibleFirmaIds === null) return query
   return query.in(firmaCol, accessibleFirmaIds)
 }
+
+/**
+ * Postavi deterministický cache key zo scope-u firma_id pre `unstable_cache`.
+ *
+ * - `null` (it_admin scope) → '*'
+ * - Inak: zoradí UUIDy a spojí čiarkou → 'uuid1,uuid2,...'
+ *
+ * Cache key je stabilný pre dané scope (poradie nezáleží — vždy zoradíme),
+ * a cross-firma cache leak je vylúčený (každý scope má vlastný entry).
+ */
+export function buildFirmaScopeKey(accessibleFirmaIds: string[] | null): string {
+  if (accessibleFirmaIds === null) return '*'
+  return [...new Set(accessibleFirmaIds)].sort().join(',')
+}
+
+/**
+ * Convenience: získa accessible firma IDs pre usera a vráti hotový cache key.
+ * Použiť v page.tsx pred volaním cached funkcie.
+ */
+export async function getFirmaScopeKeyForUser(userId: string): Promise<string> {
+  const ids = await getAccessibleFirmaIds(userId)
+  return buildFirmaScopeKey(ids)
+}

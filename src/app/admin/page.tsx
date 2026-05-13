@@ -4,13 +4,19 @@ import ModuleHelp from '@/components/ModuleHelp'
 import { getExpiringDocuments } from '@/actions/archiv'
 import { getExpiraceSkoleni } from '@/actions/skolenia'
 import { getAdminDashboardData } from '@/lib/cached-pages'
+import { getFirmaScopeKeyForUser } from '@/lib/firma-scope'
+import { createSupabaseServer } from '@/lib/supabase-server'
 
 export default async function AdminDashboard() {
   const now = new Date()
   const mesiac = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  const firmaIdsKey = user ? await getFirmaScopeKeyForUser(user.id) : '*'
+
   const [dash, expiringDocsResult, skoleniaExpResult] = await Promise.all([
-    getAdminDashboardData(mesiac),
+    getAdminDashboardData(mesiac, firmaIdsKey),
     getExpiringDocuments(),
     getExpiraceSkoleni(),
   ])

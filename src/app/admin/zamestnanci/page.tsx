@@ -2,10 +2,15 @@ import ZamestnanciTable from '@/components/ZamestnanciTable'
 import HelpTip from '@/components/HelpTip'
 import ModuleHelp from '@/components/ModuleHelp'
 import { getAdminZamestnanci } from '@/lib/cached-pages'
+import { getFirmaScopeKeyForUser } from '@/lib/firma-scope'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import type { Profile, Vozidlo } from '@/lib/types'
 
 export default async function AdminZamestnanciPage() {
-  const { zamestnanci, vozidla, firmy } = await getAdminZamestnanci()
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  const firmaIdsKey = user ? await getFirmaScopeKeyForUser(user.id) : '*'
+  const { zamestnanci, vozidla, firmy } = await getAdminZamestnanci(firmaIdsKey)
 
   return (
     <div>
