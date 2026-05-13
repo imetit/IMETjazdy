@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireFinOrAdmin, requireAuth } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { getAccessibleFirmaIds } from '@/lib/firma-scope'
 import { resolveSchvalovatel, getEcbKurz, getDefaultFirmaForUser, computeDphFromAny } from '@/lib/faktury-helpers'
 import { getCachedFaktury } from '@/lib/cached-pages'
 import { logAudit } from './audit'
@@ -11,6 +12,25 @@ import type { FakturaStav, FakturyWorkflowConfig, Mena, Faktura } from '@/lib/fa
 import { SECURITY_FIELDS } from '@/lib/faktury-types'
 
 function refresh() { updateTag('faktury'); updateTag('dashboard') }
+
+/**
+ * Overí, že daná firma je v scope volajúceho. Vracia null ak OK, error string ak nie.
+ * Zabraňuje IDOR — fin_manager firmy A nemôže manipulovať faktúru firmy B.
+ * it_admin vždy prejde.
+ */
+async function assertFakturaScope(
+  firmaId: string | null | undefined,
+  userId: string,
+  role: string,
+): Promise<string | null> {
+  if (role === 'it_admin') return null
+  if (!firmaId) return 'Faktúra nemá priradenú firmu'
+  const accessible = await getAccessibleFirmaIds(userId)
+  if (accessible !== null && !accessible.includes(firmaId)) {
+    return 'Faktúra je mimo vášho scope'
+  }
+  return null
+}
 
 async function notify(userId: string, typ: string, nadpis: string, sprava: string, link?: string) {
   if (!userId) return
@@ -181,6 +201,8 @@ export async function sendForApproval(id: string) {
     .select('id, stav, firma_id, nahral_id, suma_celkom_eur, version, cislo_faktury, dodavatel_nazov')
     .eq('id', id).maybeSingle()
   if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (f.stav !== 'rozpracovana' && f.stav !== 'zamietnuta') {
     return { error: `Nedá sa poslať na schválenie zo stavu ${f.stav}` }
   }
@@ -219,6 +241,8 @@ export async function approveFaktura(id: string, expectedVersion: number) {
     .select('id, stav, firma_id, nahral_id, suma_celkom_eur, aktualny_stupen, version, cislo_faktury, dodavatel_nazov, schvalil_l1_id')
     .eq('id', id).maybeSingle()
   if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (f.stav !== 'caka_na_schvalenie') return { error: 'Faktúra nie je v stave čaká na schválenie' }
   if (f.version !== expectedVersion) return { error: 'Faktúra bola medzitým zmenená — refresh a skús znovu' }
 
@@ -282,8 +306,10 @@ export async function rejectFaktura(id: string, dovod: string, expectedVersion: 
   if (!dovod.trim()) return { error: 'Dôvod je povinný' }
   const admin = createSupabaseAdmin()
 
-  const { data: f } = await admin.from('faktury').select('id, stav, version, nahral_id, cislo_faktury, dodavatel_nazov').eq('id', id).maybeSingle()
+  const { data: f } = await admin.from('faktury').select('id, stav, firma_id, version, nahral_id, cislo_faktury, dodavatel_nazov').eq('id', id).maybeSingle()
   if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (f.stav !== 'caka_na_schvalenie') return { error: 'Faktúra nie je v stave čaká na schválenie' }
   if (f.version !== expectedVersion) return { error: 'Faktúra bola medzitým zmenená — refresh' }
 
@@ -307,6 +333,10 @@ export async function markForPayment(id: string, expectedVersion: number) {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error }
   const admin = createSupabaseAdmin()
+  const { data: f } = await admin.from('faktury').select('firma_id').eq('id', id).maybeSingle()
+  if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   const { error } = await admin.from('faktury').update({ stav: 'na_uhradu' })
     .eq('id', id).eq('version', expectedVersion).eq('stav', 'schvalena')
   if (error) return { error: 'Chyba: ' + error.message }
@@ -321,8 +351,10 @@ export async function markPaid(id: string, datumUhrady: string, bankovyUcetId: s
   if (!datumUhrady) return { error: 'Dátum úhrady je povinný' }
   const admin = createSupabaseAdmin()
 
-  const { data: f } = await admin.from('faktury').select('stav, nahral_id, cislo_faktury, dodavatel_nazov').eq('id', id).maybeSingle()
+  const { data: f } = await admin.from('faktury').select('stav, firma_id, nahral_id, cislo_faktury, dodavatel_nazov').eq('id', id).maybeSingle()
   if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (!['schvalena', 'na_uhradu'].includes(f.stav)) return { error: 'Faktúra musí byť schválená' }
 
   const { error } = await admin.from('faktury').update({
@@ -348,8 +380,10 @@ export async function cancelFaktura(id: string, dovod: string, expectedVersion: 
   if (!dovod.trim()) return { error: 'Dôvod storna je povinný' }
   const admin = createSupabaseAdmin()
 
-  const { data: f } = await admin.from('faktury').select('stav').eq('id', id).maybeSingle()
+  const { data: f } = await admin.from('faktury').select('stav, firma_id').eq('id', id).maybeSingle()
   if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (f.stav === 'uhradena') return { error: 'Storno uhradenej faktúry — použite forceStornoUhradenej (it_admin) alebo dobropis' }
   if (f.stav === 'stornovana') return { error: 'Faktúra je už stornovaná' }
 
@@ -406,6 +440,8 @@ export async function updateFaktura(id: string, data: Partial<Faktura>, expected
 
   const { data: f } = await admin.from('faktury').select('*').eq('id', id).maybeSingle()
   if (!f) return { error: 'Faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(f.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (f.version !== expectedVersion) return { error: 'Faktúra bola zmenená — refresh' }
   if (['uhradena', 'stornovana'].includes(f.stav)) return { error: 'Uzamknutá faktúra sa nedá editovať (storno alebo dobropis)' }
 
@@ -457,6 +493,8 @@ export async function createCreditNote(povodnaFakturaId: string, formData: FormD
 
   const { data: povodna } = await admin.from('faktury').select('*').eq('id', povodnaFakturaId).maybeSingle()
   if (!povodna) return { error: 'Pôvodná faktúra nenájdená' }
+  const scopeErr = await assertFakturaScope(povodna.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
   if (povodna.je_dobropis) return { error: 'Dobropis pre dobropis nie je povolený' }
 
   // Pre-fill z pôvodnej faktúry
@@ -531,6 +569,9 @@ export async function getFakturaDetail(id: string) {
   ])
 
   if (fakturaRes.error || !fakturaRes.data) return { error: fakturaRes.error?.message || 'nenájdené' }
+
+  const scopeErr = await assertFakturaScope(fakturaRes.data.firma_id, auth.user.id, auth.profile.role)
+  if (scopeErr) return { error: scopeErr }
 
   // Storage signed URL
   const { data: signed } = await admin.storage.from('faktury').createSignedUrl(fakturaRes.data.file_path, 900)

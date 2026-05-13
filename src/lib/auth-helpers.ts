@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from './supabase-server'
+import { getAccessibleFirmaIds } from './firma-scope'
 import type { Profile } from './types'
 
 export type RoleType = Profile['role']
@@ -123,6 +124,63 @@ export async function requireNadriadeny(zamestnanecId: string): Promise<AuthResu
   if (primary?.zastupuje_id === result.user.id) return result
 
   return { error: 'Nie ste nadriadený tohto zamestnanca' }
+}
+
+/**
+ * Vyžaduje admin/it_admin/fin_manager rolu A overí, že target zamestnanec
+ * patrí do scope volajúceho (cez accessible firma IDs).
+ *
+ * - it_admin → vždy prejde (vidí všetky firmy)
+ * - admin/fin_manager → target user musí mať firma_id ∈ accessibleFirmaIds(volajúci)
+ *
+ * Použiť pre KAŽDÚ admin akciu ktorá berie target userId/zamestnanecId.
+ * Nahrádza naivný `requireAdmin()` ktorý cross-firma izoláciu neoveruje.
+ */
+export async function requireScopedAdmin(
+  targetUserId: string,
+): Promise<AuthResult & { error?: never } | { error: string }> {
+  const result = await requireRole(['admin', 'it_admin', 'fin_manager'])
+  if ('error' in result) return result
+
+  if (result.profile.role === 'it_admin') return result
+
+  const { createSupabaseAdmin } = await import('./supabase-admin')
+  const admin = createSupabaseAdmin()
+
+  const { data: target } = await admin
+    .from('profiles')
+    .select('firma_id')
+    .eq('id', targetUserId)
+    .single<{ firma_id: string | null }>()
+
+  if (!target) return { error: 'Cieľový užívateľ nenájdený' }
+  if (!target.firma_id) return { error: 'Cieľový užívateľ nemá priradenú firmu' }
+
+  const accessible = await getAccessibleFirmaIds(result.user.id)
+  if (accessible !== null && !accessible.includes(target.firma_id)) {
+    return { error: 'Cieľový zamestnanec je mimo vášho scope' }
+  }
+
+  return result
+}
+
+/**
+ * Asercia: target rekord s daným firma_id je v scope volajúceho.
+ * Pre prípady kde priamo poznáme firma_id (faktúra, vozidlo, dokument...).
+ */
+export async function requireScopedFirma(
+  targetFirmaId: string,
+  allowedRoles: RoleType[] = ['admin', 'it_admin', 'fin_manager', 'fleet_manager'],
+): Promise<AuthResult & { error?: never } | { error: string }> {
+  const result = await requireRole(allowedRoles)
+  if ('error' in result) return result
+  if (result.profile.role === 'it_admin') return result
+
+  const accessible = await getAccessibleFirmaIds(result.user.id)
+  if (accessible !== null && !accessible.includes(targetFirmaId)) {
+    return { error: 'Záznam je mimo vášho scope' }
+  }
+  return result
 }
 
 /**
