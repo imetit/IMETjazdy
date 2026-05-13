@@ -1,16 +1,19 @@
 'use server'
 
-import { requireAdmin } from '@/lib/auth-helpers'
+import { randomInt } from 'crypto'
+import { requireScopedAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
+// Phase 3 plánuje bcrypt hash + 6-cifrový PIN + rate-limit.
+// Pre tento commit aspoň CSPRNG namiesto Math.random a scope check.
 function generatePin(): string {
-  return String(Math.floor(1000 + Math.random() * 9000))
+  return String(randomInt(1000, 10000))
 }
 
 export async function resetPin(userId: string): Promise<{ pin?: string; error?: string }> {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(userId)
   if ('error' in auth) return { error: auth.error }
 
   const admin = createSupabaseAdmin()

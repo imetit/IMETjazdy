@@ -1,12 +1,15 @@
 'use server'
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth-helpers'
+import { requireAdmin, requireScopedAdmin } from '@/lib/auth-helpers'
 import { revalidatePath, updateTag } from 'next/cache'
 
 function revalidateZamestnanci() { updateTag('zamestnanci'); updateTag('dashboard') }
 import { logAudit } from './audit'
 
+// createZamestnanec si necháva requireAdmin — nový užívateľ ešte nemá firmu,
+// scope check by zlyhal. Onboarding flow: createZamestnanec → updateZamestnanecFirma
+// (scope check pri firma-priraďovaní je v updateZamestnanecFirma nižšie).
 export async function createZamestnanec(formData: FormData) {
   const auth = await requireAdmin()
   if ('error' in auth) return auth
@@ -44,7 +47,7 @@ export async function createZamestnanec(formData: FormData) {
 }
 
 export async function deleteZamestnanec(profileId: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -60,7 +63,7 @@ export async function deleteZamestnanec(profileId: string) {
 }
 
 export async function updateZamestnanecVozidlo(profileId: string, vozidloId: string | null) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -70,7 +73,7 @@ export async function updateZamestnanecVozidlo(profileId: string, vozidloId: str
 }
 
 export async function toggleZamestnanecActive(profileId: string, active: boolean) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -105,7 +108,7 @@ export async function toggleZamestnanecActive(profileId: string, active: boolean
 }
 
 export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyId: string | null) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -162,7 +165,7 @@ export async function updateZamestnanecNadriadeny(profileId: string, nadriadenyI
 }
 
 export async function updateZamestnanecPin(profileId: string, pin: string | null) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -174,11 +177,17 @@ export async function updateZamestnanecPin(profileId: string, pin: string | null
 }
 
 export async function updateZamestnanecRole(profileId: string, role: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const validRoles = ['zamestnanec', 'admin', 'fleet_manager', 'it_admin', 'fin_manager']
   if (!validRoles.includes(role)) return { error: 'Neplatná rola' }
+
+  // Privilege escalation guard: priamy admin nesmie sám seba povýšiť na it_admin
+  // a nesmie udeliť it_admin rolu inému (len existujúci it_admin to dokáže).
+  if (role === 'it_admin' && auth.profile.role !== 'it_admin') {
+    return { error: 'Iba it_admin môže udeliť it_admin rolu' }
+  }
 
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.from('profiles').update({ role }).eq('id', profileId)
@@ -191,7 +200,7 @@ export async function updateZamestnanecRole(profileId: string, role: string) {
 }
 
 export async function updateZamestnanecTypUvazku(profileId: string, typ: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const validTypy = ['tpp', 'dohoda', 'brigada', 'extern', 'materska', 'rodicovska']
@@ -207,8 +216,12 @@ export async function updateZamestnanecTypUvazku(profileId: string, typ: string)
 }
 
 export async function updateZamestnanecPristupneFirmy(profileId: string, firmaIds: string[]) {
-  const auth = await requireAdmin()
+  // Iba it_admin smie meniť pristupne_firmy (toto je multi-tenant scope grant).
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
+  if (auth.profile.role !== 'it_admin') {
+    return { error: 'Iba it_admin môže meniť prístup k iným firmám' }
+  }
 
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.from('profiles').update({
@@ -222,7 +235,7 @@ export async function updateZamestnanecPristupneFirmy(profileId: string, firmaId
 }
 
 export async function updateZamestnanecAutoPip(profileId: string, enabled: boolean) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -237,7 +250,7 @@ export async function updateZamestnanecAutoPip(profileId: string, enabled: boole
 }
 
 export async function updateZamestnanecZastupuje(profileId: string, zastupujeId: string | null) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   if (zastupujeId && zastupujeId === profileId) {
@@ -256,7 +269,7 @@ export async function updateZamestnanecZastupuje(profileId: string, zastupujeId:
 }
 
 export async function updateZamestnanecFond(profileId: string, tyzdnovyFond: number, pracovneDniTyzdne: number) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   if (tyzdnovyFond <= 0 || tyzdnovyFond > 60) return { error: 'Neplatný týždňový fond' }
@@ -275,10 +288,37 @@ export async function updateZamestnanecFond(profileId: string, tyzdnovyFond: num
 }
 
 export async function updateZamestnanecFirma(profileId: string, firmaId: string | null) {
-  const auth = await requireAdmin()
-  if ('error' in auth) return auth
-
+  // Špeciálny prípad: ak target zatiaľ nemá firmu (čerstvo vytvorený), umožni
+  // priradiť iba it_adminovi alebo adminovi v scope NOVEJ firmy.
   const adminClient = createSupabaseAdmin()
+  const { data: current } = await adminClient
+    .from('profiles')
+    .select('firma_id')
+    .eq('id', profileId)
+    .single<{ firma_id: string | null }>()
+
+  if (current?.firma_id) {
+    // Má firmu — overí sa že volajúci má scope na túto firmu
+    const auth = await requireScopedAdmin(profileId)
+    if ('error' in auth) return auth
+    // A zároveň musí mať scope na novú firmu (ak je iná)
+    if (firmaId && firmaId !== current.firma_id) {
+      const { requireScopedFirma } = await import('@/lib/auth-helpers')
+      const newScopeAuth = await requireScopedFirma(firmaId, ['admin', 'it_admin', 'fin_manager'])
+      if ('error' in newScopeAuth) return { error: `Cieľová firma mimo scope: ${newScopeAuth.error}` }
+    }
+  } else {
+    // Nemá firmu — iba it_admin, alebo admin v scope novej firmy
+    if (firmaId) {
+      const { requireScopedFirma } = await import('@/lib/auth-helpers')
+      const newScopeAuth = await requireScopedFirma(firmaId, ['admin', 'it_admin', 'fin_manager'])
+      if ('error' in newScopeAuth) return { error: `Cieľová firma mimo scope: ${newScopeAuth.error}` }
+    } else {
+      const auth = await requireAdmin()
+      if ('error' in auth) return auth
+    }
+  }
+
   const { error } = await adminClient.from('profiles').update({
     firma_id: firmaId || null,
   }).eq('id', profileId)
@@ -291,7 +331,7 @@ export async function updateZamestnanecFirma(profileId: string, firmaId: string 
 }
 
 export async function updateZamestnanecDatumNastupu(profileId: string, datum: string | null) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
@@ -315,7 +355,7 @@ export async function getFirmy() {
 }
 
 export async function updateZamestnanecEmail(profileId: string, email: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const normalized = email.trim().toLowerCase()
@@ -369,10 +409,10 @@ export async function updateZamestnanecEmail(profileId: string, email: string) {
 }
 
 export async function resetZamestnanecPassword(profileId: string, newPassword: string) {
-  const auth = await requireAdmin()
+  const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
-  if (newPassword.length < 6) return { error: 'Heslo musí mať minimálne 6 znakov' }
+  if (newPassword.length < 8) return { error: 'Heslo musí mať minimálne 8 znakov' }
 
   const adminClient = createSupabaseAdmin()
   const { error } = await adminClient.auth.admin.updateUserById(profileId, { password: newPassword })
