@@ -101,7 +101,10 @@ export async function GET(request: Request) {
   }
 
   const csv = rows.map(r => r.map(c => {
-    const s = String(c).replace(/"/g, '""')
+    let s = String(c)
+    // Formula injection escape: ak začína =, +, -, @, tab, CR → prepend '
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
+    s = s.replace(/"/g, '""')
     return /[,"\n;]/.test(s) ? `"${s}"` : s
   }).join(';')).join('\r\n')
 

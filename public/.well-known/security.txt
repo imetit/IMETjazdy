@@ -1,0 +1,6 @@
+Contact: mailto:security@imet.sk
+Contact: mailto:it@imet.sk
+Expires: 2027-05-13T00:00:00z
+Preferred-Languages: sk, en
+Canonical: https://imetjazdy.vercel.app/.well-known/security.txt
+Policy: https://imetjazdy.vercel.app/security

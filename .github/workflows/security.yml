@@ -1,0 +1,38 @@
+name: Security audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Monday 04:00 UTC — fresh advisories
+    - cron: '0 4 * * 1'
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+      # Fail the build on high/critical advisories. Moderate stays warning-only
+      # (we accept transitive postcss until Next upstream patches).
+      - run: npm audit --audit-level=high
+      # Signature verification for tampered packages (Sigstore)
+      - run: npm audit signatures || true  # advisory only — not all packages sign yet
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for gitleaks
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

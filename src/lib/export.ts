@@ -31,8 +31,11 @@ export function exportToCSV<T extends Record<string, unknown>>(
 }
 
 function escapeCSV(value: string): string {
-  if (value.includes(';') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`
+  // Formula injection: prepend apostrophe ak hodnota začína =, +, -, @, tab,
+  // CR — Excel inak vyhodnotí ako formula (`=HYPERLINK(...)`, `=cmd|...`).
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  if (safe.includes(';') || safe.includes('"') || safe.includes('\n')) {
+    return `"${safe.replace(/"/g, '""')}"`
   }
-  return value
+  return safe
 }
