@@ -1,10 +1,41 @@
 // Bench: zmeria TTFB na autentifikovaných stránkach po prihlásení
 // Spustenie: node scripts/bench-perf.mjs
+//
+// Vyžaduje v .env.local:
+//   NEXT_PUBLIC_SUPABASE_URL
+//   NEXT_PUBLIC_SUPABASE_ANON_KEY
+//   SCRIPT_TEST_EMAIL
+//   SCRIPT_TEST_PASSWORD
+//   BENCH_APP_URL (optional, default https://imetjazdy-work.vercel.app)
 
-const SUPA_URL = 'https://yotjzvykdpxkwfegjrkr.supabase.co'
-const SUPA_REF = 'yotjzvykdpxkwfegjrkr'
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdGp6dnlrZHB4a3dmZWdqcmtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1Njg5NzUsImV4cCI6MjA5MTE0NDk3NX0.DJumZllMu84jpJNa3-Y8KcAR883RAItzTMIRVxSeGgk'
-const APP = 'https://imetjazdy-work.vercel.app'
+import { readFileSync } from 'fs'
+
+function loadEnv() {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) return
+  try {
+    const content = readFileSync('.env.local', 'utf8')
+    for (const line of content.split('\n')) {
+      const [key, ...vals] = line.split('=')
+      if (key && vals.length) process.env[key.trim()] = vals.join('=').trim()
+    }
+  } catch {
+    // .env.local nie je povinné, ak su premenne uz nastavene
+  }
+}
+loadEnv()
+
+const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const EMAIL = process.env.SCRIPT_TEST_EMAIL
+const PASSWORD = process.env.SCRIPT_TEST_PASSWORD
+const APP = process.env.BENCH_APP_URL || 'https://imetjazdy-work.vercel.app'
+
+if (!SUPA_URL || !ANON || !EMAIL || !PASSWORD) {
+  console.error('Missing required env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SCRIPT_TEST_EMAIL, SCRIPT_TEST_PASSWORD')
+  process.exit(1)
+}
+
+const SUPA_REF = new URL(SUPA_URL).hostname.split('.')[0]
 
 const PATHS = ['/login', '/admin', '/admin/jazdy', '/admin/dochadzka', '/admin/dovolenky', '/admin/zamestnanci', '/admin/archiv', '/api/health']
 const API_PATHS = ['/api/admin/jazdy', '/api/admin/zamestnanci', '/api/admin/dovolenky', '/api/admin/archiv', '/api/admin/dashboard', '/api/admin/dochadzka/sumary']
@@ -14,7 +45,7 @@ async function login() {
   const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { apikey: ANON, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'it@imet.sk', password: 'Admin123!' }),
+    body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
   })
   const sess = await r.json()
   if (!sess.access_token) throw new Error('Login failed: ' + JSON.stringify(sess))
@@ -31,8 +62,6 @@ function buildCookieHeader(sess) {
     user: sess.user,
   }
   const b64 = 'base64-' + Buffer.from(JSON.stringify(wrap)).toString('base64')
-  // @supabase/ssr supports chunked cookies (.0, .1, ...). Single cookie is fine if <4KB.
-  // For safety, use chunked even when small.
   const CHUNK = 3000
   const parts = []
   for (let i = 0; i < b64.length; i += CHUNK) parts.push(b64.slice(i, i + CHUNK))
@@ -45,9 +74,9 @@ async function bench(path, cookieHeader) {
     headers: cookieHeader ? { Cookie: cookieHeader } : {},
     redirect: 'manual',
   })
-  const headersMs = Date.now() - start  // user vidí skeleton tu (Streaming SSR)
+  const headersMs = Date.now() - start
   await res.arrayBuffer()
-  const fullMs = Date.now() - start  // celý content sa vyriešil
+  const fullMs = Date.now() - start
   return { headersMs, fullMs, code: res.status }
 }
 
@@ -59,7 +88,6 @@ async function run() {
   console.log('  cookie header length:', cookieHeader.length)
   console.log('')
 
-  // Warm-up: jeden request aby sa vytvorila role cache cookie
   console.log('=== Warm-up (vytvorí imet_role_cache cookie cez SLOW path)...')
   let firstSet = null
   const warmRes = await fetch(`${APP}/admin`, {
@@ -76,7 +104,6 @@ async function run() {
     console.log('  ✗ imet_role_cache nebol nastavený! (slow path zlyhal?)')
   }
 
-  // Cookie pre fast path = pôvodné supabase + role cache
   const fastCookieHeader = firstSet ? `${cookieHeader}; ${firstSet}` : cookieHeader
 
   console.log('=== STRÁNKY (full HTML, SSR) ===')
@@ -95,7 +122,7 @@ async function run() {
   }
 
   console.log('')
-  console.log('=== API ENDPOINTY (čo SWR fetchne na pozadí — pre user instant z cache) ===')
+  console.log('=== API ENDPOINTY ===')
   console.log('  Endpoint                     | TTFB JSON (warm)')
   console.log('  ' + '-'.repeat(60))
   for (const path of API_PATHS) {

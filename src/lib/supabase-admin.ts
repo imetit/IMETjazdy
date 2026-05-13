@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 
 /**
@@ -7,6 +8,8 @@ import { createClient } from '@supabase/supabase-js'
  * - Bypassing RLS for admin operations
  *
  * NEVER expose this client to the browser.
+ * `server-only` import enforces this at build time — any client component
+ * that imports this (transitively) will fail to build.
  */
 export function createSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
