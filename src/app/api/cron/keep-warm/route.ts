@@ -5,11 +5,11 @@ export const runtime = 'nodejs'
 export const maxDuration = 10
 
 function authorized(req: Request): boolean {
+  // Iba Bearer secret — user-agent fallback bol spoofovateľný (akýkoľvek
+  // externý request s "vercel-cron" v UA by prešiel). Vercel cron natively
+  // posiela Authorization: Bearer ${CRON_SECRET} ak je nastavený v config.
   const auth = req.headers.get('authorization')
-  if (auth === `Bearer ${process.env.CRON_SECRET}`) return true
-  // Vercel Cron pošle request bez Authorization, identifikuje sa cez user-agent
-  const ua = req.headers.get('user-agent') || ''
-  return ua.toLowerCase().includes('vercel-cron')
+  return !!process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`
 }
 
 async function checkOverdueFaktury() {

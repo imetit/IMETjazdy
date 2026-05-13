@@ -5,6 +5,18 @@ import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
+/**
+ * Sanitize user-supplied search input before splicing into a PostgREST .or()
+ * filter string. The .or() syntax treats commas as predicate separators and
+ * special chars like ), *, ! as syntax — an attacker could inject extra
+ * predicates (e.g. ",popis.ilike.%admin%") to widen the result set or pivot.
+ *
+ * Keep alphanum + slovak diacritics + space + dash + underscore. Trim to 50.
+ */
+function sanitizeSearch(s: string): string {
+  return s.replace(/[^a-zA-Z0-9 áčďéíĺľňóôŕšťúýžÁČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ_-]/g, '').slice(0, 50)
+}
+
 export async function getVozidla(filters?: { stav?: string; typ?: string; search?: string }) {
   const supabase = await createSupabaseServer()
   let query = supabase.from('vozidla').select('*, priradeny_vodic:profiles!priradeny_vodic_id(id, full_name, email)')
@@ -12,7 +24,10 @@ export async function getVozidla(filters?: { stav?: string; typ?: string; search
   if (filters?.stav) query = query.eq('stav', filters.stav)
   if (filters?.typ) query = query.eq('typ_vozidla', filters.typ)
   if (filters?.search) {
-    query = query.or(`spz.ilike.%${filters.search}%,znacka.ilike.%${filters.search}%,variant.ilike.%${filters.search}%`)
+    const safe = sanitizeSearch(filters.search)
+    if (safe) {
+      query = query.or(`spz.ilike.%${safe}%,znacka.ilike.%${safe}%,variant.ilike.%${safe}%`)
+    }
   }
 
   const { data, error } = await query.order('znacka')

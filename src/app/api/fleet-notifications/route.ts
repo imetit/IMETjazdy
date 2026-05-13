@@ -10,9 +10,10 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const { searchParams } = new URL(request.url)
-  const secret = searchParams.get('secret')
-  if (!secret || !process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+  // Secret cez Authorization header (nie query string — secret v URL by skončil
+  // vo Vercel access logoch, referreroch a proxy logoch).
+  const auth = request.headers.get('authorization')
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

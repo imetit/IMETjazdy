@@ -26,7 +26,11 @@ function readRoleCookie(request: NextRequest): { role: string; userId: string } 
 
 function writeRoleCookie(response: NextResponse, role: string, userId: string) {
   response.cookies.set(ROLE_COOKIE, JSON.stringify({ role, userId, ts: Date.now() }), {
-    httpOnly: true, sameSite: 'lax', path: '/', maxAge: ROLE_TTL_MS / 1000,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: ROLE_TTL_MS / 1000,
   })
 }
 
