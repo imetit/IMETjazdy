@@ -54,17 +54,68 @@ export async function createZamestnanec(formData: FormData) {
   return { success: true }
 }
 
+/**
+ * Soft-delete: nastaví `deleted_at`, deaktivuje účet, zruší pending žiadosti.
+ * Účet zostáva v auth (login disabled cez active=false). Hard delete + plná
+ * GDPR anonymizácia ide cez `gdprAnonymizeUser` (volá DB funkciu).
+ */
 export async function deleteZamestnanec(profileId: string) {
   const auth = await requireScopedAdmin(profileId)
   if ('error' in auth) return auth
 
   const adminClient = createSupabaseAdmin()
   const { data: profile } = await adminClient.from('profiles').select('email, full_name').eq('id', profileId).single()
+  if (!profile) return { error: 'Profil nenájdený' }
 
-  const { error } = await adminClient.auth.admin.deleteUser(profileId)
-  if (error) return { error: `Chyba pri mazaní účtu: ${error.message}` }
+  // Soft-delete: deaktivácia + flag. Účet zostáva v DB pre účtovné referencie.
+  const { error } = await adminClient.from('profiles').update({
+    active: false,
+    deleted_at: new Date().toISOString(),
+  }).eq('id', profileId)
+  if (error) return { error: `Chyba pri soft-delete: ${error.message}` }
 
-  await logAudit('zmazanie_zamestnanca', 'profiles', profileId, { email: profile?.email, full_name: profile?.full_name })
+  // Disable login cez auth.admin (nastaví ban_duration na 100 rokov)
+  await adminClient.auth.admin.updateUserById(profileId, {
+    ban_duration: '876000h',  // ~100 rokov
+  })
+
+  // Zruš pending dovolenky / cesty
+  const now = new Date().toISOString()
+  await adminClient.from('dovolenky').update({
+    stav: 'zamietnuta',
+    dovod_zamietnutia: 'Účet bol deaktivovaný',
+    schvalene_at: now,
+  }).eq('user_id', profileId).eq('stav', 'caka_na_schvalenie')
+
+  await adminClient.from('sluzobne_cesty').update({
+    stav: 'zamietnuta',
+    schvalene_at: now,
+  }).eq('user_id', profileId).eq('stav', 'nova')
+
+  await logAudit('soft_delete_zamestnanca', 'profiles', profileId, {
+    email: profile.email, full_name: profile.full_name,
+  })
+
+  revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
+  return { success: true }
+}
+
+/**
+ * GDPR erasure: anonymizuje PII v profile cez DB funkciu (SECURITY DEFINER).
+ * Účtovné záznamy (jazdy, dochádzka, faktúry) zostávajú s placeholder menom.
+ * Vyžaduje admin/it_admin rolu A scope na target firma.
+ */
+export async function gdprAnonymizeUser(profileId: string, reason: string) {
+  const auth = await requireScopedAdmin(profileId)
+  if ('error' in auth) return auth
+  if (!reason?.trim()) return { error: 'Dôvod erasure je povinný (GDPR čl. 17)' }
+
+  const adminClient = createSupabaseAdmin()
+  const { error } = await adminClient.rpc('anonymize_user', {
+    target_user_id: profileId,
+    reason: reason.trim(),
+  })
+  if (error) return { error: `Chyba pri anonymizácii: ${error.message}` }
 
   revalidatePath('/admin/zamestnanci'); revalidateZamestnanci()
   return { success: true }
