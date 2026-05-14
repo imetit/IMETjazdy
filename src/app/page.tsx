@@ -3,12 +3,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
 import {
-  ArrowRight, ChevronRight, Check, AlertTriangle, Bell,
+  ArrowRight, ChevronRight, Check, Bell, Mail,
   Receipt, Globe, Building2,
-  Smartphone, Fingerprint, Activity,
+  Fingerprint, Activity,
   Users, UserCheck, CalendarDays,
-  Truck, Wrench, ShieldAlert,
-  FolderArchive, GitBranch, Search,
+  Truck, ShieldAlert,
+  GitBranch, Search,
   Car, FileSpreadsheet, FileCheck2, LockKeyhole, Eye, KeyRound,
 } from 'lucide-react'
 import { createSupabaseServer } from '@/lib/supabase-server'
@@ -95,9 +95,9 @@ function Hero() {
           HR · Mzdy · Fleet · Archív
         </p>
 
-        <h1 className="reveal-up reveal-up-2 font-bold tracking-[-0.04em] leading-[0.85] text-balance">
-          <span className="block text-[clamp(3rem,11vw,11rem)]">Jedna aplikácia.</span>
-          <span className="block text-[clamp(3rem,11vw,11rem)] bg-gradient-to-br from-teal-200 via-white to-violet-200 bg-clip-text text-transparent">
+        <h1 className="reveal-up reveal-up-2 font-bold tracking-[-0.04em] leading-[0.9] text-balance">
+          <span className="block text-[clamp(3rem,11vw,11rem)] pb-2">Jedna aplikácia.</span>
+          <span className="block text-[clamp(3rem,11vw,11rem)] pb-4 bg-gradient-to-br from-teal-200 via-white to-violet-200 bg-clip-text text-transparent">
             Celá firma.
           </span>
         </h1>
@@ -122,9 +122,8 @@ function Hero() {
         </div>
       </div>
 
-      <div aria-hidden className="absolute bottom-8 left-1/2 -translate-x-1/2 text-slate-500 text-xs flex flex-col items-center gap-2 opacity-60">
-        <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-500 to-transparent" />
-        <span>Posúvaj</span>
+      <div aria-hidden className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-30">
+        <div className="w-px h-14 bg-gradient-to-b from-transparent via-white to-transparent" />
       </div>
     </section>
   )
@@ -578,42 +577,160 @@ function Spotlight({
 /* ───────────────────────── SECURITY STAT ───────────────────────── */
 
 function SecurityStat() {
-  const chips = ['GDPR čl. 15+17', '2FA TOTP', 'Audit immutable', 'IBAN AES-256', 'EU hosting', 'Multi-tenant RLS', 'CSP + HSTS', 'Sentry PII scrub']
+  const principles = [
+    {
+      icon: Building2,
+      title: 'Tenant izolácia',
+      desc: 'RLS politiky na DB úrovni. Per-firma cache keys. requireScopedAdmin guards v každej admin akcii. Admin firmy A fyzicky nevidí dáta firmy B.',
+    },
+    {
+      icon: Eye,
+      title: 'Immutable forensics',
+      desc: 'BEFORE UPDATE/DELETE trigger na audit_log blokuje aj service_role. IP + user-agent pri každom zázname. 7-ročná retencia podľa SR zákonov.',
+    },
+    {
+      icon: LockKeyhole,
+      title: 'Encryption at-rest',
+      desc: 'IBAN cez pgcrypto + Supabase Vault (AES-256). Decrypt-on-read view s RLS gating — len fin_manager / admin / it_admin uvidia plaintext.',
+    },
+    {
+      icon: FileCheck2,
+      title: 'GDPR native, nie bolt-on',
+      desc: 'Endpointy /api/gdpr/export (čl. 15 → ZIP) a /api/gdpr/delete (čl. 17 → SECURITY DEFINER anonymize). Retention politika v retention_policies tabuľke.',
+    },
+  ]
+  const chips = ['Sentry PII scrub', 'Rate limit (Upstash)', 'CSP + HSTS', 'CI npm audit + gitleaks', 'Externý pentest ready', '2FA TOTP', 'Soft-delete + grace']
+
   return (
     <section className="relative py-32 md:py-44 overflow-hidden border-t border-white/[0.06]">
       <div aria-hidden className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full
-                        bg-[radial-gradient(circle,rgba(20,184,166,0.12),transparent_60%)] blur-3xl aurora-3" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full
+                        bg-[radial-gradient(circle,rgba(20,184,166,0.10),transparent_60%)] blur-3xl aurora-3" />
       </div>
 
-      <div className="relative max-w-5xl mx-auto px-6 text-center">
-        <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-teal-300/80 mb-6">
-          07 · Bezpečnosť
-        </p>
-
-        <div className="font-bold leading-[0.85] tracking-[-0.05em]">
-          <span className="text-[clamp(6rem,18vw,16rem)] bg-gradient-to-br from-white via-teal-200 to-violet-300 bg-clip-text text-transparent">
-            13 / 13
-          </span>
+      <div className="relative max-w-6xl mx-auto px-6">
+        {/* HEADER */}
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-teal-300/80 mb-6">
+            07 · Bezpečnosť
+          </p>
+          <h2 className="text-4xl md:text-6xl font-bold tracking-[-0.04em] leading-[0.95]">
+            Audit-grade.{' '}
+            <span className="bg-gradient-to-br from-slate-500 to-slate-700 bg-clip-text text-transparent">
+              By default.
+            </span>
+          </h2>
+          <p className="mt-6 text-base md:text-lg text-slate-400 leading-relaxed">
+            6-agentový paralelný bezpečnostný audit identifikoval{' '}
+            <span className="text-white font-semibold">13 critical + 10 medium</span> findings.
+            Všetkých <span className="text-teal-300 font-semibold">23 je vyriešených</span> ešte
+            pred prvým enterprise nasadením — verifikovateľné cez commit history v repo.
+          </p>
         </div>
 
-        <p className="mt-4 text-2xl md:text-3xl font-semibold tracking-tight">
-          critical security findings vyriešených
-        </p>
-        <p className="mt-4 text-base text-slate-400 max-w-xl mx-auto">
-          Po 6-agentovom paralelnom audite. Pripravené pred deploy do enterprise prostredia
-          ešte pred externým pentestom. Pozri <Link href="/security" className="text-teal-300 hover:text-white underline underline-offset-2">security policy</Link>.
-        </p>
+        {/* GIANT STAT (leading-none + explicit pb to prevent descender clip) */}
+        <div className="text-center mt-20">
+          <span className="block font-bold tracking-[-0.05em] leading-none pb-6
+                            text-[clamp(5rem,17vw,14rem)]
+                            bg-gradient-to-br from-white via-teal-200 to-violet-300
+                            bg-clip-text text-transparent">
+            13 / 13
+          </span>
+          <p className="mt-2 text-xl md:text-2xl font-semibold tracking-tight text-slate-200">
+            critical findings vyriešených.{' '}
+            <span className="text-slate-500 font-normal">0 zostáva otvorených.</span>
+          </p>
+        </div>
 
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-2">
-          {chips.map(c => (
-            <span key={c} className="px-4 py-2 rounded-full text-xs font-medium border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06] hover:border-white/20 transition-colors">
-              {c}
-            </span>
-          ))}
+        {/* PRINCIPLES (left) + AUDIT LOG MOCK (right) */}
+        <div className="mt-24 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          <div className="space-y-7">
+            {principles.map((p) => {
+              const Icon = p.icon
+              return (
+                <div key={p.title} className="flex gap-4">
+                  <div className="shrink-0 mt-0.5 w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                    <Icon size={17} className="text-teal-300" strokeWidth={1.6} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold tracking-tight text-white">{p.title}</h3>
+                    <p className="mt-1.5 text-[13px] text-slate-400 leading-relaxed">{p.desc}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <AuditLogVisual />
+        </div>
+
+        {/* BOTTOM: chips + CTAs */}
+        <div className="mt-20 pt-10 border-t border-white/[0.06] flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {chips.map(c => (
+              <span key={c} className="px-3 py-1.5 rounded-full text-[11px] font-medium border border-white/10 bg-white/[0.03] text-slate-300">
+                {c}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 shrink-0">
+            <Link href="/security" className="inline-flex items-center gap-1.5 text-sm text-teal-300 hover:text-white transition-colors whitespace-nowrap">
+              Security policy <ArrowRight size={14} />
+            </Link>
+            <span aria-hidden className="text-slate-700">·</span>
+            <a href="/.well-known/security.txt" className="text-sm text-slate-400 hover:text-white transition-colors whitespace-nowrap">
+              security.txt
+            </a>
+          </div>
         </div>
       </div>
     </section>
+  )
+}
+
+function AuditLogVisual() {
+  const rows = [
+    { time: '14:34:22', user: 'MM', userColor: 'teal',   akcia: 'faktura_approve',  ip: '10.0.42.118' },
+    { time: '14:31:05', user: 'MM', userColor: 'teal',   akcia: 'gdpr_export',      ip: '10.0.42.118' },
+    { time: '14:28:51', user: 'MŠ', userColor: 'violet', akcia: 'dochadzka_korek',  ip: '87.244.198.x' },
+    { time: '14:11:30', user: 'IT', userColor: 'amber',  akcia: 'zmena_roly',       ip: '10.0.42.118' },
+    { time: '13:58:17', user: 'MM', userColor: 'teal',   akcia: 'faktura_paid',     ip: '10.0.42.118' },
+  ]
+  const userColors: Record<string, string> = {
+    teal: 'bg-teal-500/10 border-teal-500/30 text-teal-200',
+    violet: 'bg-violet-500/10 border-violet-500/30 text-violet-200',
+    amber: 'bg-amber-500/10 border-amber-500/30 text-amber-200',
+  }
+  return (
+    <div className="relative">
+      <div className="rounded-2xl border border-white/[0.08] bg-slate-950/60 backdrop-blur-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+            audit_log
+          </div>
+          <span className="text-[9px] px-2 py-0.5 rounded bg-teal-500/15 text-teal-300 border border-teal-500/30 font-mono tracking-[0.15em]">
+            IMMUTABLE
+          </span>
+        </div>
+        <div className="divide-y divide-white/[0.04]">
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-2.5 text-[11px] font-mono">
+              <span className="text-slate-500 w-[58px] shrink-0">{r.time}</span>
+              <span className={`w-6 h-6 rounded-full border flex items-center justify-center text-[9px] shrink-0 ${userColors[r.userColor]}`}>
+                {r.user}
+              </span>
+              <span className="text-teal-300/80 flex-1 truncate min-w-0">{r.akcia}</span>
+              <span className="text-slate-500 text-[10px] truncate shrink-0 hidden sm:inline w-[96px] text-right">{r.ip}</span>
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-3 border-t border-white/[0.06] bg-white/[0.01] flex items-start gap-2 text-[10px] text-slate-500 leading-relaxed">
+          <ShieldAlert size={11} className="text-teal-400 shrink-0 mt-0.5" />
+          <span>BEFORE UPDATE/DELETE trigger blokuje aj <code className="text-slate-400">service_role</code> · IP + user_agent capture · 7-year retention</span>
+        </div>
+      </div>
+      <div aria-hidden className="absolute -inset-4 -z-10 bg-gradient-to-br from-teal-500/10 via-transparent to-violet-500/10 blur-2xl rounded-3xl" />
+    </div>
   )
 }
 
@@ -631,23 +748,41 @@ function Closing() {
         </div>
 
         <div className="relative max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-5xl md:text-7xl font-bold tracking-[-0.04em] leading-[0.9]">
+          <h2 className="text-5xl md:text-7xl font-bold tracking-[-0.04em] leading-[0.92] pb-2">
             <span className="block">Začnime.</span>
           </h2>
-          <p className="mt-6 text-lg text-slate-400">
-            Napíšte počet zamestnancov, vozidiel, moduly.
+          <p className="mt-6 text-lg text-slate-400 leading-relaxed max-w-xl mx-auto">
+            Cloud SaaS pre menšie firmy. On-premise deployment do vlastnej Vercel + Supabase pre korporát.
             <br className="hidden sm:block" />
-            Ozveme sa s ponukou do 24 hodín.
+            Ponuka šitá na vašu firmu do 24 hodín.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="mailto:kontakt@imet.sk?subject=IMET%20Jazdy%20—%20záujem"
+            <a href="mailto:kontakt@imet.sk?subject=IMET%20Jazdy%20—%20záujem%20o%20ponuku&body=Počet%20zamestnancov%3A%20%0APočet%20vozidiel%3A%20%0AModuly%20o%20ktoré%20máme%20záujem%3A%20%0ADeployment%20(cloud%20%2F%20on-premise)%3A%20"
                className="group btn-shine inline-flex items-center gap-2 bg-white text-slate-950 px-7 py-3.5 rounded-full text-sm font-semibold transition-all hover:shadow-2xl hover:shadow-white/20 hover:scale-[1.02]">
-              <span className="relative z-10">kontakt@imet.sk</span>
+              <span className="relative z-10 flex items-center gap-2">
+                <Mail size={14} />
+                kontakt@imet.sk
+              </span>
             </a>
             <Link href="/login"
                   className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors px-4 py-2">
               alebo sa prihlásiť <ArrowRight size={14} />
             </Link>
+          </div>
+
+          <div className="mt-16 grid grid-cols-3 gap-6 max-w-xl mx-auto text-center text-xs text-slate-500">
+            <div>
+              <p className="text-2xl font-bold text-white">~24h</p>
+              <p className="mt-1">odpoveď</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">~1 deň</p>
+              <p className="mt-1">on-prem setup</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">99,5%</p>
+              <p className="mt-1">cieľová SLA</p>
+            </div>
           </div>
         </div>
       </section>
