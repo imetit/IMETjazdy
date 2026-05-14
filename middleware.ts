@@ -63,7 +63,7 @@ function applyRoleRouting(request: NextRequest, role: string | null): NextRespon
     } else if (role === 'fleet_manager') {
       url.pathname = '/fleet'
     } else {
-      url.pathname = '/'
+      url.pathname = '/moje'
     }
     return NextResponse.redirect(url)
   }
@@ -142,8 +142,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Verejne dostupné cesty (homepage, legal, login) — neprihláseného nepresmerovať
+  const PUBLIC_PATHS = ['/', '/login', '/privacy', '/terms', '/security']
+
   if (!user) {
-    if (pathname !== '/login') {
+    if (!PUBLIC_PATHS.includes(pathname)) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       const r = NextResponse.redirect(url)

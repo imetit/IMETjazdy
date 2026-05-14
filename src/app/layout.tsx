@@ -4,8 +4,19 @@ import SWRProvider from "@/components/SWRProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IMET Kniha Jázd",
-  description: "Interný systém na evidenciu služobných ciest",
+  metadataBase: new URL('https://imetjazdy.vercel.app'),
+  title: {
+    default: 'IMET Jazdy — HR a vozový park v jednom systéme',
+    template: '%s · IMET Jazdy',
+  },
+  description: 'Komplexný systém pre dochádzku, knihu jázd, mzdové podklady, faktúry, dovolenky a vozový park. Multi-firma, GDPR-ready, 2FA, EU hosting.',
+  applicationName: 'IMET Jazdy',
+  authors: [{ name: 'IMET, a.s.' }],
+  generator: 'Next.js',
+  keywords: ['kniha jazd', 'dochádzka', 'fleet management', 'HR systém', 'mzdové podklady', 'faktúry', 'GDPR', 'Slovensko'],
+  robots: { index: true, follow: true },
+  themeColor: '#0d9488',
+  icons: { icon: '/icon.ico', apple: '/icon-192.png' },
 };
 
 export default function RootLayout({

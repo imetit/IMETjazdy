@@ -147,8 +147,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               </Link>
             ) : (
               <>
-                <Link href="/" className={linkClass('/')}>
-                  <LayoutDashboard size={19} className={iconClass('/')} /> Prehľad
+                <Link href="/moje" className={linkClass('/moje')}>
+                  <LayoutDashboard size={19} className={iconClass('/moje')} /> Prehľad
                 </Link>
                 <Link href="/nova-jazda" className={linkClass('/nova-jazda')}>
                   <PlusCircle size={19} className={iconClass('/nova-jazda')} /> Nová jazda
