@@ -46,7 +46,16 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Vitajte</h1>
           <p className="text-sm text-gray-500 mb-8">Prihláste sa do systému</p>
           <LoginForm />
-          <p className="text-xs text-gray-400 text-center mt-8">IMET &copy; {new Date().getFullYear()}</p>
+          <div className="text-xs text-gray-400 text-center mt-8 space-y-2">
+            <p>IMET &copy; {new Date().getFullYear()}</p>
+            <p className="space-x-3">
+              <a href="/privacy" className="hover:underline">Ochrana údajov</a>
+              <span aria-hidden>·</span>
+              <a href="/terms" className="hover:underline">Podmienky</a>
+              <span aria-hidden>·</span>
+              <a href="/security" className="hover:underline">Bezpečnosť</a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
