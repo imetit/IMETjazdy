@@ -65,7 +65,53 @@ aside::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
-/* Animations */
+/* ============ Marketing / landing animations (aurora, shine, reveal) ============ */
+/* Slow organic drift for radial gradient blobs in hero & login */
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(80px, -100px, 0) scale(1.15); }
+  66% { transform: translate3d(-60px, 60px, 0) scale(0.92); }
+}
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(-80px, 80px, 0) scale(0.9); }
+  66% { transform: translate3d(90px, -50px, 0) scale(1.1); }
+}
+@keyframes aurora-drift-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(50px, 100px, 0) scale(1.2); }
+}
+.aurora-1 { animation: aurora-drift-1 22s ease-in-out infinite; }
+.aurora-2 { animation: aurora-drift-2 28s ease-in-out infinite; }
+.aurora-3 { animation: aurora-drift-3 35s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-1, .aurora-2, .aurora-3 { animation: none; }
+}
+
+/* Hero reveal on initial paint */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(24px); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.reveal-up { animation: reveal-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.reveal-up-1 { animation-delay: 0.05s; }
+.reveal-up-2 { animation-delay: 0.18s; }
+.reveal-up-3 { animation-delay: 0.32s; }
+.reveal-up-4 { animation-delay: 0.46s; }
+
+/* Shine on hover for primary CTA */
+@keyframes shine-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.btn-shine {
+  background-image: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  background-size: 200% 100%;
+  background-position: 200% 0;
+}
+.btn-shine:hover { animation: shine-sweep 0.9s ease-out; }
+
+/* ============ Existing animations ============ */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
