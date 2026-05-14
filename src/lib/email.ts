@@ -28,11 +28,14 @@ export async function sendEmail({ to, subject, body }: EmailOptions): Promise<{ 
       })
       return { success: true }
     } catch (err) {
-      console.error('[EMAIL] SMTP error:', err)
+      const { logger } = await import('./logger')
+      logger.error('SMTP send failed', err)
       return { success: false, error: 'SMTP error' }
     }
   }
 
-  console.log(`[EMAIL] To: ${Array.isArray(to) ? to.join(',') : to} | Subject: ${subject}`)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[EMAIL DEV] Subject: ${subject}`)
+  }
   return { success: true }
 }

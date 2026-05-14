@@ -152,7 +152,8 @@ export async function GET(request: Request) {
 
       sent++
     } catch (e) {
-      console.error('Email send failed:', e)
+      const { logger } = await import('@/lib/logger')
+      logger.error('Fleet notification email send failed', e)
     }
   }
 

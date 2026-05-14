@@ -83,7 +83,8 @@ async function runAutoPip() {
       cas: odchodTime.toISOString(), zdroj: 'auto', auto_doplnene: true,
     })
     if (insertErr) {
-      console.error(`auto-pip ${p.id}: ${insertErr.message}`)
+      const { logger } = await import('@/lib/logger')
+      logger.error('auto-pip insert failed', insertErr, { profileId: p.id })
       continue
     }
 

@@ -289,9 +289,12 @@ auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
+# Phase 6 hardening: TOTP enabled for admin/it_admin/fin_manager roles.
+# Application-level enforcement: src/app/profil/mfa/page.tsx (enrollment),
+# login flow checks for AAL2 before granting admin access.
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
