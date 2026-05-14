@@ -21,7 +21,7 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
   const [smer] = useState<SmerDochadzky>(defaultSmer)
   const [selectedDovod, setSelectedDovod] = useState<DovodDochadzky>('praca')
   const [user, setUser] = useState<IdentifiedUser | null>(
-    demoMode ? { id: 'demo', full_name: 'Ján Novák (Demo)', pracovny_fond_hodiny: 8.5 } : null
+    demoMode ? { id: 'demo', full_name: 'Ján Novák (Demo)', pracovny_fond_hodiny: 8.5, token: 'demo' } : null
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,7 +102,9 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
   }
 
   async function finalizeZapis(identified: IdentifiedUser, zdroj: 'pin' | 'rfid') {
-    const result = await recordDochadzka(identified.id, smer, selectedDovod, zdroj)
+    // Phase 1 hardening: posielame token, nie user_id (server extrahuje user_id
+    // z tokenu — eliminuje falšovanie dochádzky cudzieho zamestnanca).
+    const result = await recordDochadzka(identified.token, smer, selectedDovod, zdroj)
     if (result.error) {
       setError(result.error)
       setLoading(false)

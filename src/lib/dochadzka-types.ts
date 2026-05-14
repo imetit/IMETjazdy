@@ -108,6 +108,17 @@ export interface IdentifiedUser {
   id: string
   full_name: string
   pracovny_fond_hodiny: number
+  /**
+   * Phase 1 hardening: jednorazový token vygenerovaný po úspešnej PIN/RFID
+   * identifikácii. Klient ho posiela do recordDochadzka; server overí token
+   * (atomic mark-as-used) a extrahuje user_id z tokenu — NIE z volajúceho.
+   *
+   * Zabraňuje exploit: predtým authenticated user mohol priamo volať
+   * recordDochadzka(<cudzí UUID>, ...) a pípať komukoľvek.
+   *
+   * Token expiruje za 10 min; je single-use.
+   */
+  token: string
 }
 
 export interface MesacnyStav {

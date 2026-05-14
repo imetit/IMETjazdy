@@ -3,6 +3,7 @@
 import { revalidatePath, updateTag } from 'next/cache'
 import { requireFinOrAdmin } from '@/lib/auth-helpers'
 import { getAccessibleFirmaIds, buildFirmaScopeKey } from '@/lib/firma-scope'
+import { DodavatelCreateSchema, parseFormData } from '@/lib/validation/schemas'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { logAudit } from './audit'
 
@@ -28,25 +29,26 @@ export async function getDodavatelia(search?: string) {
 export async function createDodavatel(formData: FormData) {
   const auth = await requireFinOrAdmin()
   if ('error' in auth) return { error: auth.error }
+
+  const parsed = parseFormData(DodavatelCreateSchema, formData)
+  if (!parsed.ok) return { error: parsed.error }
+  const d = parsed.data
+
   const admin = createSupabaseAdmin()
-
-  const nazov = (formData.get('nazov') as string)?.trim()
-  if (!nazov) return { error: 'Názov je povinný' }
-
   const { data, error } = await admin.from('dodavatelia').insert({
-    nazov,
-    ico: (formData.get('ico') as string) || null,
-    dic: (formData.get('dic') as string) || null,
-    ic_dph: (formData.get('ic_dph') as string) || null,
-    iban: (formData.get('iban') as string) || null,
+    nazov: d.nazov,
+    ico: d.ico ?? null,
+    dic: d.dic ?? null,
+    ic_dph: d.ic_dph ?? null,
+    iban: d.iban ?? null,
     swift: (formData.get('swift') as string) || null,
-    default_mena: (formData.get('default_mena') as string) || 'EUR',
-    default_dph_sadzba: parseFloat((formData.get('default_dph_sadzba') as string) || '20'),
-    default_splatnost_dni: parseInt((formData.get('default_splatnost_dni') as string) || '14'),
-    adresa: (formData.get('adresa') as string) || null,
-    email: (formData.get('email') as string) || null,
-    telefon: (formData.get('telefon') as string) || null,
-    poznamka: (formData.get('poznamka') as string) || null,
+    default_mena: d.default_mena,
+    default_dph_sadzba: d.default_dph_sadzba,
+    default_splatnost_dni: d.default_splatnost_dni,
+    adresa: d.adresa ?? null,
+    email: d.email ?? null,
+    telefon: d.telefon ?? null,
+    poznamka: d.poznamka ?? null,
   }).select('id').single()
 
   if (error) return { error: 'Chyba: ' + error.message }

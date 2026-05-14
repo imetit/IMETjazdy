@@ -1,11 +1,37 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import type { IdentifiedUser, DovodDochadzky, SmerDochadzky, ZdrojDochadzky, DochadzkaZaznam } from '@/lib/dochadzka-types'
 import { calculateMesacnyStav } from '@/lib/dochadzka-utils'
 
+/**
+ * Phase 1 tablet token model:
+ *   identifyByPin/Rfid → vytvorí tablet_identify_tokens row, vráti token
+ *   recordDochadzka(token, ...) → atomic mark-as-used + extract user_id
+ *
+ * Predtým: recordDochadzka(userId, ...) — kde userId mohol byť poslaný klientom
+ * priamo, t.j. authenticated user vie pípnuť kohokoľvek. Token model uzatvára
+ * túto dieru — klient nikdy nepošle priamo user_id, server ho zistí z tokenu.
+ */
+async function issueTablet(targetUserId: string): Promise<{ token?: string; error?: string }> {
+  const admin = createSupabaseAdmin()
+  const { data, error } = await admin
+    .from('tablet_identify_tokens')
+    .insert({ user_id: targetUserId })
+    .select('token')
+    .single<{ token: string }>()
+  if (error || !data) return { error: 'Chyba pri identifikácii (token)' }
+  return { token: data.token }
+}
+
 export async function identifyByRfid(kodKarty: string): Promise<{ data?: IdentifiedUser; error?: string }> {
+  // Rate-limit RFID brute-force (krátke karty môžu byť odhadnuteľné)
+  const ip = await getClientIp()
+  const rl = await checkRateLimit('identifyPin', `rfid:${ip}`)
+  if (!rl.ok) return { error: `Príliš veľa pokusov. Skús o ${rl.retryAfter}s.` }
+
   const supabase = await createSupabaseServer()
 
   const { data: karta } = await supabase
@@ -26,11 +52,16 @@ export async function identifyByRfid(kodKarty: string): Promise<{ data?: Identif
 
   if (!profile) return { error: 'Zamestnanec nenájdený' }
 
+  // Phase 1 hardening: token namiesto rovno user_id
+  const tok = await issueTablet(profile.id)
+  if (tok.error || !tok.token) return { error: tok.error || 'Token error' }
+
   return {
     data: {
       id: profile.id,
       full_name: profile.full_name,
       pracovny_fond_hodiny: profile.pracovny_fond_hodiny || 8.5,
+      token: tok.token,
     }
   }
 }
@@ -57,11 +88,16 @@ export async function identifyByPin(pin: string): Promise<{ data?: IdentifiedUse
 
   if (!profile) return { error: 'Nesprávny PIN' }
 
+  // Phase 1 hardening: token namiesto rovno user_id
+  const tok = await issueTablet(profile.id)
+  if (tok.error || !tok.token) return { error: tok.error || 'Token error' }
+
   return {
     data: {
       id: profile.id,
       full_name: profile.full_name,
       pracovny_fond_hodiny: profile.pracovny_fond_hodiny || 8.5,
+      token: tok.token,
     }
   }
 }
@@ -91,18 +127,43 @@ export async function getMesacnyStav(userId: string, fondHodiny: number) {
   )
 }
 
+/**
+ * Záznam pípnutia z tabletu. Vyžaduje VALID single-use token z
+ * identifyByPin/Rfid (max 10 min staré). user_id sa extrahuje z tokenu —
+ * NIKDY z requestu. Predtým bola dochádzka falšovateľná: ľubovoľný
+ * authenticated user mohol pípnuť kohokoľvek.
+ */
 export async function recordDochadzka(
-  userId: string,
+  token: string,
   smer: SmerDochadzky,
   dovod: DovodDochadzky,
   zdroj: ZdrojDochadzky
 ) {
-  const supabase = await createSupabaseServer()
+  if (!token || !/^[0-9a-f-]{36}$/i.test(token)) {
+    return { error: 'Chýba alebo neplatný identifikačný token' }
+  }
+
+  const admin = createSupabaseAdmin()
+
+  // Atomická operácia: označ token ako použitý, vráť user_id (alebo prázdne)
+  const { data: tokRow, error: tokErr } = await admin
+    .from('tablet_identify_tokens')
+    .update({ used: true })
+    .eq('token', token)
+    .eq('used', false)
+    .gt('expires_at', new Date().toISOString())
+    .select('user_id')
+    .single<{ user_id: string }>()
+
+  if (tokErr || !tokRow) {
+    return { error: 'Identifikácia vypršala. Prosím prilož kartu / zadaj PIN znovu.' }
+  }
+
   const now = new Date()
   const datum = now.toISOString().split('T')[0]
 
-  const { error } = await supabase.from('dochadzka').insert({
-    user_id: userId,
+  const { error } = await admin.from('dochadzka').insert({
+    user_id: tokRow.user_id,
     datum,
     smer,
     dovod,
