@@ -1,5 +1,6 @@
 'use server'
 
+import bcrypt from 'bcryptjs'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
@@ -74,21 +75,53 @@ export async function identifyByPin(pin: string): Promise<{ data?: IdentifiedUse
     return { error: `Príliš veľa pokusov o identifikáciu. Skús o ${rl.retryAfter}s.` }
   }
 
-  // Validácia formátu — momentálne 4-cifrový PIN (Phase 3 migruje na 6-cifr bcrypt).
+  // Validácia formátu — 6-digit (nový bcrypt flow), 4-digit pre legacy plaintext
   if (!/^\d{4,6}$/.test(pin)) return { error: 'PIN musí byť 4-6 číslic' }
 
-  const supabase = await createSupabaseServer()
+  const admin = createSupabaseAdmin()
 
-  const { data: profile } = await supabase
+  // Phase 3 — nový bcrypt flow: skenuj profile_pins, bcrypt.compare
+  // (N≈200, ≈50ms × 200 = 10s worst case. V praxi early-exit na prvý match.)
+  const { data: hashes } = await admin
+    .from('profile_pins')
+    .select('user_id, pin_hash, pin_length')
+
+  let userId: string | null = null
+  for (const row of hashes || []) {
+    // Skip rows where pin_length doesn't match (perf: 6-digit PIN nemôže
+    // matchovať 4-digit hash a naopak)
+    if (row.pin_length && row.pin_length !== pin.length) continue
+    if (await bcrypt.compare(pin, row.pin_hash)) {
+      userId = row.user_id
+      break
+    }
+  }
+
+  // Backwards-compat fallback: legacy plaintext profiles.pin
+  // Po cutover (po reset PIN pre všetkých → drop profiles.pin column) → remove
+  if (!userId) {
+    const { data: legacy } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('pin', pin)
+      .eq('active', true)
+      .maybeSingle()
+    if (legacy) userId = legacy.id
+  }
+
+  if (!userId) return { error: 'Nesprávny PIN' }
+
+  const { data: profile } = await admin
     .from('profiles')
     .select('id, full_name, pracovny_fond_hodiny')
-    .eq('pin', pin)
+    .eq('id', userId)
     .eq('active', true)
-    .single()
+    .maybeSingle()
 
-  if (!profile) return { error: 'Nesprávny PIN' }
+  if (!profile) return { error: 'Užívateľ deaktivovaný' }
 
-  // Phase 1 hardening: token namiesto rovno user_id
+  // Phase 1 hardening: jednorazový token (10 min TTL) — recordDochadzka nikdy
+  // nedôveruje user_id z klienta.
   const tok = await issueTablet(profile.id)
   if (tok.error || !tok.token) return { error: tok.error || 'Token error' }
 
