@@ -1,5 +1,9 @@
 # IMET Jazdy — SaaS Security Hardening Plan
 
+> **STATUS po 2026-05-15:** Všetkých 8 fáz technicky dokončených.
+> Zostávajú USER ACTIONS (production deploy, PIN reset cutover, externý pentest, legal review).
+> Detailný progress: `~/.claude/.../memory/project_imet_session_2026_05_15.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Zaceliť všetky bezpečnostné medzery odhalené v audite z 2026-05-13 tak, aby bol systém pripravený na predaj veľkej korporátnej firme (ISO 27001 / SOC 2 due diligence).
