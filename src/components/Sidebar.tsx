@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import ThemeToggle from '@/components/ThemeToggle'
+import { brand } from '@/lib/brand'
 import type { Profile, ModulId } from '@/lib/types'
 
 interface Props {
@@ -298,10 +299,10 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
         <div className="flex items-center justify-between mb-4">
           <Link href="/" className="flex items-center gap-3 group min-w-0">
             <div className="bg-white rounded-lg p-2 shadow-md shadow-black/40 transition-transform group-hover:scale-105 shrink-0">
-              <Image src="/imet-logo.png" alt="IMET" width={26} height={26} priority />
+              <Image src={brand.logoSrc} alt={brand.name} width={26} height={26} priority />
             </div>
             <div className="min-w-0">
-              <h1 className="text-white text-base font-semibold tracking-tight leading-none truncate">IMET Jazdy</h1>
+              <h1 className="text-white text-base font-semibold tracking-tight leading-none truncate">{brand.name}</h1>
               <p className="text-slate-500 text-[11px] font-medium leading-none mt-2 uppercase tracking-[0.15em]">Interný systém</p>
             </div>
           </Link>

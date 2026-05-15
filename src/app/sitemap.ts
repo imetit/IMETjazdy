@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
+import { brand } from '@/lib/brand'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://imetjazdy.vercel.app'
+  const base = `https://${brand.domain}`
   const now = new Date()
   return [
     { url: `${base}/`,        lastModified: now, changeFrequency: 'monthly',  priority: 1.0 },

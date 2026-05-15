@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'IMET Dochádzka',
+  title: 'Dochádzka',
   description: 'Dochádzkový terminál',
   manifest: '/manifest.json',
   appleWebApp: {

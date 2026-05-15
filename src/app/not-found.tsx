@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Compass, Home, ArrowLeft } from 'lucide-react'
+import { brand } from '@/lib/brand'
 
 export const metadata = {
   title: 'Stránka nenájdená',
@@ -42,10 +43,10 @@ export default function NotFound() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-white/[0.06] flex items-center justify-center gap-3 text-xs text-slate-500">
-          <div className="bg-white rounded p-1"><Image src="/imet-logo.png" alt="IMET" width={16} height={16} /></div>
-          <span>IMET Jazdy</span>
+          <div className="bg-white rounded p-1"><Image src={brand.logoSrc} alt={brand.name} width={16} height={16} /></div>
+          <span>{brand.name}</span>
           <span aria-hidden>·</span>
-          <a href="mailto:it@imet.sk" className="hover:text-white transition-colors">it@imet.sk</a>
+          <a href={`mailto:${brand.supportEmail}`} className="hover:text-white transition-colors">{brand.supportEmail}</a>
         </div>
       </div>
     </div>

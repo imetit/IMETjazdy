@@ -12,12 +12,13 @@ import {
   Car, FileSpreadsheet, FileCheck2, LockKeyhole, Eye, KeyRound,
 } from 'lucide-react'
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { brand, mailto } from '@/lib/brand'
 
 export const metadata: Metadata = {
-  title: 'IMET Jazdy — HR a vozový park v jednom systéme',
+  title: `${brand.name} — ${brand.tagline}`,
   description: 'Elektronické schvaľovanie faktúr, dochádzka cez tablet, kniha jázd, dovolenky cez nadriadeného, vozový park so STK eskaláciami, archív dokumentov. Pre slovenské firmy.',
   openGraph: {
-    title: 'IMET Jazdy', type: 'website', locale: 'sk_SK', siteName: 'IMET Jazdy',
+    title: brand.name, type: 'website', locale: 'sk_SK', siteName: brand.name,
     description: 'Elektronické schvaľovanie · Tablet kiosk · Kniha jázd · Vozový park · Archív',
   },
   twitter: { card: 'summary_large_image' },
@@ -60,9 +61,9 @@ function Nav() {
       <nav className="relative max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="bg-white rounded-lg p-1.5 shadow-lg shadow-black/40 transition-transform group-hover:scale-105">
-            <Image src="/imet-logo.png" alt="IMET" width={26} height={26} priority />
+            <Image src={brand.logoSrc} alt={brand.name} width={26} height={26} priority />
           </div>
-          <span className="font-semibold tracking-tight text-[15px]">IMET Jazdy</span>
+          <span className="font-semibold tracking-tight text-[15px]">{brand.name}</span>
         </Link>
         <Link href="/login"
               className="inline-flex items-center gap-2 text-[13px] font-medium text-slate-200 hover:text-white transition-colors">
@@ -115,7 +116,7 @@ function Hero() {
               <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
             </span>
           </Link>
-          <a href="mailto:kontakt@imet.sk?subject=IMET%20Jazdy%20—%20Demo"
+          <a href={mailto(`${brand.name} — Demo`)}
              className="text-sm text-slate-400 hover:text-white transition-colors px-4 py-2">
             alebo si vyžiadajte demo →
           </a>
@@ -757,11 +758,11 @@ function Closing() {
             Ponuka šitá na vašu firmu do 24 hodín.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="mailto:kontakt@imet.sk?subject=IMET%20Jazdy%20—%20záujem%20o%20ponuku&body=Počet%20zamestnancov%3A%20%0APočet%20vozidiel%3A%20%0AModuly%20o%20ktoré%20máme%20záujem%3A%20%0ADeployment%20(cloud%20%2F%20on-premise)%3A%20"
+            <a href={mailto(`${brand.name} — záujem o ponuku`)}
                className="group btn-shine inline-flex items-center gap-2 bg-white text-slate-950 px-7 py-3.5 rounded-full text-sm font-semibold transition-all hover:shadow-2xl hover:shadow-white/20 hover:scale-[1.02]">
               <span className="relative z-10 flex items-center gap-2">
                 <Mail size={14} />
-                kontakt@imet.sk
+                {brand.supportEmail}
               </span>
             </a>
             <Link href="/login"
@@ -790,8 +791,8 @@ function Closing() {
       <footer className="relative border-t border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-3">
-            <div className="bg-white rounded-md p-1"><Image src="/imet-logo.png" alt="IMET" width={18} height={18} /></div>
-            <span>© {new Date().getFullYear()} IMET, a.s.</span>
+            <div className="bg-white rounded-md p-1"><Image src={brand.logoSrc} alt={brand.name} width={18} height={18} /></div>
+            <span>© {new Date().getFullYear()} {brand.vendor}</span>
           </div>
           <div className="flex items-center gap-5">
             <Link href="/privacy" className="hover:text-white transition-colors">Ochrana údajov</Link>

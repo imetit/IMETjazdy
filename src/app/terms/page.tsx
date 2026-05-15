@@ -1,4 +1,5 @@
 import LegalShell from '@/components/marketing/LegalShell'
+import { brand } from '@/lib/brand'
 
 export const metadata = {
   title: 'Podmienky používania',
@@ -12,9 +13,9 @@ export default function TermsPage() {
     <LegalShell title="Podmienky používania" updated="2026-05-13 (draft)">
       <h2>1. Definície</h2>
       <ul>
-        <li><strong>Prevádzkovateľ:</strong> IMET, a.s. (a / alebo licenčný odberateľ ktorý má licenciu na použitie systému)</li>
-        <li><strong>Užívateľ:</strong> osoba s aktívnym účtom v systéme IMET Jazdy</li>
-        <li><strong>Služba:</strong> webová aplikácia IMET Jazdy a všetky jej funkcie</li>
+        <li><strong>Prevádzkovateľ:</strong> {brand.vendor} (a / alebo licenčný odberateľ ktorý má licenciu na použitie systému)</li>
+        <li><strong>Užívateľ:</strong> osoba s aktívnym účtom v systéme {brand.name}</li>
+        <li><strong>Služba:</strong> webová aplikácia {brand.name} a všetky jej funkcie</li>
       </ul>
 
       <h2>2. Použitie služby</h2>
@@ -29,7 +30,7 @@ export default function TermsPage() {
       <ul>
         <li>Užívateľ je zodpovedný za zachovanie dôvernosti svojho hesla a 2FA tokenu</li>
         <li>Všetky aktivity vykonané pod účtom sú považované za aktivity vlastníka účtu</li>
-        <li>Stratu alebo kompromitáciu prístupových údajov treba ihneď nahlásiť na <a href="mailto:it@imet.sk">it@imet.sk</a></li>
+        <li>Stratu alebo kompromitáciu prístupových údajov treba ihneď nahlásiť na <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a></li>
       </ul>
 
       <h2>4. Dostupnosť</h2>

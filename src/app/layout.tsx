@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import { ToastProvider } from "@/components/ui/Toast";
 import SWRProvider from "@/components/SWRProvider";
+import { brand } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://imetjazdy.vercel.app'),
+  metadataBase: new URL(`https://${brand.domain}`),
   title: {
-    default: 'IMET Jazdy — HR a vozový park v jednom systéme',
-    template: '%s · IMET Jazdy',
+    default: `${brand.name} — ${brand.tagline}`,
+    template: `%s · ${brand.name}`,
   },
   description: 'Komplexný systém pre dochádzku, knihu jázd, mzdové podklady, faktúry, dovolenky a vozový park. Multi-firma, GDPR-ready, 2FA, EU hosting.',
-  applicationName: 'IMET Jazdy',
-  authors: [{ name: 'IMET, a.s.' }],
+  applicationName: brand.name,
+  authors: [{ name: brand.vendor }],
   generator: 'Next.js',
   keywords: ['kniha jazd', 'dochádzka', 'fleet management', 'HR systém', 'mzdové podklady', 'faktúry', 'GDPR', 'Slovensko'],
   robots: { index: true, follow: true },

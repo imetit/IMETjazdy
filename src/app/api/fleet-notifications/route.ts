@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { NextResponse } from 'next/server'
+import { brand } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
 
@@ -127,7 +128,7 @@ export async function GET(request: Request) {
 
     try {
       await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'IMET Fleet <fleet@imet.sk>',
+        from: process.env.EMAIL_FROM || `${brand.shortName} Fleet <${brand.supportEmail}>`,
         to: n.email,
         subject: n.subject,
         text: n.body,

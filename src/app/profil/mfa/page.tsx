@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth-helpers'
 import MfaEnrollClient from '@/components/auth/MfaEnrollClient'
 
 export const metadata = {
-  title: 'Dvojfaktorové overenie — IMET Jazdy',
+  title: 'Dvojfaktorové overenie',
 }
 
 export default async function MfaPage() {

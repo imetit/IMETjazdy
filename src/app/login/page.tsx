@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import LoginForm from '@/components/LoginForm'
+import { brand } from '@/lib/brand'
 
 export const metadata = {
   title: 'Prihlásenie',
@@ -26,9 +27,9 @@ export default function LoginPage() {
       <header className="relative z-10 max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="bg-white rounded-lg p-1.5 shadow-lg shadow-black/40 transition-transform group-hover:scale-105">
-            <Image src="/imet-logo.png" alt="IMET" width={24} height={24} priority />
+            <Image src={brand.logoSrc} alt={brand.name} width={24} height={24} priority />
           </div>
-          <span className="font-semibold tracking-tight text-sm">IMET Jazdy</span>
+          <span className="font-semibold tracking-tight text-sm">{brand.name}</span>
         </Link>
         <Link href="/" className="text-xs text-slate-400 hover:text-white transition-colors">
           ← Späť na úvod
@@ -52,7 +53,7 @@ export default function LoginPage() {
             <div className="mt-8 pt-6 border-t border-white/[0.06] text-center">
               <p className="text-xs text-slate-500">
                 Problém s prihlásením? Napíšte na{' '}
-                <a href="mailto:it@imet.sk" className="text-teal-300 hover:text-teal-200 transition-colors">it@imet.sk</a>
+                <a href={`mailto:${brand.supportEmail}`} className="text-teal-300 hover:text-teal-200 transition-colors">{brand.supportEmail}</a>
               </p>
             </div>
           </div>

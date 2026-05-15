@@ -1,7 +1,8 @@
 import { ImageResponse } from 'next/og'
+import { brand } from '@/lib/brand'
 
 export const runtime = 'edge'
-export const alt = 'IMET Jazdy — HR a vozový park v jednom systéme'
+export const alt = `${brand.name} — ${brand.tagline}`
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -44,9 +45,9 @@ export default async function OG() {
             background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 700, color: '#0f766e', fontSize: 18,
           }}>i</div>
-          <span style={{ color: '#fff', fontWeight: 600 }}>IMET Jazdy</span>
+          <span style={{ color: '#fff', fontWeight: 600 }}>{brand.name}</span>
           <span style={{ color: '#475569' }}>·</span>
-          <span>imetjazdy.vercel.app</span>
+          <span>{brand.domain}</span>
         </div>
       </div>
     ),

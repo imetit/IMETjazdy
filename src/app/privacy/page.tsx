@@ -1,4 +1,5 @@
 import LegalShell from '@/components/marketing/LegalShell'
+import { brand } from '@/lib/brand'
 
 export const metadata = {
   title: 'Zásady ochrany osobných údajov',
@@ -13,9 +14,8 @@ export default function PrivacyPage() {
     <LegalShell title="Zásady ochrany osobných údajov" updated="2026-05-13 (draft)">
       <h2>1. Prevádzkovateľ</h2>
       <p>
-        IMET, a.s., Bratislava, Slovensko. Kontakt: <a href="mailto:it@imet.sk">it@imet.sk</a>.
-        Tieto zásady popisujú spracovanie osobných údajov v interných HR a fleet
-        nástrojoch IMET Jazdy.
+        {brand.vendor}, Slovensko. Kontakt: <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>.
+        Tieto zásady popisujú spracovanie osobných údajov v aplikácii {brand.name}.
       </p>
 
       <h2>2. Kategórie spracúvaných údajov</h2>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
         <li>Právo <strong>namietať</strong> proti spracovaniu (oprávnený záujem)</li>
       </ul>
       <p>
-        Žiadosti smerujte na <a href="mailto:it@imet.sk">it@imet.sk</a>. Odpovedáme do 30 dní.
+        Žiadosti smerujte na <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>. Odpovedáme do 30 dní.
         Sťažnosť môžete podať na Úrade na ochranu osobných údajov SR (<a href="https://dataprotection.gov.sk">dataprotection.gov.sk</a>).
       </p>
 

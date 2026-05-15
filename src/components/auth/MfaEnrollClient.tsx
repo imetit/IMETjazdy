@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { brand } from '@/lib/brand'
 
 interface Factor {
   id: string
@@ -37,7 +38,7 @@ export default function MfaEnrollClient() {
     setError(null); setSuccess(null)
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: `IMET 2FA (${new Date().toLocaleDateString('sk-SK')})`,
+      friendlyName: `${brand.shortName} 2FA (${new Date().toLocaleDateString('sk-SK')})`,
     })
     if (error) { setError(error.message); return }
     if (!data) return

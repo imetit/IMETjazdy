@@ -1,5 +1,7 @@
 'use server'
 
+import { brand } from '@/lib/brand'
+
 interface EmailOptions {
   to: string | string[]
   subject: string
@@ -21,7 +23,7 @@ export async function sendEmail({ to, subject, body }: EmailOptions): Promise<{ 
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       })
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || 'system@imet.sk',
+        from: process.env.SMTP_FROM || brand.supportEmail,
         to: Array.isArray(to) ? to.join(',') : to,
         subject,
         html: body,

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
+import { brand } from '@/lib/brand'
 
 /**
  * Shared shell pre /privacy, /terms, /security — dark theme s aurora pozadím,
@@ -59,9 +60,9 @@ function Nav() {
       <nav className="relative max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="bg-white rounded-lg p-1.5 shadow-lg shadow-black/40 transition-transform group-hover:scale-105">
-            <Image src="/imet-logo.png" alt="IMET" width={26} height={26} priority />
+            <Image src={brand.logoSrc} alt={brand.name} width={26} height={26} priority />
           </div>
-          <span className="font-semibold tracking-tight text-[15px]">IMET Jazdy</span>
+          <span className="font-semibold tracking-tight text-[15px]">{brand.name}</span>
         </Link>
         <Link href="/login" className="text-[13px] font-medium text-slate-200 hover:text-white transition-colors">
           Prihlásiť sa →
@@ -76,8 +77,8 @@ function Footer() {
     <footer className="relative border-t border-white/[0.06]">
       <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
         <div className="flex items-center gap-3">
-          <div className="bg-white rounded-md p-1"><Image src="/imet-logo.png" alt="IMET" width={18} height={18} /></div>
-          <span>© {new Date().getFullYear()} IMET, a.s.</span>
+          <div className="bg-white rounded-md p-1"><Image src={brand.logoSrc} alt={brand.name} width={18} height={18} /></div>
+          <span>© {new Date().getFullYear()} {brand.vendor}</span>
         </div>
         <div className="flex items-center gap-5">
           <Link href="/privacy" className="hover:text-white transition-colors">Ochrana údajov</Link>

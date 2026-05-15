@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { brand } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,10 +61,10 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
   const lines: string[] = []
   lines.push('BEGIN:VCALENDAR')
   lines.push('VERSION:2.0')
-  lines.push('PRODID:-//IMET//IMET System//SK')
+  lines.push(`PRODID:-//${brand.vendor}//${brand.name}//SK`)
   lines.push('CALSCALE:GREGORIAN')
   lines.push('METHOD:PUBLISH')
-  lines.push(`X-WR-CALNAME:IMET — ${esc(profile.full_name)}`)
+  lines.push(`X-WR-CALNAME:${brand.shortName} — ${esc(profile.full_name)}`)
   lines.push('X-WR-TIMEZONE:Europe/Bratislava')
 
   for (const d of dovolenky || []) {

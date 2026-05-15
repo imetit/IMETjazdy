@@ -1,4 +1,5 @@
 import LegalShell from '@/components/marketing/LegalShell'
+import { brand } from '@/lib/brand'
 
 export const metadata = {
   title: 'Security Policy',
@@ -14,14 +15,14 @@ export default function SecurityPage() {
 
       <h2>Reporting</h2>
       <ul>
-        <li>Email: <a href="mailto:security@imet.sk">security@imet.sk</a> (záloha: <a href="mailto:it@imet.sk">it@imet.sk</a>)</li>
+        <li>Email: <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a></li>
         <li>Prosíme uveďte: dotknutý URL / endpoint, kroky na reprodukciu, vaše meno (pre credit), a PoC ak je možný</li>
         <li>Dajte nám primeraný čas na investigáciu a patch pred verejným disclosure</li>
       </ul>
 
       <h2>Scope</h2>
       <ul>
-        <li>Aplikácia: <code>imetjazdy.vercel.app</code> a všetky sub-paths</li>
+        <li>Aplikácia: <code>{brand.domain}</code> a všetky sub-paths</li>
         <li>V scope: authentication bypass, IDOR, injection (SQL/NoSQL/XSS), CSRF, RCE, SSRF, privilege escalation, sensitive data exposure</li>
         <li>Mimo scope: phishing užívateľov, social engineering, DoS/volumetric útoky, automated scanner output bez proof-of-impact, chýbajúce best-practice headers bez exploitable consequence</li>
       </ul>
@@ -29,7 +30,7 @@ export default function SecurityPage() {
       <h2>Safe harbor</h2>
       <p>
         Výskumníci konajúci v dobrej viere, bez exfiltrácie užívateľských dát a bez degradovania
-        služby pre ostatných užívateľov, nebudú čeliť právnym krokom od IMET za svoje nálezy.
+        služby pre ostatných užívateľov, nebudú čeliť právnym krokom od {brand.vendor} za svoje nálezy.
       </p>
 
       <h2>Disclosure timeline</h2>
