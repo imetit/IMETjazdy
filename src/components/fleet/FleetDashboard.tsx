@@ -18,7 +18,7 @@ export default function FleetDashboard({ data }: { data: FleetDashboardData }) {
   return (
     <div className="space-y-6">
       {/* Stat cards - clickable */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Celkom */}
         <Link href="/fleet/vozidla" className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 transition-colors">
           <div className="flex items-center justify-between">
@@ -100,7 +100,7 @@ export default function FleetDashboard({ data }: { data: FleetDashboardData }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Poistenie - PZP + Havarijne */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function FleetDashboard({ data }: { data: FleetDashboardData }) {
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <TrendingUp size={20} /> Náklady na vozový park
         </h3>
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Tento mesiac</span>
