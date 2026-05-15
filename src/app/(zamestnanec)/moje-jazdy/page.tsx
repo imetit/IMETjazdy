@@ -22,6 +22,7 @@ export default async function MojeJazdyPage() {
       </ModuleHelp>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Moje jazdy</h2>
       <div className="bg-white rounded-card shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full table-striped">
           <thead><tr className="bg-gray-50 border-b border-gray-200">
             <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Č. dokladu</th>
@@ -47,6 +48,7 @@ export default async function MojeJazdyPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

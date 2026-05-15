@@ -3,6 +3,7 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { requireAuth, requireAdmin, requireOwnerOrAdmin } from '@/lib/auth-helpers'
 import { validateUpload } from '@/lib/upload-validator'
+import { JazdaCreateSchema, parseFormData } from '@/lib/validation/schemas'
 import { redirect } from 'next/navigation'
 import { revalidatePath, updateTag } from 'next/cache'
 
@@ -10,6 +11,11 @@ export async function createJazda(formData: FormData) {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Zod validácia — mesiac formát YYYY-MM, km nezáporné a max 100k, časy HH:MM
+  const parsed = parseFormData(JazdaCreateSchema, formData)
+  if (!parsed.ok) return { error: parsed.error }
+  const d = parsed.data
 
   const { data: profile } = await supabase.from('profiles').select('vozidlo_id').eq('id', user.id).single()
   if (!profile?.vozidlo_id) return { error: 'Nemáte priradené vozidlo' }
@@ -25,26 +31,25 @@ export async function createJazda(formData: FormData) {
     return { error: 'Priradené vozidlo nie je aktívne. Kontaktujte správcu vozového parku.' }
   }
 
-  const stav = formData.get('stav') as string
-
   const { data: jazda, error } = await supabase
     .from('jazdy')
     .insert({
       user_id: user.id,
-      mesiac: formData.get('mesiac') as string,
-      odchod_z: (formData.get('odchod_z') as string) || '',
-      prichod_do: (formData.get('prichod_do') as string) || '',
-      cez: (formData.get('cez') as string) || null,
-      km: parseFloat(formData.get('km') as string),
+      mesiac: d.mesiac,
+      odchod_z: d.odchod_z,
+      prichod_do: d.prichod_do,
+      cez: d.cez ?? null,
+      km: d.km,
       vozidlo_id: profile.vozidlo_id,
-      cas_odchodu: (formData.get('cas_odchodu') as string) || '00:00',
-      cas_prichodu: (formData.get('cas_prichodu') as string) || '00:00',
-      stav,
+      cas_odchodu: d.cas_odchodu,
+      cas_prichodu: d.cas_prichodu,
+      stav: d.stav,
     })
     .select()
     .single()
 
   if (error) return { error: 'Chyba pri ukladaní jazdy' }
+  const stav = d.stav
 
   const files = formData.getAll('files') as File[]
   for (const file of files) {
@@ -78,11 +83,11 @@ export async function createJazda(formData: FormData) {
       .in('role', ['admin', 'it_admin', 'fin_manager'])
       .eq('active', true)
     for (const admin of admins || []) {
-      await createNotifikacia(admin.id, 'nova_jazda', 'Nová jazda na spracovanie', `Nová jazda za mesiac ${formData.get('mesiac')}.`, `/admin/jazdy/${jazda.id}`)
+      await createNotifikacia(admin.id, 'nova_jazda', 'Nová jazda na spracovanie', `Nová jazda za mesiac ${d.mesiac}.`, `/admin/jazdy/${jazda.id}`)
     }
   }
 
-  revalidatePath('/')
+  revalidatePath('/moje')
   revalidatePath('/moje-jazdy')
   redirect('/moje-jazdy')
 }
