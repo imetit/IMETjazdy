@@ -495,16 +495,13 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
       )}
 
       {/* Sidebar shell
-        * Desktop: sticky top-0 + h-screen → vždy 100vh, pinnuté pri scrollovaní content-u.
-        *   Header + footer sidebaru ostávajú viditeľné; iba <nav> v strede scrolluje (overflow-y-auto).
-        * Mobile: fixed inset-y-0 → full-screen drawer s backdrop-om.
-        * Predtým: relative + min-h-screen znamenalo že flex parent natiahol sidebar na výšku
-        *   celého obsahu (napr. dlhej tabuľky) a pri body-scrolle sa odrezal vrch + bola viditeľná
-        *   len jedna časť. */}
+        * Desktop: flex child v h-screen overflow-hidden parente → sidebar je natiahnutý
+        *   na 100vh a nikdy sa neskroluje s obsahom. Iba <main> má interný scroll.
+        * Mobile: fixed inset-y-0 → off-canvas drawer s backdropom. */}
       <aside
         className={`
           bg-[#020617] flex flex-col shrink-0 border-r border-white/[0.05]
-          md:sticky md:top-0 md:h-screen md:w-[290px] md:translate-x-0
+          md:relative md:inset-auto md:h-screen md:w-[290px] md:translate-x-0
           fixed inset-y-0 left-0 z-50 w-[290px] transition-transform duration-300 ease-out
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
           md:transition-none

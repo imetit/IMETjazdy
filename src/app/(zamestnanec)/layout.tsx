@@ -6,7 +6,7 @@ import { getSession } from '@/lib/get-session'
 
 export default function ZamestnanecLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-page-bg">
+    <div className="flex h-screen overflow-hidden bg-page-bg">
       <Suspense fallback={<SkeletonSidebar />}>
         <ZamSidebar />
       </Suspense>

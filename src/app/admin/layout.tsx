@@ -10,7 +10,7 @@ import { getSession } from '@/lib/get-session'
 // niečo zlyhalo.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-page-bg">
+    <div className="flex h-screen overflow-hidden bg-page-bg">
       <Suspense fallback={<SkeletonSidebar />}>
         <AdminSidebar />
       </Suspense>
