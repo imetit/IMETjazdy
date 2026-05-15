@@ -16,8 +16,16 @@ export const metadata: Metadata = {
   generator: 'Next.js',
   keywords: ['kniha jazd', 'dochádzka', 'fleet management', 'HR systém', 'mzdové podklady', 'faktúry', 'GDPR', 'Slovensko'],
   robots: { index: true, follow: true },
-  themeColor: '#0d9488',
-  icons: { icon: '/icon.ico', apple: '/icon-192.png' },
+  themeColor: '#031457',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -33,7 +41,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0d9488" />
+        <meta name="theme-color" content="#031457" />
       </head>
       <body><SWRProvider><ToastProvider>{children}</ToastProvider></SWRProvider></body>
     </html>

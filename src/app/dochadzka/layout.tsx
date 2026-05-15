@@ -20,7 +20,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0d9488',
+  themeColor: '#031457',
 }
 
 export default function DochadzkaLayout({ children }: { children: React.ReactNode }) {
