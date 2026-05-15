@@ -155,7 +155,7 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-6 pt-6 select-none">
+    <div className="min-h-screen flex flex-col items-center p-6 pt-6 select-none bg-slate-900 text-white">
       <Image src="/imet-logo.png" alt="IMET" width={120} height={120} priority className="mb-4" />
 
       <div className={`px-8 py-3 rounded-full text-2xl font-bold mb-5 ${
@@ -164,8 +164,8 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
         {isPrichod ? 'PRÍCHOD' : 'ODCHOD'}
       </div>
 
-      <div className="text-6xl font-bold text-white mb-1 font-mono tabular-nums">{timeStr}</div>
-      <div className="text-lg text-slate-400 mb-8 capitalize">{dateStr}</div>
+      <div className="text-4xl sm:text-6xl font-bold text-white mb-1 font-mono tabular-nums">{timeStr}</div>
+      <div className="text-base sm:text-lg text-slate-400 mb-8 capitalize">{dateStr}</div>
 
       {screen === 'select_dovod' && (
         <div className="w-full flex flex-col items-center gap-6">
@@ -180,7 +180,12 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
             Dôvod: <span className="font-bold text-teal-400">{labelForSmer(selectedDovod, smer)}</span>
           </div>
 
-          {error && <p className="text-red-400 text-xl animate-pulse">{error}</p>}
+          {error && (
+            <div role="alert" className="flex items-center gap-3 px-6 py-4 rounded-2xl border-2 border-red-500/60 bg-red-500/10 text-red-200 text-xl animate-pulse">
+              <span aria-hidden className="text-2xl">⚠</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           <p className="text-3xl text-slate-200 text-center">Priložte kartu<br/><span className="text-xl text-slate-400">alebo zadajte PIN</span></p>
 

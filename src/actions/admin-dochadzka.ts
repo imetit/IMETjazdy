@@ -1,6 +1,7 @@
 'use server'
 
 import { requireAdmin, requireScopedAdmin } from '@/lib/auth-helpers'
+import { DochadzkaManualSchema, parseFormData } from '@/lib/validation/schemas'
 import { revalidatePath } from 'next/cache'
 import type { DochadzkaZaznam } from '@/lib/dochadzka-types'
 
@@ -85,24 +86,26 @@ export async function getDochadzkaDetail(userId: string, mesiac: string) {
 }
 
 export async function addManualDochadzka(formData: FormData) {
-  const userId = formData.get('user_id') as string
-  if (!userId) return { error: 'user_id chýba' }
+  // Zod validácia (uuid user_id, date YYYY-MM-DD, enum smer/dovod, ISO datetime)
+  const parsed = parseFormData(DochadzkaManualSchema, formData)
+  if (!parsed.ok) return { error: parsed.error }
+  const d = parsed.data
 
-  const auth = await requireScopedAdmin(userId)
+  const auth = await requireScopedAdmin(d.user_id)
   if ('error' in auth) return { error: auth.error }
   const supabase = auth.supabase
 
   const { error } = await supabase.from('dochadzka').insert({
-    user_id: userId,
-    datum: formData.get('datum') as string,
-    smer: formData.get('smer') as string,
-    dovod: formData.get('dovod') as string,
-    cas: formData.get('cas') as string,
+    user_id: d.user_id,
+    datum: d.datum,
+    smer: d.smer,
+    dovod: d.dovod,
+    cas: d.cas,
     zdroj: 'manual',
   })
 
   if (error) return { error: 'Chyba pri pridávaní záznamu' }
-  revalidatePath(`/admin/dochadzka/${userId}`)
+  revalidatePath(`/admin/dochadzka/${d.user_id}`)
 }
 
 export async function deleteDochadzkaZaznam(id: string, userId: string) {

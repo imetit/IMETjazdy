@@ -2,6 +2,7 @@
 
 import { requireScopedAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { DochadzkaKorekciaSchema } from '@/lib/validation/schemas'
 import { revalidatePath, updateTag } from 'next/cache'
 import { logAudit } from './audit'
 import { isUzavretyMesiac } from '@/lib/dochadzka-uzavierka'
@@ -28,9 +29,16 @@ async function checkUzavierka(userId: string, datum: string): Promise<{ blocked:
 }
 
 export async function pridatZaznam(data: ZaznamData) {
+  // Zod validácia (uuid, enum smer/dovod, ISO datetime, korekcia_dovod min 3)
+  const parsed = DochadzkaKorekciaSchema.safeParse(data)
+  if (!parsed.success) {
+    const first = parsed.error.issues[0]
+    return { error: first?.message || 'Neplatné vstupy' }
+  }
+  data = parsed.data as ZaznamData
+
   const auth = await requireScopedAdmin(data.user_id)
   if ('error' in auth) return auth
-  if (!data.korekcia_dovod?.trim()) return { error: 'Dôvod korektúry je povinný' }
 
   const block = await checkUzavierka(data.user_id, data.datum)
   if (block.blocked) return { error: block.reason }
