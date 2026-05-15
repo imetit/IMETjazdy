@@ -125,6 +125,19 @@ export const DovolenkaCreateSchema = z.object({
   poznamka: z.string().max(500).optional().nullable(),
 }).refine(d => d.datum_od <= d.datum_do, { message: 'datum_od musí byť ≤ datum_do', path: ['datum_do'] })
 
+export const CestaCreateSchema = z.object({
+  datum_od: dateSchema,
+  datum_do: dateSchema,
+  ciel: z.string().trim().min(2).max(200),
+  ucel: z.string().trim().min(2).max(500),
+  doprava: z.enum(['firemne_auto', 'sukromne_auto', 'vlak', 'autobus', 'lietadlo', 'mhd', 'ine']),
+  predpokladany_km: z.coerce.number().int().min(0).max(20000).optional().nullable(),
+  poznamka: z.string().max(1000).optional().nullable(),
+  typ_cesty: z.enum(['domaca', 'zahranicna']).optional().default('domaca'),
+  krajina: z.string().length(2).optional().nullable(),
+  mena: MenaEnum.optional().default('EUR'),
+}).refine(d => d.datum_od <= d.datum_do, { message: 'datum_od musí byť ≤ datum_do', path: ['datum_do'] })
+
 export const DodavatelCreateSchema = z.object({
   nazov: z.string().trim().min(2).max(200),
   ico: icoSchema.optional().nullable(),

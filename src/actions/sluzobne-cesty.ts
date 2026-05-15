@@ -27,9 +27,11 @@ export async function createCesta(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Neprihlásený' }
 
-  const datumOd = new Date(formData.get('datum_od') as string)
-  const datumDo = new Date(formData.get('datum_do') as string)
-  if (datumOd > datumDo) return { error: 'Dátum od musí byť pred dátumom do' }
+  // Zod validácia (date_od ≤ date_do invariant je v schéme cez .refine)
+  const { CestaCreateSchema, parseFormData } = await import('@/lib/validation/schemas')
+  const parsed = parseFormData(CestaCreateSchema, formData)
+  if (!parsed.ok) return { error: parsed.error }
+  const d = parsed.data
 
   // Aktuálny schvaľovateľ (zohľadní zastupujúceho ak je primárny na dovolenke)
   let schvalovatelId = await resolveCurrentApprover(supabase, user.id)
@@ -46,13 +48,16 @@ export async function createCesta(formData: FormData) {
 
   const { error } = await supabase.from('sluzobne_cesty').insert({
     user_id: user.id,
-    datum_od: formData.get('datum_od') as string,
-    datum_do: formData.get('datum_do') as string,
-    ciel: formData.get('ciel') as string,
-    ucel: formData.get('ucel') as string,
-    doprava: formData.get('doprava') as string,
-    predpokladany_km: formData.get('predpokladany_km') ? parseInt(formData.get('predpokladany_km') as string) : null,
-    poznamka: formData.get('poznamka') as string || null,
+    datum_od: d.datum_od,
+    datum_do: d.datum_do,
+    ciel: d.ciel,
+    ucel: d.ucel,
+    doprava: d.doprava,
+    predpokladany_km: d.predpokladany_km ?? null,
+    poznamka: d.poznamka ?? null,
+    typ_cesty: d.typ_cesty,
+    krajina: d.krajina ?? 'SK',
+    mena: d.mena,
     schvalovatel_id: schvalovatelId,
   })
 
@@ -65,7 +70,7 @@ export async function createCesta(formData: FormData) {
       user_id: schvalovatelId,
       typ: 'cesta_nova',
       nadpis: 'Nová žiadosť o služobnú cestu',
-      sprava: `${zamestnanec?.full_name || 'Zamestnanec'} žiada o cestu do ${formData.get('ciel')} (${formData.get('datum_od')} — ${formData.get('datum_do')})`,
+      sprava: `${zamestnanec?.full_name || 'Zamestnanec'} žiada o cestu do ${d.ciel} (${d.datum_od} — ${d.datum_do})`,
       link: '/admin/sluzobne-cesty',
     })
   }

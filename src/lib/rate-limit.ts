@@ -22,7 +22,10 @@ const token = process.env.UPSTASH_REDIS_REST_TOKEN
 const redis = url && token ? new Redis({ url, token }) : null
 
 if (!redis && process.env.NODE_ENV === 'production') {
-  // V produkcii bez Upstash → loud warning (môže byť zámerné počas prvého deploy)
+  // V produkcii bez Upstash → init-time warning. Nepoužívame logger.ts tu
+  // kvôli kruhovej závislosti (logger → Sentry → môže potrebovať rate-limit
+  // v budúcnosti). console.warn pre tento jediný init signál je OK.
+  // eslint-disable-next-line no-console
   console.warn('[rate-limit] UPSTASH_REDIS_* env premenné chýbajú; rate limit DEAKTIVOVANÝ')
 }
 
