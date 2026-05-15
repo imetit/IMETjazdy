@@ -1,5 +1,7 @@
+import LegalShell from '@/components/marketing/LegalShell'
+
 export const metadata = {
-  title: 'Podmienky používania — IMET Jazdy',
+  title: 'Podmienky používania',
 }
 
 // PRACOVNÁ VERZIA — pred ostrým predajom korporátnemu klientovi musí túto
@@ -7,13 +9,10 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="max-w-3xl mx-auto py-12 px-4 prose">
-      <h1>Podmienky používania</h1>
-      <p className="text-sm text-gray-500">Posledná aktualizácia: 2026-05-13 (draft)</p>
-
+    <LegalShell title="Podmienky používania" updated="2026-05-13 (draft)">
       <h2>1. Definície</h2>
       <ul>
-        <li><strong>Prevádzkovateľ:</strong> IMET, a.s. (a / alebo licenčný odberateľ ktorý ma licenciu na použitie systému)</li>
+        <li><strong>Prevádzkovateľ:</strong> IMET, a.s. (a / alebo licenčný odberateľ ktorý má licenciu na použitie systému)</li>
         <li><strong>Užívateľ:</strong> osoba s aktívnym účtom v systéme IMET Jazdy</li>
         <li><strong>Služba:</strong> webová aplikácia IMET Jazdy a všetky jej funkcie</li>
       </ul>
@@ -28,9 +27,9 @@ export default function TermsPage() {
 
       <h2>3. Účet a heslo</h2>
       <ul>
-        <li>Užívateľ je zodpovedný za zachovanie dôvernosti svojho hesla a 2FA tokenu.</li>
-        <li>Všetky aktivity vykonané pod účtom sú považované za aktivity vlastníka účtu.</li>
-        <li>Strátu alebo kompromitáciu prístupových údajov treba ihneď nahlásiť na <a href="mailto:it@imet.sk">it@imet.sk</a>.</li>
+        <li>Užívateľ je zodpovedný za zachovanie dôvernosti svojho hesla a 2FA tokenu</li>
+        <li>Všetky aktivity vykonané pod účtom sú považované za aktivity vlastníka účtu</li>
+        <li>Stratu alebo kompromitáciu prístupových údajov treba ihneď nahlásiť na <a href="mailto:it@imet.sk">it@imet.sk</a></li>
       </ul>
 
       <h2>4. Dostupnosť</h2>
@@ -42,7 +41,7 @@ export default function TermsPage() {
 
       <h2>5. Obmedzenie zodpovednosti</h2>
       <p>
-        Služba je poskytovaná "ako je". V maximálnom rozsahu povolenom právom prevádzkovateľ
+        Služba je poskytovaná &quot;ako je&quot;. V maximálnom rozsahu povolenom právom prevádzkovateľ
         neručí za škody vyplývajúce z používania alebo nemožnosti používania služby, vrátane
         ušlého zisku, straty dát alebo prerušenia podnikania. Toto obmedzenie sa nevzťahuje
         na úmyselné konanie alebo hrubú nedbalosť.
@@ -75,10 +74,10 @@ export default function TermsPage() {
         slovenských súdov.
       </p>
 
-      <p className="text-sm text-gray-500 mt-12">
+      <p className="mt-12 pt-8 border-t border-white/[0.06] text-sm text-slate-500">
         ⚠️ Pred záväzným použitím tento dokument musí schváliť právnik. Aktuálny obsah
         je pracovný draft pre účely interného nasadenia.
       </p>
-    </main>
+    </LegalShell>
   )
 }
