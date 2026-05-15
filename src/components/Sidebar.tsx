@@ -262,21 +262,21 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
   function NavItem({ item }: { item: NavItemDef }) {
     const active = isLinkActive(item.href, { exact: item.exact })
     const Icon = item.icon
-    const cls = `group relative flex items-center gap-3 mx-2 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-150
+    const cls = `group relative flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-[15px] font-medium leading-tight transition-all duration-150
       ${active
-        ? 'text-white bg-white/[0.05]'
-        : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.025]'}`
+        ? 'text-white bg-white/[0.06]'
+        : 'text-slate-300 hover:text-white hover:bg-white/[0.03]'}`
     const content = (
       <>
         <span
           aria-hidden
-          className={`absolute -left-[10px] top-[6px] bottom-[6px] w-[3px] rounded-r-full bg-teal-400 transition-all duration-200
+          className={`absolute -left-[10px] top-2 bottom-2 w-[3px] rounded-r-full bg-teal-400 transition-all duration-200
             ${active ? 'opacity-100 shadow-[0_0_10px_rgba(45,212,191,0.6)]' : 'opacity-0 -translate-x-1'}`}
         />
         <Icon
-          size={17}
-          strokeWidth={1.75}
-          className={`shrink-0 transition-all duration-150 ${active ? 'text-teal-300 scale-105' : 'text-slate-500 group-hover:text-slate-300'}`}
+          size={19}
+          strokeWidth={1.85}
+          className={`shrink-0 transition-all duration-150 ${active ? 'text-teal-300 scale-105' : 'text-slate-400 group-hover:text-slate-200'}`}
         />
         <span className="truncate">{item.label}</span>
       </>
@@ -294,26 +294,26 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
   const sidebarContent = (
     <>
       {/* Header */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between mb-3">
-          <Link href="/" className="flex items-center gap-2.5 group min-w-0">
-            <div className="bg-white rounded-lg p-1.5 shadow-md shadow-black/40 transition-transform group-hover:scale-105 shrink-0">
-              <Image src="/imet-logo.png" alt="IMET" width={22} height={22} priority />
+      <div className="px-4 pt-5 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/" className="flex items-center gap-3 group min-w-0">
+            <div className="bg-white rounded-lg p-2 shadow-md shadow-black/40 transition-transform group-hover:scale-105 shrink-0">
+              <Image src="/imet-logo.png" alt="IMET" width={26} height={26} priority />
             </div>
             <div className="min-w-0">
-              <h1 className="text-white text-[14px] font-semibold tracking-tight leading-none truncate">IMET Jazdy</h1>
-              <p className="text-slate-500 text-[9.5px] font-medium leading-none mt-1.5 uppercase tracking-[0.15em]">Interný systém</p>
+              <h1 className="text-white text-base font-semibold tracking-tight leading-none truncate">IMET Jazdy</h1>
+              <p className="text-slate-500 text-[11px] font-medium leading-none mt-2 uppercase tracking-[0.15em]">Interný systém</p>
             </div>
           </Link>
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <Link
               href="/notifikacie"
               aria-label={`Notifikácie${notifCount > 0 ? ` (${notifCount} neprečítaných)` : ''}`}
-              className="relative p-1.5 text-slate-400 hover:text-white transition-colors rounded-md hover:bg-white/[0.04]"
+              className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-md hover:bg-white/[0.05]"
             >
-              <Bell size={16} strokeWidth={1.75} />
+              <Bell size={18} strokeWidth={1.85} />
               {notifCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[8.5px] font-bold rounded-full flex items-center justify-center px-1">
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
@@ -321,17 +321,17 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
             <button
               type="button"
               onClick={closeMobile}
-              className="md:hidden p-1.5 text-slate-400 hover:text-white transition-colors rounded-md hover:bg-white/[0.04]"
+              className="md:hidden p-2 text-slate-400 hover:text-white transition-colors rounded-md hover:bg-white/[0.05]"
               aria-label="Zavrieť menu"
             >
-              <X size={18} strokeWidth={1.75} />
+              <X size={20} strokeWidth={1.85} />
             </button>
           </div>
         </div>
 
         {/* ⌘K Search */}
         <div className="relative">
-          <Search size={13} strokeWidth={1.75} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <Search size={15} strokeWidth={1.85} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           <input
             ref={searchInputRef}
             type="search"
@@ -339,7 +339,7 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             spellCheck={false}
-            className="w-full pl-8 pr-12 py-1.5 bg-white/[0.03] border border-white/[0.06] rounded-md text-[12.5px] text-slate-100 placeholder:text-slate-500 focus:outline-none focus:bg-white/[0.05] focus:border-teal-400/30 transition-all"
+            className="w-full pl-9 pr-14 py-2.5 bg-white/[0.03] border border-white/[0.07] rounded-lg text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:bg-white/[0.05] focus:border-teal-400/30 transition-all"
             aria-label="Hľadať v navigácii"
           />
           {searchQuery ? (
@@ -347,12 +347,12 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               type="button"
               onClick={() => { setSearchQuery(''); searchInputRef.current?.focus() }}
               aria-label="Vyčistiť"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-500 hover:text-slate-200 transition-colors rounded"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-200 transition-colors rounded"
             >
-              <X size={12} />
+              <X size={14} />
             </button>
           ) : (
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9.5px] text-slate-500 px-1.5 py-[1px] rounded border border-white/[0.06] bg-white/[0.02] font-mono pointer-events-none select-none">⌘K</kbd>
+            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 px-1.5 py-0.5 rounded border border-white/[0.07] bg-white/[0.03] font-mono pointer-events-none select-none">⌘K</kbd>
           )}
         </div>
       </div>
@@ -360,27 +360,27 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
       {/* Navigation */}
       <nav className="flex-1 py-1 overflow-y-auto overscroll-contain">
         {filteredSections.length === 0 && (
-          <div className="px-4 py-8 text-center">
-            <p className="text-[12px] text-slate-500">Žiadne výsledky pre <span className="text-slate-300 font-medium">&quot;{searchQuery}&quot;</span></p>
+          <div className="px-4 py-10 text-center">
+            <p className="text-sm text-slate-400">Žiadne výsledky pre <span className="text-white font-medium">&quot;{searchQuery}&quot;</span></p>
           </div>
         )}
         {filteredSections.map((section, idx) => {
           const isCollapsed = !isSearching && collapsed.has(section.key)
           return (
-            <div key={section.key} className={idx === 0 ? 'mt-1' : 'mt-4'}>
+            <div key={section.key} className={idx === 0 ? 'mt-2' : 'mt-5'}>
               <button
                 type="button"
                 onClick={() => !isSearching && toggleSection(section.key)}
                 disabled={isSearching}
                 aria-expanded={!isCollapsed}
-                className="w-full flex items-center justify-between px-4 pb-1.5 group"
+                className="w-full flex items-center justify-between px-4 pb-2 group"
               >
-                <span className="text-[10px] font-semibold text-slate-500/70 uppercase tracking-[0.18em]">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.15em]">
                   {section.label}
                 </span>
                 {!isSearching && (
                   <ChevronDown
-                    size={11}
+                    size={13}
                     strokeWidth={2}
                     className={`text-slate-600 group-hover:text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
                   />
@@ -388,10 +388,10 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
               </button>
               <div
                 className={`overflow-hidden transition-[max-height] duration-200 ease-out ${
-                  isCollapsed ? 'max-h-0' : 'max-h-[1000px]'
+                  isCollapsed ? 'max-h-0' : 'max-h-[1500px]'
                 }`}
               >
-                <div className="space-y-[1px]">
+                <div className="space-y-0.5">
                   {section.items.map(item => <NavItem key={item.href} item={item} />)}
                 </div>
               </div>
@@ -401,7 +401,7 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
       </nav>
 
       {/* Footer — user menu */}
-      <div className="px-2 pt-2 pb-2 border-t border-white/[0.05]">
+      <div className="px-2 pt-2 pb-3 border-t border-white/[0.05]">
         <div className="relative" ref={userMenuRef}>
           {/* User button */}
           <button
@@ -409,17 +409,17 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
-            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors group"
+            className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-white text-[12px] font-semibold shadow-md shadow-teal-500/20 shrink-0 ring-1 ring-white/10">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-md shadow-teal-500/20 shrink-0 ring-1 ring-white/10">
               {userInitial}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-[12.5px] font-medium text-slate-100 truncate leading-tight">{profile.full_name}</p>
-              <p className="text-[10.5px] text-slate-500 truncate leading-tight mt-0.5">{userRole}</p>
+              <p className="text-sm font-medium text-white truncate leading-tight">{profile.full_name}</p>
+              <p className="text-[12px] text-slate-400 truncate leading-tight mt-1">{userRole}</p>
             </div>
             <ChevronUp
-              size={13}
+              size={15}
               strokeWidth={2}
               className={`text-slate-500 group-hover:text-slate-300 transition-transform duration-200 ${userMenuOpen ? '' : 'rotate-180'}`}
             />
@@ -429,40 +429,40 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
           {userMenuOpen && (
             <div
               role="menu"
-              className="absolute bottom-full left-0 right-0 mb-2 rounded-xl bg-[#0a0f1e] border border-white/[0.08] shadow-2xl shadow-black/60 p-1.5 z-50 backdrop-blur-xl animate-scale-in origin-bottom"
+              className="absolute bottom-full left-0 right-0 mb-2 rounded-xl bg-[#0a0f1e] border border-white/[0.08] shadow-2xl shadow-black/60 p-2 z-50 backdrop-blur-xl animate-scale-in origin-bottom"
             >
               <Link
                 href="/profil/mfa"
                 onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-200 hover:text-white hover:bg-white/[0.05] transition-colors"
                 role="menuitem"
               >
-                <KeyRound size={14} strokeWidth={1.75} className="text-slate-500" />
+                <KeyRound size={17} strokeWidth={1.85} className="text-slate-400" />
                 Dvojfaktorové overenie
               </Link>
               <Link
                 href="/security"
                 onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-200 hover:text-white hover:bg-white/[0.05] transition-colors"
                 role="menuitem"
               >
-                <ShieldQuestion size={14} strokeWidth={1.75} className="text-slate-500" />
+                <ShieldQuestion size={17} strokeWidth={1.85} className="text-slate-400" />
                 Bezpečnostná politika
               </Link>
-              <div className="my-1 border-t border-white/[0.05]" />
-              <div className="flex items-center gap-2.5 px-3 py-1.5 text-[12.5px] text-slate-300">
-                <Palette size={14} strokeWidth={1.75} className="text-slate-500" />
+              <div className="my-1.5 border-t border-white/[0.05]" />
+              <div className="flex items-center gap-3 px-3 py-2 text-sm text-slate-200">
+                <Palette size={17} strokeWidth={1.85} className="text-slate-400" />
                 <span className="flex-1">Téma</span>
                 <ThemeToggle />
               </div>
-              <div className="my-1 border-t border-white/[0.05]" />
+              <div className="my-1.5 border-t border-white/[0.05]" />
               <form action={logout}>
                 <button
                   type="submit"
                   role="menuitem"
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] text-red-300 hover:text-red-200 hover:bg-red-500/[0.08] transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-300 hover:text-red-200 hover:bg-red-500/[0.1] transition-colors"
                 >
-                  <LogOut size={14} strokeWidth={1.75} />
+                  <LogOut size={17} strokeWidth={1.85} />
                   Odhlásiť sa
                 </button>
               </form>
@@ -498,8 +498,8 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
       <aside
         className={`
           relative bg-[#020617] min-h-screen flex flex-col shrink-0 border-r border-white/[0.05]
-          md:w-[260px] md:relative md:translate-x-0
-          fixed inset-y-0 left-0 z-50 w-[260px] transition-transform duration-300 ease-out
+          md:w-[290px] md:relative md:translate-x-0
+          fixed inset-y-0 left-0 z-50 w-[290px] transition-transform duration-300 ease-out
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
           md:transition-none
         `}
