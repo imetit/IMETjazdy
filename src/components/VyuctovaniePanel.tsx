@@ -7,6 +7,7 @@ import { calculateVyuctovanie } from '@/lib/calculations'
 import { generateVyuctovaniePDF } from '@/lib/pdf'
 import type { Jazda, Vozidlo, Paliva, Settings, JazdaTyp } from '@/lib/types'
 import { TYP_LABELS, PALIVO_LABELS } from '@/lib/types'
+import { useToast } from '@/components/ui/Toast'
 
 export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, employeeName }: {
   jazda: Jazda; vozidlo: Vozidlo; paliva: Paliva; settings: Settings; employeeName: string
@@ -19,6 +20,7 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
   const [skutocnaLitrov, setSkutocnaLitrov] = useState<string>(jazda.skutocna_spotreba_litrov?.toString() || '')
   const [skutocnaCena, setSkutocnaCena] = useState<string>(jazda.skutocna_cena_phm?.toString() || '')
   const printRef = useRef<HTMLDivElement>(null)
+  const toast = useToast()
 
   const isProcessed = jazda.stav === 'spracovana'
   const activeTyp = isProcessed ? jazda.typ as JazdaTyp : typ
@@ -36,7 +38,7 @@ export default function VyuctovaniePanel({ jazda, vozidlo, paliva, settings, emp
       skutocnaLitrov ? parseFloat(skutocnaLitrov) : null,
       skutocnaCena ? parseFloat(skutocnaCena) : null,
     )
-    if (result && 'error' in result && result.error) alert(result.error)
+    if (result && 'error' in result && result.error) toast.error(result.error)
     setLoading(false)
   }
 

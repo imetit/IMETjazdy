@@ -9,11 +9,13 @@ import type { Column, FilterDef } from '@/components/ui/DataTable'
 import StatusBadge from '@/components/StatusBadge'
 import type { Jazda, JazdaStav } from '@/lib/types'
 import { batchProcessJazdy, batchRejectJazdy } from '@/actions/jazdy-batch'
+import { useToast } from '@/components/ui/Toast'
 
 type JazdaRow = Jazda & { profile: { full_name: string } }
 
 export default function AdminJazdyTable({ jazdy: initialJazdy }: { jazdy: JazdaRow[] }) {
   const router = useRouter()
+  const toast = useToast()
   const { data } = useSWR<{ data: JazdaRow[] }>('/api/admin/jazdy', { fallbackData: { data: initialJazdy } })
   const jazdy = data?.data || initialJazdy
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -47,7 +49,7 @@ export default function AdminJazdyTable({ jazdy: initialJazdy }: { jazdy: JazdaR
       globalMutate('/api/admin/jazdy')
       router.refresh()
     } catch {
-      alert('Chyba pri hromadnom spracovaní')
+      toast.error('Chyba pri hromadnom spracovaní')
     } finally {
       setLoading(false)
     }
@@ -64,7 +66,7 @@ export default function AdminJazdyTable({ jazdy: initialJazdy }: { jazdy: JazdaR
       globalMutate('/api/admin/jazdy')
       router.refresh()
     } catch {
-      alert('Chyba pri hromadnom vrátení')
+      toast.error('Chyba pri hromadnom vrátení')
     } finally {
       setLoading(false)
     }

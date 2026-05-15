@@ -14,6 +14,7 @@ import {
   sendForApproval, approveFaktura, rejectFaktura,
   markForPayment, markPaid, cancelFaktura, forceStornoUhradenej,
 } from '@/actions/faktury'
+import { useToast } from '@/components/ui/Toast'
 
 interface DetailData {
   faktura: Faktura & { firma?: { kod: string; nazov: string; faktury_workflow: FakturyWorkflowConfig }; dodavatel?: { nazov: string; ico: string | null }; vozidlo?: { spz: string; znacka: string; model: string }; cesta?: { cislo: string; ucel: string }; nahral?: { full_name: string }; schvalil_l1?: { full_name: string }; schvalil_l2?: { full_name: string }; uhradil?: { full_name: string }; bankovy_ucet?: { nazov: string; iban: string } }
@@ -24,6 +25,7 @@ interface DetailData {
 
 export default function FakturaDetailClient({ initialData, currentUserId, currentUserRole }: { initialData: DetailData; currentUserId: string; currentUserRole: string }) {
   const router = useRouter()
+  const toast = useToast()
   const { data } = useSWR<DetailData>(`/api/admin/faktury/${initialData.faktura.id}`, { fallbackData: initialData })
   const detail = data || initialData
   const f = detail.faktura
@@ -53,7 +55,7 @@ export default function FakturaDetailClient({ initialData, currentUserId, curren
   function runAction(action: () => Promise<{ error?: string; data?: unknown }>) {
     startTransition(async () => {
       const r = await action()
-      if (r.error) { alert(r.error); return }
+      if (r.error) { toast.error(r.error); return }
       setConfirmModal(null)
       setReasonInput('')
       refresh()

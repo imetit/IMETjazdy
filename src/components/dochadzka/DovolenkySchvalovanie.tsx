@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import DataTable from '@/components/ui/DataTable'
 import type { Column, FilterDef } from '@/components/ui/DataTable'
+import { useToast } from '@/components/ui/Toast'
 
 interface Props {
   dovolenky: Dovolenka[]
@@ -26,6 +27,7 @@ export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
   const [pending, startTransition] = useTransition()
   const loading = pending
   const router = useRouter()
+  const toast = useToast()
 
   async function handleSchval(id: string) {
     // Optimistic UI — okamžite update lokálneho state-u
@@ -36,7 +38,7 @@ export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
       const result = await schvalDovolenku(id)
       if (result && 'error' in result && result.error) {
         setDovolenky(prev) // revert
-        alert(result.error)
+        toast.error(result.error)
       } else {
         globalMutate('/api/admin/dovolenky')
         router.refresh() // refresh to load auto-attendance + counts
@@ -59,7 +61,7 @@ export default function DovolenkySchvalovanie({ dovolenky: initial }: Props) {
       const result = await zamietniDovolenku(id, reason)
       if (result && 'error' in result && result.error) {
         setDovolenky(prev)
-        alert(result.error)
+        toast.error(result.error)
       } else {
         globalMutate('/api/admin/dovolenky')
         router.refresh()

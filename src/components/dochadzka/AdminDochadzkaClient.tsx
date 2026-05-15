@@ -13,6 +13,7 @@ import type { MesacnySumar } from '@/lib/dochadzka-types'
 import { getMesacneSumary, getVPraciDnes } from '@/actions/admin-dochadzka-mzdy'
 import { schvalitHodinyZamestnanca, bulkSchvalitFirmu, spustitKontrolu, uzavrietMesiac } from '@/actions/dochadzka-uzavierka'
 import { formatMinutyNaHodiny } from '@/lib/dochadzka-utils'
+import { useToast } from '@/components/ui/Toast'
 
 interface Props {
   firmy: Array<{ id: string; nazov: string; kod: string }>
@@ -24,6 +25,7 @@ interface Props {
 
 export default function AdminDochadzkaClient({ firmy, initialMesiac, uzavierky, initialSumary, initialVPraci }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const [filter, setFilter] = useState<FilterValues>({
     mesiac: initialMesiac,
     firmaIds: [],
@@ -157,8 +159,8 @@ export default function AdminDochadzkaClient({ firmy, initialMesiac, uzavierky, 
   async function handleBulkSchvalitFirmu(firmaId: string) {
     if (!confirm(`Schváliť hodiny pre celú firmu?`)) return
     const result = await bulkSchvalitFirmu(firmaId, filter.mesiac)
-    if (result && 'error' in result && result.error) alert(result.error)
-    else if (result && 'count' in result) alert(`Schválené ${result.count} zamestnancov.`)
+    if (result && 'error' in result && result.error) toast.error(result.error)
+    else if (result && 'count' in result) toast.success(`Schválené ${result.count} zamestnancov`)
     router.refresh()
   }
 

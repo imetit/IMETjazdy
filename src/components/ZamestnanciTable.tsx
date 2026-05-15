@@ -19,6 +19,7 @@ import { updateUserPozicia } from '@/actions/permissions'
 import { useRouter } from 'next/navigation'
 import type { Profile, Vozidlo, TypUvazku } from '@/lib/types'
 import { TYP_UVAZKU_LABELS } from '@/lib/types'
+import { useToast } from '@/components/ui/Toast'
 
 type Firma = { id: string; kod: string; nazov: string }
 
@@ -41,6 +42,7 @@ export default function ZamestnanciTable({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const toast = useToast()
   const [firmaFilter, setFirmaFilter] = useState<string>('')
   const [onlyActive, setOnlyActive] = useState(true)
   const router = useRouter()
@@ -134,7 +136,7 @@ export default function ZamestnanciTable({
                       const v = e.target.value.trim().toLowerCase()
                       if (!v || v === (z.email || '').toLowerCase()) { e.target.value = z.email || ''; return }
                       const res = await updateZamestnanecEmail(z.id, v)
-                      if (res && 'error' in res) { alert(res.error); e.target.value = z.email || ''; return }
+                      if (res && 'error' in res) { toast.error(res.error ?? 'Chyba'); e.target.value = z.email || ''; return }
                       refreshAll()
                     }}
                     title="Klikni pre úpravu emailu (uloží sa pri opustení poľa)"

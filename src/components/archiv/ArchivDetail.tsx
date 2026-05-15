@@ -9,6 +9,7 @@ import { TYP_DOKUMENTU_ARCHIV_LABELS, STAV_DOKUMENTU_ARCHIV_LABELS, STAV_DOKUMEN
 import { updateDokumentStav, deleteDokumentArchiv, getDocumentVersions, uploadNewVersion } from '@/actions/archiv'
 import { formatDate, formatCurrency } from '@/lib/fleet-utils'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/Toast'
 
 interface Props {
   dokument: DokumentArchiv
@@ -38,6 +39,7 @@ export default function ArchivDetail({ dokument, downloadUrl }: Props) {
   const [versionLoading, setVersionLoading] = useState(false)
   const versionFileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const toast = useToast()
 
   useEffect(() => {
     getDocumentVersions(dokument.id).then(res => {
@@ -54,7 +56,7 @@ export default function ArchivDetail({ dokument, downloadUrl }: Props) {
     const result = await uploadNewVersion(dokument.id, formData)
     setVersionLoading(false)
     if (result && 'error' in result) {
-      alert(result.error)
+      toast.error(result.error ?? 'Chyba pri nahrávaní verzie')
     } else {
       setShowVersionUpload(false)
       router.refresh()

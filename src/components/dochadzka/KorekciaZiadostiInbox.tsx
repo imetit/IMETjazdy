@@ -8,6 +8,7 @@ import DataTable from '@/components/ui/DataTable'
 import type { Column, FilterDef } from '@/components/ui/DataTable'
 import { schvalitZiadost, zamietnutZiadost } from '@/actions/dochadzka-ziadosti'
 import type { KorekciaZiadost } from '@/lib/dochadzka-types'
+import { useToast } from '@/components/ui/Toast'
 
 interface ZiadostRow extends KorekciaZiadost {
   profile?: { full_name: string; firma_id: string | null }
@@ -30,13 +31,14 @@ export default function KorekciaZiadostiInbox({ ziadosti: initial }: { ziadosti:
   const [dovod, setDovod] = useState('')
   const [, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
   function handleSchvalit(id: string) {
     const prev = ziadosti
     setZiadosti(z => z.map(x => x.id === id ? { ...x, stav: 'schvalena' } : x))
     startTransition(async () => {
       const r = await schvalitZiadost(id)
-      if (r && 'error' in r && r.error) { setZiadosti(prev); alert(r.error); return }
+      if (r && 'error' in r && r.error) { setZiadosti(prev); toast.error(r.error); return }
       router.refresh()
     })
   }
@@ -50,7 +52,7 @@ export default function KorekciaZiadostiInbox({ ziadosti: initial }: { ziadosti:
     setZamietId(null); setDovod('')
     startTransition(async () => {
       const r = await zamietnutZiadost(id, reason)
-      if (r && 'error' in r && r.error) { setZiadosti(prev); alert(r.error); return }
+      if (r && 'error' in r && r.error) { setZiadosti(prev); toast.error(r.error); return }
       router.refresh()
     })
   }

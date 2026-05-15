@@ -6,6 +6,7 @@ import { updateZamestnanecVozidlo, updateZamestnanecNadriadeny, updateZamestnane
 import { updateUserPozicia } from '@/actions/permissions'
 import { useRouter } from 'next/navigation'
 import { TYP_UVAZKU_LABELS, type TypUvazku } from '@/lib/types'
+import { useToast } from '@/components/ui/Toast'
 
 interface Props {
   userId: string
@@ -42,6 +43,7 @@ export default function ZamestnanecSettingsSection({
   const dennyFond = (tyzdnovyFond / pracovneDni).toFixed(2)
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const toast = useToast()
   const router = useRouter()
 
   async function save(field: string, fn: () => Promise<any>) {
@@ -294,8 +296,8 @@ export default function ZamestnanecSettingsSection({
                 if (!confirm('Vygenerovať nový náhodný PIN? Zamestnanec dostane in-app notifikáciu.')) return
                 const { resetPin } = await import('@/actions/pin-reset')
                 const r = await resetPin(userId)
-                if (r.error) { alert(r.error); return }
-                if (r.pin) { setPin(r.pin); alert(`Nový PIN: ${r.pin}\n\nZamestnanec bol notifikovaný v aplikácii.`) }
+                if (r.error) { toast.error(r.error); return }
+                if (r.pin) { setPin(r.pin); toast.success(`Nový PIN: ${r.pin}. Zamestnanec bol notifikovaný v aplikácii.`) }
               }}
               className="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
               title="Vygenerovať náhodný PIN"

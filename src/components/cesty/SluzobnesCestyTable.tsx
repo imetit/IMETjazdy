@@ -11,6 +11,7 @@ import { formatDate } from '@/lib/fleet-utils'
 import { useRouter } from 'next/navigation'
 import DataTable from '@/components/ui/DataTable'
 import type { Column, FilterDef } from '@/components/ui/DataTable'
+import { useToast } from '@/components/ui/Toast'
 
 interface Props {
   cesty: SluzobnasCesta[]
@@ -20,6 +21,7 @@ export default function SluzobnesCestyTable({ cesty: initial }: Props) {
   const [cesty, setCesty] = useState<SluzobnasCesta[]>(initial)
   const [loading, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
   async function handleSchval(id: string) {
     const prev = cesty
@@ -28,7 +30,7 @@ export default function SluzobnesCestyTable({ cesty: initial }: Props) {
       const result = await schvalCestu(id)
       if (result && 'error' in result && result.error) {
         setCesty(prev)
-        alert(result.error)
+        toast.error(result.error)
       } else {
         router.refresh()
       }
@@ -42,7 +44,7 @@ export default function SluzobnesCestyTable({ cesty: initial }: Props) {
       const result = await zamietniCestu(id)
       if (result && 'error' in result && result.error) {
         setCesty(prev)
-        alert(result.error)
+        toast.error(result.error)
       } else {
         router.refresh()
       }
