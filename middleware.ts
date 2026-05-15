@@ -142,11 +142,18 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Verejne dostupné cesty (homepage, legal, login) — neprihláseného nepresmerovať
+  // Verejne dostupné cesty (homepage, legal, login, health, OG, well-known)
   const PUBLIC_PATHS = ['/', '/login', '/privacy', '/terms', '/security']
+  const isPublicPath =
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname === '/api/health' ||
+    pathname.startsWith('/.well-known/') ||
+    pathname.startsWith('/opengraph-image') ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/robots.txt'
 
   if (!user) {
-    if (!PUBLIC_PATHS.includes(pathname)) {
+    if (!isPublicPath) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       const r = NextResponse.redirect(url)
