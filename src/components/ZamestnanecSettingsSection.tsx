@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, Key, Car, UserCheck, Clock, Briefcase, Users, Building2, Building, Calendar } from 'lucide-react'
+import { Settings, Key, Car, UserCheck, Clock, Briefcase, Users, Building2, Building, Calendar, AlertTriangle, Copy } from 'lucide-react'
+import Modal from '@/components/Modal'
 import { updateZamestnanecVozidlo, updateZamestnanecNadriadeny, updateZamestnanecPin, updateZamestnanecFond, resetZamestnanecPassword, updateZamestnanecTypUvazku, updateZamestnanecZastupuje, updateZamestnanecFirma, updateZamestnanecDatumNastupu } from '@/actions/zamestnanci'
 import { updateUserPozicia } from '@/actions/permissions'
 import { useRouter } from 'next/navigation'
@@ -43,6 +44,7 @@ export default function ZamestnanecSettingsSection({
   const dennyFond = (tyzdnovyFond / pracovneDni).toFixed(2)
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [newPinShow, setNewPinShow] = useState<string | null>(null)
   const toast = useToast()
   const router = useRouter()
 
@@ -76,6 +78,38 @@ export default function ZamestnanecSettingsSection({
 
   return (
     <div className="space-y-5">
+      {newPinShow && (
+        <Modal title="Nový PIN — zobrazí sa RAZ" onClose={() => setNewPinShow(null)} closeOnBackdrop={false}>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold mb-1">Bezpečnostné upozornenie</p>
+                <p>Tento PIN sa už nikdy nezobrazí. Skopíruj ho a odovzdaj zamestnancovi osobne alebo bezpečným kanálom (NIE emailom, NIE chatom v notifikáciach).</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-3 py-6 px-4 rounded-xl bg-slate-50 border border-slate-200">
+              <code className="text-5xl font-mono font-bold tracking-[0.3em] text-slate-900">{newPinShow}</code>
+              <button
+                type="button"
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(newPinShow); toast.success('PIN skopírovaný do schránky') }
+                  catch { toast.error('Schránka nedostupná — skopíruj manuálne') }
+                }}
+                aria-label="Skopírovať PIN"
+                className="p-2 rounded-lg border border-slate-300 hover:bg-white transition-colors">
+                <Copy size={18} />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNewPinShow(null)}
+              className="w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition-colors">
+              Mám zaznamenaný PIN, zavrieť
+            </button>
+          </div>
+        </Modal>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Settings size={20} className="text-primary" />
@@ -293,11 +327,14 @@ export default function ZamestnanecSettingsSection({
             </button>
             <button
               onClick={async () => {
-                if (!confirm('Vygenerovať nový náhodný PIN? Zamestnanec dostane in-app notifikáciu.')) return
+                if (!confirm('Vygenerovať nový náhodný PIN? Zamestnanec dostane in-app notifikáciu (bez PIN-u — musíš mu ho odovzdať osobne alebo bezpečným kanálom).')) return
                 const { resetPin } = await import('@/actions/pin-reset')
                 const r = await resetPin(userId)
                 if (r.error) { toast.error(r.error); return }
-                if (r.pin) { setPin(r.pin); toast.success(`Nový PIN: ${r.pin}. Zamestnanec bol notifikovaný v aplikácii.`) }
+                if (r.pin) {
+                  setPin(r.pin)
+                  setNewPinShow(r.pin)  // Otvor explicitný modal — PIN sa zobrazí RAZ a musí ho admin manuálne zatvoriť
+                }
               }}
               className="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
               title="Vygenerovať náhodný PIN"
