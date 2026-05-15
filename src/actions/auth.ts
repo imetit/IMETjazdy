@@ -20,7 +20,7 @@ export async function login(formData: FormData) {
   } else if (role === 'fleet_manager') {
     redirect('/fleet')
   } else {
-    redirect('/')
+    redirect('/moje')
   }
 }
 

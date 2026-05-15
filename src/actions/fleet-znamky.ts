@@ -1,10 +1,14 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 
 export async function getZnamky(vozidloId: string) {
   const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+
   const { data, error } = await supabase
     .from('dialnicne_znamky')
     .select('*')
@@ -16,6 +20,9 @@ export async function getZnamky(vozidloId: string) {
 }
 
 export async function createZnamka(formData: FormData) {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
   const { error } = await supabase.from('dialnicne_znamky').insert({
     vozidlo_id: formData.get('vozidlo_id') as string,
@@ -30,6 +37,9 @@ export async function createZnamka(formData: FormData) {
 }
 
 export async function deleteZnamka(id: string) {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
   const { error } = await supabase.from('dialnicne_znamky').delete().eq('id', id)
   if (error) return { error: 'Chyba pri mazaní známky' }

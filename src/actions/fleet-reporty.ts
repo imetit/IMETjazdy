@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 
 export interface VehicleCostRow {
   vozidlo_id: string
@@ -23,6 +24,9 @@ export interface DriverKmRow {
 }
 
 export async function getFleetCostReport(): Promise<{ data?: VehicleCostRow[]; error?: string }> {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
 
   const { data: vozidla } = await supabase.from('vozidla').select('id, znacka, variant, spz')
@@ -70,6 +74,9 @@ export async function getFleetCostReport(): Promise<{ data?: VehicleCostRow[]; e
 }
 
 export async function getDriverKmReport(): Promise<{ data?: DriverKmRow[]; error?: string }> {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
 
   const { data: profiles } = await supabase

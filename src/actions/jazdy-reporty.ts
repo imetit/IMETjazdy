@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export interface ZamestnanecJazdyReport {
   id: string
@@ -14,6 +15,9 @@ export interface ZamestnanecJazdyReport {
 }
 
 export async function getMesacnyJazdyReport(mesiac: string) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error, data: [] }
+
   const supabase = await createSupabaseServer()
 
   const { data: jazdy } = await supabase
@@ -54,6 +58,9 @@ export async function getMesacnyJazdyReport(mesiac: string) {
 }
 
 export async function getRocnyJazdyReport(rok: number) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error, data: [] }
+
   const supabase = await createSupabaseServer()
 
   const { data: jazdy } = await supabase

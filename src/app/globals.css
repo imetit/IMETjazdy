@@ -245,12 +245,13 @@ aside::-webkit-scrollbar-thumb:hover {
   }
 }
 
-/* Input focus */
+/* Input focus — bola tu broken CSS `ring:` property (Tailwind utility, nie CSS).
+   Nahradené box-shadow ringom + viditeľný outline transparentný (pre Safari fallback). */
 input:focus, select:focus, textarea:focus {
-  outline: none;
-  ring: 2px solid #818cf8;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgb(79 70 229 / 0.1);
+  box-shadow: 0 0 0 3px rgb(79 70 229 / 0.2);
 }
 
 /* Status badges */

@@ -2,11 +2,16 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFinOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 
 export async function createPrikaz(formData: FormData) {
+  const auth = await requireFinOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
   const cestaId = formData.get('sluzobna_cesta_id') as string
+  if (!cestaId) return { error: 'sluzobna_cesta_id chýba' }
 
   const dieta = parseFloat(formData.get('dieta_suma') as string) || 0
   const km = parseFloat(formData.get('km_nahrada') as string) || 0
@@ -29,6 +34,9 @@ export async function createPrikaz(formData: FormData) {
 }
 
 export async function updatePrikaz(id: string, formData: FormData) {
+  const auth = await requireFinOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
 
   const dieta = parseFloat(formData.get('dieta_suma') as string) || 0
@@ -50,5 +58,5 @@ export async function updatePrikaz(id: string, formData: FormData) {
   if (error) return { error: 'Chyba pri aktualizácii' }
 
   const cestaId = formData.get('sluzobna_cesta_id') as string
-  revalidatePath(`/admin/sluzobne-cesty/${cestaId}`)
+  if (cestaId) revalidatePath(`/admin/sluzobne-cesty/${cestaId}`)
 }

@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
+import { requireFleetOrAdmin } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 
 export async function getHistoriaDrzitelov(vozidloId: string) {
@@ -28,6 +29,9 @@ export async function getOdovzdavacieProtokoly(vozidloId: string) {
 }
 
 export async function createOdovzdavaciProtokol(formData: FormData) {
+  const auth = await requireFleetOrAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
   const vozidloId = formData.get('vozidlo_id') as string
   const odovzdavajuciId = formData.get('odovzdavajuci_id') as string || null

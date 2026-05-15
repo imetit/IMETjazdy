@@ -2,6 +2,7 @@
 
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { requireNadriadeny, resolveCurrentApprover } from '@/lib/auth-helpers'
+import { DovolenkaCreateSchema, parseFormData } from '@/lib/validation/schemas'
 import { revalidatePath, updateTag } from 'next/cache'
 import { isPracovnyDen } from '@/lib/dochadzka-utils'
 import { logAudit } from './audit'
@@ -26,9 +27,10 @@ export async function createDovolenka(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Neprihlásený' }
 
-  const datumOd = new Date(formData.get('datum_od') as string)
-  const datumDo = new Date(formData.get('datum_do') as string)
-  if (datumOd > datumDo) return { error: 'Dátum od musí byť pred dátumom do' }
+  // Zod validácia (datum_od ≤ datum_do invariant je v schéme cez .refine)
+  const parsed = parseFormData(DovolenkaCreateSchema, formData)
+  if (!parsed.ok) return { error: parsed.error }
+  const d = parsed.data
 
   // Aktuálny schvaľovateľ (zohľadní zastupujúceho ak je primárny na dovolenke)
   let schvalovatelId = await resolveCurrentApprover(supabase, user.id)
@@ -43,24 +45,19 @@ export async function createDovolenka(formData: FormData) {
     schvalovatelId = admin?.id || null
   }
 
-  const polDna = formData.get('pol_dna') === 'true'
-  const castDna = polDna ? (formData.get('cast_dna') as string) : null
-  const datumOdStr = formData.get('datum_od') as string
-  const datumDoStr = formData.get('datum_do') as string
-
-  if (polDna && datumOdStr !== datumDoStr) {
+  if (d.pol_dna && d.datum_od !== d.datum_do) {
     return { error: 'Pol dňa je možné iba pri žiadosti na jeden deň' }
   }
 
   const { error } = await supabase.from('dovolenky').insert({
     user_id: user.id,
-    datum_od: datumOdStr,
-    datum_do: datumDoStr,
-    typ: formData.get('typ') as string,
-    poznamka: formData.get('poznamka') as string || null,
+    datum_od: d.datum_od,
+    datum_do: d.datum_do,
+    typ: d.typ,
+    poznamka: d.poznamka ?? null,
     schvalovatel_id: schvalovatelId,
-    pol_dna: polDna,
-    cast_dna: castDna,
+    pol_dna: d.pol_dna,
+    cast_dna: d.pol_dna ? (d.cast_dna ?? null) : null,
   })
 
   if (error) return { error: 'Chyba pri vytváraní žiadosti' }
@@ -72,7 +69,7 @@ export async function createDovolenka(formData: FormData) {
       user_id: schvalovatelId,
       typ: 'dovolenka_nova',
       nadpis: 'Nová žiadosť o dovolenku',
-      sprava: `${zamestnanec?.full_name || 'Zamestnanec'} žiada o dovolenku ${formData.get('datum_od')} — ${formData.get('datum_do')}`,
+      sprava: `${zamestnanec?.full_name || 'Zamestnanec'} žiada o dovolenku ${d.datum_od} — ${d.datum_do}`,
       link: '/admin/dovolenky',
     })
   }

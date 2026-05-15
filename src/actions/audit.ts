@@ -45,6 +45,12 @@ export async function logAudit(akcia: string, tabulka?: string, zaznamId?: strin
 }
 
 export async function getAuditLog(filters?: { tabulka?: string; limit?: number }) {
+  // Audit log môžu čítať iba admin role. RLS to ošetruje, ale app-level
+  // guard zabraňuje aj náhodným call-om mimo admin UI.
+  const { requireAdmin } = await import('@/lib/auth-helpers')
+  const auth = await requireAdmin()
+  if ('error' in auth) return { error: auth.error }
+
   const supabase = await createSupabaseServer()
   let query = supabase
     .from('audit_log')

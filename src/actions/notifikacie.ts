@@ -26,8 +26,11 @@ export async function getMyNotifikacie() {
 
 export async function markNotifikaciaRead(id: string) {
   const supabase = await createSupabaseServer()
-  await supabase.from('notifikacie').update({ precitane: true }).eq('id', id)
-  revalidatePath('/')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Neprihlásený' }
+  // Ownership check — môžeš označiť ako prečítané iba svoje notif
+  await supabase.from('notifikacie').update({ precitane: true }).eq('id', id).eq('user_id', user.id)
+  revalidatePath('/moje')
 }
 
 export async function markAllRead() {
@@ -36,7 +39,7 @@ export async function markAllRead() {
   if (!user) return
 
   await supabase.from('notifikacie').update({ precitane: true }).eq('user_id', user.id).eq('precitane', false)
-  revalidatePath('/')
+  revalidatePath('/moje')
 }
 
 export async function createNotifikacia(userId: string, typ: string, nadpis: string, sprava?: string, link?: string) {
