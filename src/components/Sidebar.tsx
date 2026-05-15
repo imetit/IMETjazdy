@@ -297,14 +297,10 @@ export default function Sidebar({ profile, moduly, notifCount = 0 }: Props) {
       {/* Header */}
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-center justify-between mb-4">
-          <Link href="/" className="flex items-center gap-3 group min-w-0">
-            <div className="bg-white rounded-lg p-2 shadow-md shadow-black/40 transition-transform group-hover:scale-105 shrink-0">
-              <Image src={brand.logoSrc} alt={brand.name} width={26} height={26} priority />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-white text-base font-semibold tracking-tight leading-none truncate">{brand.name}</h1>
-              <p className="text-slate-500 text-[11px] font-medium leading-none mt-2 uppercase tracking-[0.15em]">Interný systém</p>
-            </div>
+          <Link href="/" className="flex items-center gap-2.5 group min-w-0 transition-transform group-hover:scale-[1.02]">
+            <Image src={brand.wordmarkLightSrc} alt={brand.name} width={104} height={23} priority className="shrink-0" />
+            <span className="text-slate-600 text-base shrink-0" aria-hidden>·</span>
+            <span className="text-white text-base font-semibold tracking-tight truncate">{brand.shortName}</span>
           </Link>
           <div className="flex items-center gap-1 shrink-0">
             <Link

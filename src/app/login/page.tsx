@@ -25,11 +25,10 @@ export default function LoginPage() {
 
       {/* Top: minimal back to home */}
       <header className="relative z-10 max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="bg-white rounded-lg p-1.5 shadow-lg shadow-black/40 transition-transform group-hover:scale-105">
-            <Image src={brand.logoSrc} alt={brand.name} width={24} height={24} priority />
-          </div>
-          <span className="font-semibold tracking-tight text-sm">{brand.name}</span>
+        <Link href="/" className="flex items-center gap-2.5 group transition-transform group-hover:scale-[1.02]">
+          <Image src={brand.wordmarkLightSrc} alt={brand.name} width={108} height={24} priority />
+          <span className="text-slate-600" aria-hidden>·</span>
+          <span className="font-semibold tracking-tight text-sm">{brand.shortName}</span>
         </Link>
         <Link href="/" className="text-xs text-slate-400 hover:text-white transition-colors">
           ← Späť na úvod

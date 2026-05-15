@@ -57,8 +57,8 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
         </div>
 
         <div className="mt-10 pt-6 border-t border-white/[0.06] flex items-center justify-center gap-3 text-xs text-slate-500">
-          <div className="bg-white rounded p-1"><Image src={brand.logoSrc} alt={brand.name} width={16} height={16} /></div>
-          <span>{brand.name}</span>
+          <Image src={brand.wordmarkLightSrc} alt={brand.name} width={70} height={16} className="opacity-70" />
+          <span>{brand.shortName}</span>
           <span aria-hidden>·</span>
           <a href={`mailto:${brand.supportEmail}`} className="hover:text-white transition-colors">{brand.supportEmail}</a>
         </div>
