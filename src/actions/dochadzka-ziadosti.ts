@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAuth, requireAdmin } from '@/lib/auth-helpers'
+import { requireAuth, requireScopedAdmin } from '@/lib/auth-helpers'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 import { revalidatePath, updateTag } from 'next/cache'
 import { logAudit } from './audit'
@@ -48,12 +48,14 @@ export async function vytvoritZiadost(data: {
 }
 
 export async function schvalitZiadost(ziadostId: string, poznamka_mzdarka?: string) {
-  const auth = await requireAdmin()
-  if ('error' in auth) return auth
-
+  // Najprv načítaj žiadosť (admin klient kvôli RLS) a potom over scope na user
   const admin = createSupabaseAdmin()
   const { data: z } = await admin.from('dochadzka_korekcia_ziadosti').select('*').eq('id', ziadostId).single()
   if (!z) return { error: 'Žiadosť nenájdená' }
+
+  // Closes cross-tenant breach: admin firmy A nesmie schvaľovať žiadosť z firmy B
+  const auth = await requireScopedAdmin(z.user_id)
+  if ('error' in auth) return auth
 
   // Ak je v žiadosti návrh, aplikuj korekciu cez priame DB calls
   if (z.povodny_zaznam_id && z.navrh_cas) {
@@ -105,12 +107,15 @@ export async function schvalitZiadost(ziadostId: string, poznamka_mzdarka?: stri
 }
 
 export async function zamietnutZiadost(ziadostId: string, dovod: string) {
-  const auth = await requireAdmin()
-  if ('error' in auth) return auth
   if (!dovod?.trim()) return { error: 'Dôvod je povinný' }
 
   const admin = createSupabaseAdmin()
   const { data: z } = await admin.from('dochadzka_korekcia_ziadosti').select('user_id, datum').eq('id', ziadostId).single<{ user_id: string; datum: string }>()
+  if (!z) return { error: 'Žiadosť nenájdená' }
+
+  // Cross-tenant breach close: scope check na target user
+  const auth = await requireScopedAdmin(z.user_id)
+  if ('error' in auth) return auth
 
   await admin.from('dochadzka_korekcia_ziadosti').update({
     stav: 'zamietnuta',
@@ -119,15 +124,13 @@ export async function zamietnutZiadost(ziadostId: string, dovod: string) {
     poznamka_mzdarka: dovod,
   }).eq('id', ziadostId)
 
-  if (z) {
-    await admin.from('notifikacie').insert({
-      user_id: z.user_id,
-      typ: 'dochadzka_ziadost',
-      nadpis: 'Žiadosť o korekciu zamietnutá',
-      sprava: `Vaša žiadosť ${z.datum} bola zamietnutá. Dôvod: ${dovod}`,
-      link: '/dochadzka-prehled',
-    })
-  }
+  await admin.from('notifikacie').insert({
+    user_id: z.user_id,
+    typ: 'dochadzka_ziadost',
+    nadpis: 'Žiadosť o korekciu zamietnutá',
+    sprava: `Vaša žiadosť ${z.datum} bola zamietnutá. Dôvod: ${dovod}`,
+    link: '/dochadzka-prehled',
+  })
 
   await logAudit('ziadost_zamietnuta', 'dochadzka_korekcia_ziadosti', ziadostId, { dovod })
 

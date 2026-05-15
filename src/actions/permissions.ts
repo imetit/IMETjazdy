@@ -1,16 +1,23 @@
 'use server'
 
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
-import { requireRole } from '@/lib/auth-helpers'
+import { requireRole, requireScopedAdmin } from '@/lib/auth-helpers'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import type { ModulId, PristupTyp } from '@/lib/types'
 import { logAudit } from './audit'
 
 export async function getUserModuly(userId: string) {
-  // Use admin client to bypass RLS
-  const supabase = createSupabaseAdmin()
-  const { data } = await supabase
+  // Vlastné moduly môže čítať každý prihlásený user; cudzie iba scoped admin.
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  if (user.id !== userId) {
+    const auth = await requireScopedAdmin(userId)
+    if ('error' in auth) return { data: [] }
+  }
+  const admin = createSupabaseAdmin()
+  const { data } = await admin
     .from('user_moduly')
     .select('*')
     .eq('user_id', userId)
