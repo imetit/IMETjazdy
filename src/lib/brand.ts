@@ -10,6 +10,7 @@
  *   NEXT_PUBLIC_BRAND_VENDOR="IMET, a.s."
  *   NEXT_PUBLIC_BRAND_SUPPORT_EMAIL="kontakt@imet.sk"
  *   NEXT_PUBLIC_BRAND_LOGO_SRC="/imet-logo.png"
+ *   NEXT_PUBLIC_BRAND_WORDMARK_SRC="/imet-logo.png"
  *
  * Všetky polia sú NEXT_PUBLIC_ aby boli dostupné aj v client components
  * (sú to verejné texty, nie tajomstvá).
@@ -25,8 +26,12 @@ export const brand = {
   vendor: process.env.NEXT_PUBLIC_BRAND_VENDOR || 'TatraSoft s.r.o.',
   /** Verejný kontakt — login footer, error pages, "ozvať sa". */
   supportEmail: process.env.NEXT_PUBLIC_BRAND_SUPPORT_EMAIL || 'hello@tatrasoft.sk',
-  /** Logo asset path — pre on-prem klientov ktorí chcú svoje logo. */
-  logoSrc: process.env.NEXT_PUBLIC_BRAND_LOGO_SRC || '/imet-logo.png',
+  /** Square icon path (sidebar, login, footer marks). Default = TatraSoft `}` mark. */
+  logoSrc: process.env.NEXT_PUBLIC_BRAND_LOGO_SRC || '/tatrasoft-icon.png',
+  /** Horizontal wordmark path (full-bleed light contexts). */
+  wordmarkSrc: process.env.NEXT_PUBLIC_BRAND_WORDMARK_SRC || '/tatrasoft-logo.png',
+  /** Wordmark variant pre dark pozadia (tablet kiosk, OG dark scenes). */
+  wordmarkLightSrc: process.env.NEXT_PUBLIC_BRAND_WORDMARK_LIGHT_SRC || '/tatrasoft-logo-light.png',
   /** Primárna doména produktu — sitemap, OG, canonical. */
   domain: process.env.NEXT_PUBLIC_BRAND_DOMAIN || 'tatrasoft-orbit.vercel.app',
 } as const

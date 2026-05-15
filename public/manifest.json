@@ -1,7 +1,7 @@
 {
-  "name": "IMET Dochádzka",
+  "name": "TatraSoft Orbit — Dochádzka",
   "short_name": "Dochádzka",
-  "description": "IMET dochádzka a evidencia pracovného času",
+  "description": "Dochádzka a evidencia pracovného času",
   "lang": "sk",
   "start_url": "/dochadzka?smer=prichod",
   "scope": "/dochadzka",

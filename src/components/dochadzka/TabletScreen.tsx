@@ -157,7 +157,7 @@ export default function TabletScreen({ defaultSmer, demoMode = false }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col items-center p-6 pt-6 select-none bg-slate-900 text-white">
-      <Image src={brand.logoSrc} alt={brand.name} width={120} height={120} priority className="mb-4" />
+      <Image src={brand.wordmarkLightSrc} alt={brand.name} width={280} height={70} priority className="mb-4" />
 
       <div className={`px-8 py-3 rounded-full text-2xl font-bold mb-5 ${
         isPrichod ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
