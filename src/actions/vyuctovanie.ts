@@ -13,6 +13,18 @@ export async function processJazda(
   skutocnaSpotreba?: number | null,
   skutocnaCena?: number | null,
 ) {
+  // Defense-in-depth: validate inputs
+  if (!/^[0-9a-f-]{36}$/i.test(jazdaId)) return { error: 'Neplatné jazda ID' }
+  if (!['sukromne_doma', 'sukromne_zahranicie', 'firemne_doma', 'firemne_zahranicie'].includes(typ)) {
+    return { error: 'Neplatný typ jazdy' }
+  }
+  if (skutocnaSpotreba != null && (!Number.isFinite(skutocnaSpotreba) || skutocnaSpotreba < 0 || skutocnaSpotreba > 1000)) {
+    return { error: 'Neplatná skutočná spotreba (0–1000 l)' }
+  }
+  if (skutocnaCena != null && (!Number.isFinite(skutocnaCena) || skutocnaCena < 0 || skutocnaCena > 100000)) {
+    return { error: 'Neplatná skutočná cena (0–100 000 €)' }
+  }
+
   const auth = await requireAdmin()
   if ('error' in auth) return auth
 
@@ -46,7 +58,7 @@ export async function processJazda(
   revalidatePath('/admin/jazdy')
   revalidatePath(`/admin/jazdy/${jazdaId}`)
   revalidatePath('/moje-jazdy')
-  revalidatePath('/')
+  revalidatePath('/moje')
   return { success: true, cislo_dokladu }
 }
 
