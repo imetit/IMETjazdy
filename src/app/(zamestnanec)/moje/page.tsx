@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { PlusCircle, Car, Clock, Calendar, TrendingUp, FileText } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
+import EmptyState from '@/components/ui/EmptyState'
 import { PALIVO_LABELS } from '@/lib/types'
 import ModuleHelp from '@/components/ModuleHelp'
 import type { Jazda, Vozidlo, JazdaStav } from '@/lib/types'
@@ -149,27 +150,35 @@ export default async function DashboardPage() {
           <h3 className="text-base font-semibold text-gray-900">Posledné jazdy</h3>
           <Link href="/moje-jazdy" className="text-xs text-primary hover:underline">Všetky jazdy</Link>
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead><tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Mesiac</th>
-            <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">KM</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Stav</th>
-            <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Celkom</th>
-          </tr></thead>
-          <tbody>
-            {allJazdy.length === 0 && <tr><td colSpan={4} className="text-center py-12 text-gray-400">Zatiaľ žiadne jazdy.</td></tr>}
-            {allJazdy.map((j) => (
-              <tr key={j.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 text-sm text-gray-600">{j.mesiac}</td>
-                <td className="px-4 py-3 text-sm text-gray-900 text-right hidden sm:table-cell">{j.km}</td>
-                <td className="px-4 py-3"><StatusBadge stav={j.stav as JazdaStav} /></td>
-                <td className="px-4 py-3 text-sm font-semibold text-primary text-right">{j.naklady_celkom ? `${Number(j.naklady_celkom).toFixed(2)} €` : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+        {allJazdy.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            label="Zatiaľ žiadne jazdy"
+            hint="Vašu prvú jazdu vytvoríte cez tlačidlo Nová jazda."
+            cta={{ href: '/nova-jazda', label: '+ Nová jazda' }}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Mesiac</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">KM</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Stav</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Celkom</th>
+              </tr></thead>
+              <tbody>
+                {allJazdy.map((j) => (
+                  <tr key={j.id} className="border-b border-gray-100">
+                    <td className="px-4 py-3 text-sm text-gray-600">{j.mesiac}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 text-right hidden sm:table-cell">{j.km}</td>
+                    <td className="px-4 py-3"><StatusBadge stav={j.stav as JazdaStav} /></td>
+                    <td className="px-4 py-3 text-sm font-semibold text-primary text-right">{j.naklady_celkom ? `${Number(j.naklady_celkom).toFixed(2)} €` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )
