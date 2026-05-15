@@ -3,6 +3,7 @@
 
 import { requireAdmin } from '@/lib/auth-helpers'
 import { validateUpload } from '@/lib/upload-validator'
+import { ArchivDokumentMetaSchema, parseFormData } from '@/lib/validation/schemas'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from './audit'
 
@@ -50,6 +51,11 @@ export async function uploadDokumentArchiv(formData: FormData) {
   const v = validateUpload(file, { category: 'any', maxSizeMb: 25 })
   if (!v.ok) return { error: v.error }
 
+  // Zod validuje metadata polia (nazov min 2 znaky, suma finite ≤10M, dates)
+  const meta = parseFormData(ArchivDokumentMetaSchema, formData)
+  if (!meta.ok) return { error: meta.error }
+  const m = meta.data
+
   // Upload file to storage
   const now = new Date()
   const path = `archiv/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${v.safePath}`
@@ -60,32 +66,32 @@ export async function uploadDokumentArchiv(formData: FormData) {
 
   if (uploadError) return { error: 'Chyba pri nahrávaní súboru' }
 
-  // Create DB record
-  const tagy = (formData.get('tagy') as string || '').split(',').map(t => t.trim()).filter(Boolean)
+  // Tagy split + trim na DB array
+  const tagy = (m.tagy || '').split(',').map(t => t.trim()).filter(Boolean)
 
   const { data: dokument, error } = await auth.supabase.from('dokumenty_archiv').insert({
-    nazov: formData.get('nazov') as string,
-    typ: formData.get('typ') as string,
+    nazov: m.nazov,
+    typ: m.typ,
     file_path: path,
     file_size: file.size,
     mime_type: file.type,
-    popis: formData.get('popis') as string || null,
+    popis: m.popis ?? null,
     tagy: tagy.length > 0 ? tagy : null,
-    oddelenie: formData.get('oddelenie') as string || null,
+    oddelenie: m.oddelenie ?? null,
     nahral_id: auth.user.id,
-    suma: formData.get('suma') ? parseFloat(formData.get('suma') as string) : null,
-    datum_splatnosti: formData.get('datum_splatnosti') as string || null,
-    dodavatel: formData.get('dodavatel') as string || null,
-    cislo_faktury: formData.get('cislo_faktury') as string || null,
-    kategoria_id: formData.get('kategoria_id') as string || null,
-    platnost_do: formData.get('platnost_do') as string || null,
+    suma: m.suma ?? null,
+    datum_splatnosti: m.datum_splatnosti ?? null,
+    dodavatel: m.dodavatel ?? null,
+    cislo_faktury: m.cislo_faktury ?? null,
+    kategoria_id: m.kategoria_id ?? null,
+    platnost_do: m.platnost_do ?? null,
   }).select('id').single()
 
   if (error) return { error: 'Chyba pri ukladaní dokumentu' }
 
   await logAudit('upload_dokumentu', 'dokumenty_archiv', dokument?.id, {
-    nazov: formData.get('nazov'),
-    typ: formData.get('typ'),
+    nazov: m.nazov,
+    typ: m.typ,
   })
 
   revalidatePath('/admin/archiv')

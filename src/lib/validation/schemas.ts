@@ -138,6 +138,20 @@ export const CestaCreateSchema = z.object({
   mena: MenaEnum.optional().default('EUR'),
 }).refine(d => d.datum_od <= d.datum_do, { message: 'datum_od musí byť ≤ datum_do', path: ['datum_do'] })
 
+export const ArchivDokumentMetaSchema = z.object({
+  nazov: z.string().trim().min(2).max(200),
+  typ: z.string().trim().min(1).max(50),
+  popis: z.string().max(2000).optional().nullable(),
+  oddelenie: z.string().max(100).optional().nullable(),
+  suma: z.coerce.number().nonnegative().finite().max(10_000_000).optional().nullable(),
+  datum_splatnosti: dateSchema.optional().nullable(),
+  dodavatel: z.string().max(200).optional().nullable(),
+  cislo_faktury: z.string().max(50).optional().nullable(),
+  kategoria_id: uuidSchema.optional().nullable(),
+  platnost_do: dateSchema.optional().nullable(),
+  tagy: z.string().max(500).optional().nullable(),
+})
+
 export const DodavatelCreateSchema = z.object({
   nazov: z.string().trim().min(2).max(200),
   ico: icoSchema.optional().nullable(),
