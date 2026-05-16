@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@sentry/nextjs": "^10.53.1",
-    "@supabase/ssr": "^0.10.0",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.102.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jszip": "^3.4.0",
